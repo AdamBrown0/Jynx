@@ -1,0 +1,70 @@
+// jynx : .jx : unique
+
+// include or import
+// include for stdlib, import for non stdlib
+include io::print;
+
+import myLib::wenimechuinsuma;
+
+
+class MyClass {
+
+    public static int myInt;
+    private string myString;
+
+    MyClass() {
+	myInt = 69;
+	myString = "Hello World";
+    }
+
+    MyClass(int i, string s) {
+	myInt = i;
+	myString = s;
+    }
+
+    void foo() {
+	print("This is on one line, no newline char");
+	println("This adds newline char");
+	print("This allows to print non string stuff like %{myString}, and %{myInt + 1}"); // format
+    }
+
+    int bar(int i) {
+	myInt = i;
+	i // have this return last variable mentioned in function like groovy? rust (based language)
+    }
+
+    void ptr(int *i) {
+	print("This returns no value, but updates the value stored at pointer");
+	i = 2; // this makes whatever passed in to function now 2
+    }
+
+    void print_multiline_str(void) {
+    	print("""
+		Hello, World!
+		Hello Pookies <3
+		Line 5
+    	"""); // figure this out, could be difficult since indent issues but womp womp
+    }
+
+    int factorial(int i) {
+    	if (i == 1) 
+    		return 1;
+
+    	return i + factorial(i - 1);
+    }
+
+}
+
+class Main {
+	int main(int argc, char** argv) {
+		MyClass mc = new MyClass();
+		mc.foo();
+		println(mc.bar(69419));
+		int i = 100;
+		print(i); // could enforce string idk
+		println(" : " + ptr(i));
+		mc.print_multiline_str();
+		print(factorial(100));
+		0
+	}
+}
