@@ -29,6 +29,7 @@ typedef struct TOKEN_STRUCT {
     TOKEN_MULTIPLY,
     TOKEN_LSHIFT,
     TOKEN_RSHIFT,
+    TOKEN_COMMENT,
     TOKEN_EOF,
   } type;
   int position;

@@ -44,9 +44,11 @@ int main(const int argc, char** argv) {
   if (argc != 2)
     print_usage(argv);
 
-  lexer_t* lexer = init_lexer(argv[1]);
+  Infile = fopen(argv[1], "r");
 
   char* contents = file_contents(Infile);
+
+  lexer_t* lexer = init_lexer(contents);
 
   if (contents) {
     printf("Contents of %s:\n----\n%s\n----\n", argv[1], contents);

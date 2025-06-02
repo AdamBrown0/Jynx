@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lexer.h"
-#include "macros.h"
-#include "token.h"
+#include "../include/lexer.h"
+#include "../include/macros.h"
+#include "../include/token.h"
 
 lexer_t* init_lexer(char* src) {
   lexer_t* lexer = calloc(1, sizeof(struct LEXER_STRUCT));
@@ -48,9 +48,16 @@ void* safe_realloc(void* value, const size_t size) {
   return ret;
 }
 
+char* strcat_and_realloc(char* dest, const char* src) {
+  size_t new_len = strlen(dest) + strlen(src) + 1;
+  dest = safe_realloc(dest, new_len);
+  strcat(dest, src);
+  return dest;
+}
+
 token_t* lexer_parse_id(lexer_t* lexer) {
   char* value = calloc(1, sizeof(char));
-  while (isalpha(lexer->current)) {
+  while (isalpha(lexer->current) || lexer->current == '_') {
     value = safe_realloc(value, (strlen(value) + 2) * sizeof(char));
     strcat(value, (char[]){lexer->current, 0});
     lexer_advance(lexer);
@@ -70,15 +77,44 @@ token_t* lexer_parse_int(lexer_t* lexer) {
   return init_token(value, TOKEN_INT);
 }
 
-token_t* lexer_next_token(lexer_t* lexer) {
-  while (lexer->current != EOF) {
-    if (isalnum(lexer->current))
-      return lexer_advance_with(lexer, lexer_parse_id(lexer));
+token_t* lexer_parse_string(lexer_t* lexer) {
+  lexer_advance(lexer); // skip first quote marks
+
+  char* value = calloc(1, sizeof(char));
+
+  char c;
+  while ((c = lexer->current) != '"' && c != '\0') {
+    // check for escape sequences
+    if (c == '\\') {
+      lexer_advance(lexer);
+      switch (c) {
+        case 'n': value = strcat_and_realloc(value, "\n"); break;
+        case 'r': value = strcat_and_realloc(value, "\r"); break;
+        case 't': value = strcat_and_realloc(value, "\t"); break;
+        case '"': value = strcat_and_realloc(value, "\""); break;
+        case '\\': value = strcat_and_realloc(value, "\\"); break;
+        default: value = strcat_and_realloc(value, (char[]){c, 0}); break;
+      }
+    } else { // regular character
+      value = strcat_and_realloc(value, (char[]){c, 0});
+    }
+    lexer_advance(lexer);
   }
+
+  if (c != '"') { // probably replace with proper error handler
+    fprintf(stderr, "Unterminated string literal\n");
+    exit(1);
+  }
+
+  return init_token(value, TOKEN_STRING);
+}
+
+token_t* lexer_next_token(lexer_t* lexer) {
+  lexer_skip_whitespace(lexer);
 
   char c;
   switch ((c = lexer->current)) {
-    case '=': return init_token("=", TOKEN_EQUALS);
+    case '=': return lexer_advance_with(lexer, init_token("=", TOKEN_EQUALS));
     case '(': return init_token("(", TOKEN_LPAREN);
     case ')': return init_token(")", TOKEN_RPAREN);
     case '{': return init_token("{", TOKEN_LBRACE);
@@ -101,10 +137,18 @@ token_t* lexer_next_token(lexer_t* lexer) {
       if (lexer_peek_next(lexer) == '>') return init_token("->", TOKEN_ARROW_RIGHT);
       return init_token("-", TOKEN_MINUS);
     }
-    case isdigit(c): return lexer_parse_int(lexer);
-    // case '': return init_token("", TOKEN_);
-    // case '': return init_token("", TOKEN_);
-    default: break;
+    case ';': return lexer_advance_with(lexer, init_token(";", TOKEN_SEMICOLON));
+    case '+': return init_token("+", TOKEN_PLUS);
+    case '*': return init_token("*", TOKEN_MULTIPLY);
+    case '/': {
+      if (lexer_peek_next(lexer) == '/') return init_token("//", TOKEN_COMMENT);
+      return init_token("/", TOKEN_DIVIDE);
+    }
+    case '"': return lexer_parse_string(lexer);
+    default: {
+      if (isalpha(c) || c == '_') return lexer_parse_id(lexer);
+      if (isdigit(c)) return lexer_parse_int(lexer);
+    }
   }
 
   return init_token(0, TOKEN_EOF);

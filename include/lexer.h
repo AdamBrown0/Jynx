@@ -2,6 +2,8 @@
 #define LEXER_H
 #include <stddef.h>
 
+#include "token.h"
+
 typedef struct LEXER_STRUCT {
   char* src;
   size_t src_size;
@@ -10,5 +12,7 @@ typedef struct LEXER_STRUCT {
 } lexer_t;
 
 lexer_t* init_lexer(char* src);
+
+token_t* lexer_next_token(lexer_t* lexer);
 
 #endif // LEXER_H
