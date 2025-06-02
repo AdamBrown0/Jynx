@@ -7,6 +7,9 @@
 #include "../include/macros.h"
 #include "../include/token.h"
 
+/// Initialise lexer
+/// @param src Source for lexer
+/// @return Lexer
 lexer_t* init_lexer(char* src) {
   lexer_t* lexer = calloc(1, sizeof(struct LEXER_STRUCT));
   lexer->src = src;
@@ -16,6 +19,8 @@ lexer_t* init_lexer(char* src) {
   return lexer;
 }
 
+/// Advance to the next index in lexer
+/// @param lexer Lexer to advance
 void lexer_advance(lexer_t* lexer) {
   if (!(lexer->index < lexer->src_size && lexer->current != '\0')) {
     fprintf(stderr, "Out of source file");
@@ -24,14 +29,28 @@ void lexer_advance(lexer_t* lexer) {
   lexer->current = lexer->src[lexer->index];
 }
 
+/// Peek the character at an offset from current position, this doesn't modify the lexer
+/// @param lexer Lexer to peek
+/// @param offset Offset to peek at
+/// @return Character at offset in lexer
 char lexer_peek(const lexer_t* lexer, const int offset) { return lexer->src[MIN(lexer->index + offset, lexer->src_size)]; }
+
+/// Peek the next character, this doesn't modify the lexer
+/// @param lexer Lexer to peek
+/// @return Next character in lexer
 char lexer_peek_next(const lexer_t* lexer) { return lexer_peek(lexer, 1); }
 
+/// Advance to the next index in lexer, returning token
+/// @param lexer Lexer to peek
+/// @param token Token to return
+/// @return Token
 token_t* lexer_advance_with(lexer_t* lexer, token_t* token) {
   lexer_advance(lexer);
   return token;
 }
 
+/// Skip whitespace in lexer
+/// @param lexer Lexer
 void lexer_skip_whitespace(lexer_t* lexer) {
   while (' ' == lexer->current || '\t' == lexer->current || '\n' == lexer->current || '\r' == lexer->current ||
          '\f' == lexer->current) {
@@ -55,6 +74,9 @@ char* strcat_and_realloc(char* dest, const char* src) {
   return dest;
 }
 
+/// Parse identifiers in lexer
+/// @param lexer Lexer to parse
+/// @return Identifier token
 token_t* lexer_parse_id(lexer_t* lexer) {
   char* value = calloc(1, sizeof(char));
   while (isalpha(lexer->current) || lexer->current == '_') {
@@ -65,8 +87,10 @@ token_t* lexer_parse_id(lexer_t* lexer) {
   return init_token(value, TOKEN_ID);
 }
 
+/// Parse integers in lexer
+/// @param lexer Lexer to parse
+/// @return Integer token
 token_t* lexer_parse_int(lexer_t* lexer) {
-
   char* value = calloc(1, sizeof(char));
   while (isdigit(lexer->current)) {
     value = safe_realloc(value, (strlen(value) + 2) * sizeof(char));
@@ -77,6 +101,9 @@ token_t* lexer_parse_int(lexer_t* lexer) {
   return init_token(value, TOKEN_INT);
 }
 
+/// Parse strings in lexer
+/// @param lexer Lexer to parse
+/// @return String token
 token_t* lexer_parse_string(lexer_t* lexer) {
   lexer_advance(lexer); // skip first quote marks
 
@@ -109,6 +136,9 @@ token_t* lexer_parse_string(lexer_t* lexer) {
   return init_token(value, TOKEN_STRING);
 }
 
+/// Lex next token
+/// @param lexer Lexer
+/// @return Next token, type TOKEN_EOF at end of lexer->src
 token_t* lexer_next_token(lexer_t* lexer) {
   lexer_skip_whitespace(lexer);
 
