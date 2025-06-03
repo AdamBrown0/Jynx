@@ -7,6 +7,10 @@
 #include "../include/macros.h"
 #include "../include/token.h"
 
+void lexer_print(const lexer_t* lexer) {
+  fprintf(stderr, "src: %s, size: %zu, index: %d, current: %c\n", lexer->src, lexer->src_size, lexer->index, lexer->current);
+}
+
 /// Initialise lexer
 /// @param src Source for lexer
 /// @return Lexer
@@ -23,7 +27,7 @@ lexer_t* init_lexer(char* src) {
 /// @param lexer Lexer to advance
 void lexer_advance(lexer_t* lexer) {
   if (!(lexer->index < lexer->src_size && lexer->current != '\0')) {
-    fprintf(stderr, "Out of source file");
+    fprintf(stderr, "Out of source file, current: %c, (index, size): (%d, %zu)\n", lexer->current, lexer->index, lexer->src_size);
   }
   lexer->index++;
   lexer->current = lexer->src[lexer->index];
@@ -129,7 +133,7 @@ token_t* lexer_parse_string(lexer_t* lexer) {
   }
 
   if (c != '"') { // probably replace with proper error handler
-    fprintf(stderr, "Unterminated string literal\n");
+    fprintf(stderr, "Unterminated string literal, current %c\n", c);
     exit(1);
   }
 
@@ -145,39 +149,42 @@ token_t* lexer_next_token(lexer_t* lexer) {
   char c;
   switch ((c = lexer->current)) {
     case '=': return lexer_advance_with(lexer, init_token("=", TOKEN_EQUALS));
-    case '(': return init_token("(", TOKEN_LPAREN);
-    case ')': return init_token(")", TOKEN_RPAREN);
-    case '{': return init_token("{", TOKEN_LBRACE);
-    case '}': return init_token("}", TOKEN_RBRACE);
-    case '[': return init_token("[", TOKEN_LBRACKET);
-    case ']': return init_token("]", TOKEN_RBRACKET);
-    case ':': return init_token(":", TOKEN_COLON);
-    case ',': return init_token(",", TOKEN_COMMA);
+    case '(': return lexer_advance_with(lexer, init_token("(", TOKEN_LPAREN));
+    case ')': return lexer_advance_with(lexer, init_token(")", TOKEN_RPAREN));
+    case '{': return lexer_advance_with(lexer, init_token("{", TOKEN_LBRACE));
+    case '}': return lexer_advance_with(lexer, init_token("}", TOKEN_RBRACE));
+    case '[': return lexer_advance_with(lexer, init_token("[", TOKEN_LBRACKET));
+    case ']': return lexer_advance_with(lexer, init_token("]", TOKEN_RBRACKET));
+    case ':': return lexer_advance_with(lexer, init_token(":", TOKEN_COLON));
+    case ',': return lexer_advance_with(lexer, init_token(",", TOKEN_COMMA));
     case '<': {
-      if (lexer_peek_next(lexer) == '=') return init_token("<=", TOKEN_LEQ);
-      if (lexer_peek_next(lexer) == '<') return init_token("<<", TOKEN_LSHIFT);
-      return init_token("<", TOKEN_LT);
+      if (lexer_peek_next(lexer) == '=') {
+        lexer_advance(lexer);
+        return lexer_advance_with(lexer, init_token("<=", TOKEN_LEQ));
+      }
+      if (lexer_peek_next(lexer) == '<') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token("<<", TOKEN_LSHIFT)));
+      return lexer_advance_with(lexer, init_token("<", TOKEN_LT));
     }
     case '>': {
-      if (lexer_peek_next(lexer) == '=') return init_token(">=", TOKEN_GEQ);
-      if (lexer_peek_next(lexer) == '>') return init_token(">>", TOKEN_RSHIFT);
-      return init_token(">", TOKEN_GT);
+      if (lexer_peek_next(lexer) == '=') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token(">=", TOKEN_GEQ)));
+      if (lexer_peek_next(lexer) == '>') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token(">>", TOKEN_RSHIFT)));
+      return lexer_advance_with(lexer, init_token(">", TOKEN_GT));
     }
     case '-': {
-      if (lexer_peek_next(lexer) == '>') return init_token("->", TOKEN_ARROW_RIGHT);
-      return init_token("-", TOKEN_MINUS);
+      if (lexer_peek_next(lexer) == '>') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token("->", TOKEN_ARROW_RIGHT)));
+      return lexer_advance_with(lexer, init_token("-", TOKEN_MINUS));
     }
     case ';': return lexer_advance_with(lexer, init_token(";", TOKEN_SEMICOLON));
-    case '+': return init_token("+", TOKEN_PLUS);
-    case '*': return init_token("*", TOKEN_MULTIPLY);
+    case '+': return lexer_advance_with(lexer, init_token("+", TOKEN_PLUS));
+    case '*': return lexer_advance_with(lexer, init_token("*", TOKEN_MULTIPLY));
     case '/': {
-      if (lexer_peek_next(lexer) == '/') return init_token("//", TOKEN_COMMENT);
-      return init_token("/", TOKEN_DIVIDE);
+      if (lexer_peek_next(lexer) == '/') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token("//", TOKEN_COMMENT)));
+      return lexer_advance_with(lexer, init_token("/", TOKEN_DIVIDE));
     }
-    case '"': return lexer_parse_string(lexer);
+    case '"': return lexer_advance_with(lexer, lexer_parse_string(lexer));
     default: {
-      if (isalpha(c) || c == '_') return lexer_parse_id(lexer);
-      if (isdigit(c)) return lexer_parse_int(lexer);
+      if (isalpha(c) || c == '_') return lexer_advance_with(lexer, lexer_parse_id(lexer));
+      if (isdigit(c)) return lexer_advance_with(lexer, lexer_parse_int(lexer));
     }
   }
 

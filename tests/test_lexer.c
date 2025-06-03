@@ -25,36 +25,36 @@ typedef struct {
   const char* expected_value;
 } lexer_test_case_t;
 
-lexer_test_case_t tests[] = {
-  {"foo", TOKEN_ID, "foo"},
-  {"=", TOKEN_EQUALS, "="},
-  {"(", TOKEN_LPAREN, "("},
-  {")", TOKEN_RPAREN, ")"},
-  {"{", TOKEN_LBRACE, "{"},
-  {"}", TOKEN_RBRACE, "}"},
-  {"[", TOKEN_LBRACKET, "["},
-  {"]", TOKEN_RBRACKET, "]"},
-  {":", TOKEN_COLON, ":"},
-  {",", TOKEN_COMMA, ","},
-  {"<", TOKEN_LT, "<"},
-  {">", TOKEN_GT, ">"},
-  {"<=", TOKEN_LEQ, "<="},
-  {">=", TOKEN_GEQ, ">="},
-  {"->", TOKEN_ARROW_RIGHT, "->"},
-  {"123", TOKEN_INT, "123"},
-  {"\"hello\"", TOKEN_STRING, "hello"},
-  {";", TOKEN_SEMICOLON, ";"},
-  {"+", TOKEN_PLUS, "+"},
-  {"-", TOKEN_MINUS, "-"},
-  {"/", TOKEN_DIVIDE, "/"},
-  {"*", TOKEN_MULTIPLY, "*"},
-  {"<<", TOKEN_LSHIFT, "<<"},
-  {">>", TOKEN_RSHIFT, ">>"},
-  {"// comment", TOKEN_COMMENT, "//"},
-  {"", TOKEN_EOF, NULL}
-};
-
 void test_each_type() {
+  lexer_test_case_t tests[] = {
+    {"foo", TOKEN_ID, "foo"},
+    {"=", TOKEN_EQUALS, "="},
+    {"(", TOKEN_LPAREN, "("},
+    {")", TOKEN_RPAREN, ")"},
+    {"{", TOKEN_LBRACE, "{"},
+    {"}", TOKEN_RBRACE, "}"},
+    {"[", TOKEN_LBRACKET, "["},
+    {"]", TOKEN_RBRACKET, "]"},
+    {":", TOKEN_COLON, ":"},
+    {",", TOKEN_COMMA, ","},
+    {"<", TOKEN_LT, "<"},
+    {">", TOKEN_GT, ">"},
+    {"<=", TOKEN_LEQ, "<="},
+    {">=", TOKEN_GEQ, ">="},
+    {"->", TOKEN_ARROW_RIGHT, "->"},
+    {"123", TOKEN_INT, "123"},
+    {"\"hello\"", TOKEN_STRING, "hello"},
+    {";", TOKEN_SEMICOLON, ";"},
+    {"+", TOKEN_PLUS, "+"},
+    {"-", TOKEN_MINUS, "-"},
+    {"/", TOKEN_DIVIDE, "/"},
+    {"*", TOKEN_MULTIPLY, "*"},
+    {"<<", TOKEN_LSHIFT, "<<"},
+    {">>", TOKEN_RSHIFT, ">>"},
+    {"// comment", TOKEN_COMMENT, "//"},
+    {"", TOKEN_EOF, NULL}
+  };
+
   size_t n = sizeof(tests) / sizeof(tests[0]);
   printf("Testing all types, count: %zu\n", n);
   for (size_t i = 0; i < n; i++) {
@@ -72,6 +72,63 @@ void test_each_type() {
     free(token);
     free(lexer);
   }
+}
+
+void test_long_string() {
+  const char* source =
+    "foo = ( ) { } [ ] : , < > <= >= -> 123 \"hello\" ; + - / * << >> //";
+
+  lexer_test_case_t expected[] = {
+    {"", TOKEN_ID, "foo"},
+    {"", TOKEN_EQUALS, "="},
+    {"", TOKEN_LPAREN, "("},
+    {"", TOKEN_RPAREN, ")"},
+    {"", TOKEN_LBRACE, "{"},
+    {"", TOKEN_RBRACE, "}"},
+    {"", TOKEN_LBRACKET, "["},
+    {"", TOKEN_RBRACKET, "]"},
+    {"", TOKEN_COLON, ":"},
+    {"", TOKEN_COMMA, ","},
+    {"", TOKEN_LT, "<"},
+    {"", TOKEN_GT, ">"},
+    {"", TOKEN_LEQ, "<="},
+    {"", TOKEN_GEQ, ">="},
+    {"", TOKEN_ARROW_RIGHT, "->"},
+    {"", TOKEN_INT, "123"},
+    {"", TOKEN_STRING, "hello"},
+    {"", TOKEN_SEMICOLON, ";"},
+    {"", TOKEN_PLUS, "+"},
+    {"", TOKEN_MINUS, "-"},
+    {"", TOKEN_DIVIDE, "/"},
+    {"", TOKEN_MULTIPLY, "*"},
+    {"", TOKEN_LSHIFT, "<<"},
+    {"", TOKEN_RSHIFT, ">>"},
+    {"", TOKEN_COMMENT, "//"},
+    {"", TOKEN_EOF, NULL},
+  };
+
+  size_t n = sizeof(expected) / sizeof(expected[0]);
+  lexer_t* lexer = init_lexer((char*)source);
+
+  for (size_t i = 0; i < n; i++) {
+    token_t* tok = lexer_next_token(lexer);
+
+    if (tok->type != expected[i].expected_type) {
+      fprintf(stderr, "FAILED at index %zu: expected type %d, got %d value %s\n", i, expected[i].expected_type, tok->type, tok->value);
+      exit(1);
+    }
+
+    if (expected[i].expected_value && (!tok->value || strcmp(tok->value, expected[i].expected_value) != 0)) {
+      fprintf(stderr, "FAILED at index %zu: expected value '%s', got '%s'\n", i, expected[i].expected_value, tok->value);
+      exit(1);
+    }
+
+    free(tok);
+  }
+
+  free(lexer);
+
+  printf("Lexer long string passed\n");
 }
 
 void test_short_string() {
@@ -94,11 +151,19 @@ void test_short_string() {
 
   token_t* t5 = lexer_next_token(lexer);
   assert_token(t5, ";", TOKEN_SEMICOLON);
+
+  free(lexer);
+  free(t1);
+  free(t2);
+  free(t3);
+  free(t4);
+  free(t5);
 }
 
 int main() {
   test_each_type();
-  test_short_string();
+  /* test_short_string(); */
+  test_long_string();
   printf("All tests passed!\n");
   return 0;
 }
