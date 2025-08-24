@@ -39,6 +39,6 @@ class Token {
   std::string value;
   TokenType type;
   int position;
-}
+};
 
 #endif  // TOKEN_H_

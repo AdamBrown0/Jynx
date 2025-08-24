@@ -5,7 +5,7 @@
 #include <string>
 
 class Lexer {
-public:
+ public:
   Lexer(std::string src) {
     this->src = src;
     src_size = std::strlen(src.c_str());

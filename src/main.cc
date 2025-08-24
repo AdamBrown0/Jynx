@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include "lexer.hh"
 
 std::string file_contents(const std::string& filepath) {
   std::ifstream file(filepath, std::ios::binary | std::ios::ate);

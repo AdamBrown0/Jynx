@@ -1,14 +1,16 @@
+#include "../include/lexer.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../include/lexer.h"
 #include "../include/macros.h"
 #include "../include/token.h"
 
 void lexer_print(const lexer_t* lexer) {
-  fprintf(stderr, "src: %s, size: %zu, index: %d, current: %c\n", lexer->src, lexer->src_size, lexer->index, lexer->current);
+  fprintf(stderr, "src: %s, size: %zu, index: %d, current: %c\n", lexer->src,
+          lexer->src_size, lexer->index, lexer->current);
 }
 
 /// Initialise lexer
@@ -27,17 +29,22 @@ lexer_t* init_lexer(char* src) {
 /// @param lexer Lexer to advance
 void lexer_advance(lexer_t* lexer) {
   if (!(lexer->index < lexer->src_size && lexer->current != '\0')) {
-    fprintf(stderr, "Out of source file, current: %c, (index, size): (%d, %zu)\n", lexer->current, lexer->index, lexer->src_size);
+    fprintf(stderr,
+            "Out of source file, current: %c, (index, size): (%d, %zu)\n",
+            lexer->current, lexer->index, lexer->src_size);
   }
   lexer->index++;
   lexer->current = lexer->src[lexer->index];
 }
 
-/// Peek the character at an offset from current position, this doesn't modify the lexer
+/// Peek the character at an offset from current position, this doesn't modify
+/// the lexer
 /// @param lexer Lexer to peek
 /// @param offset Offset to peek at
 /// @return Character at offset in lexer
-char lexer_peek(const lexer_t* lexer, const int offset) { return lexer->src[MIN(lexer->index + offset, lexer->src_size)]; }
+char lexer_peek(const lexer_t* lexer, const int offset) {
+  return lexer->src[MIN(lexer->index + offset, lexer->src_size)];
+}
 
 /// Peek the next character, this doesn't modify the lexer
 /// @param lexer Lexer to peek
@@ -56,7 +63,8 @@ token_t* lexer_advance_with(lexer_t* lexer, token_t* token) {
 /// Skip whitespace in lexer
 /// @param lexer Lexer
 void lexer_skip_whitespace(lexer_t* lexer) {
-  while (' ' == lexer->current || '\t' == lexer->current || '\n' == lexer->current || '\r' == lexer->current ||
+  while (' ' == lexer->current || '\t' == lexer->current ||
+         '\n' == lexer->current || '\r' == lexer->current ||
          '\f' == lexer->current) {
     lexer_advance(lexer);
   }
@@ -109,7 +117,7 @@ token_t* lexer_parse_int(lexer_t* lexer) {
 /// @param lexer Lexer to parse
 /// @return String token
 token_t* lexer_parse_string(lexer_t* lexer) {
-  lexer_advance(lexer); // skip first quote marks
+  lexer_advance(lexer);  // skip first quote marks
 
   char* value = calloc(1, sizeof(char));
 
@@ -119,20 +127,32 @@ token_t* lexer_parse_string(lexer_t* lexer) {
     if (c == '\\') {
       lexer_advance(lexer);
       switch (c) {
-        case 'n': value = strcat_and_realloc(value, "\n"); break;
-        case 'r': value = strcat_and_realloc(value, "\r"); break;
-        case 't': value = strcat_and_realloc(value, "\t"); break;
-        case '"': value = strcat_and_realloc(value, "\""); break;
-        case '\\': value = strcat_and_realloc(value, "\\"); break;
-        default: value = strcat_and_realloc(value, (char[]){c, 0}); break;
+        case 'n':
+          value = strcat_and_realloc(value, "\n");
+          break;
+        case 'r':
+          value = strcat_and_realloc(value, "\r");
+          break;
+        case 't':
+          value = strcat_and_realloc(value, "\t");
+          break;
+        case '"':
+          value = strcat_and_realloc(value, "\"");
+          break;
+        case '\\':
+          value = strcat_and_realloc(value, "\\");
+          break;
+        default:
+          value = strcat_and_realloc(value, (char[]){c, 0});
+          break;
       }
-    } else { // regular character
+    } else {  // regular character
       value = strcat_and_realloc(value, (char[]){c, 0});
     }
     lexer_advance(lexer);
   }
 
-  if (c != '"') { // probably replace with proper error handler
+  if (c != '"') {  // probably replace with proper error handler
     fprintf(stderr, "Unterminated string literal, current %c\n", c);
     exit(1);
   }
@@ -148,42 +168,67 @@ token_t* lexer_next_token(lexer_t* lexer) {
 
   char c;
   switch ((c = lexer->current)) {
-    case '=': return lexer_advance_with(lexer, init_token("=", TOKEN_EQUALS));
-    case '(': return lexer_advance_with(lexer, init_token("(", TOKEN_LPAREN));
-    case ')': return lexer_advance_with(lexer, init_token(")", TOKEN_RPAREN));
-    case '{': return lexer_advance_with(lexer, init_token("{", TOKEN_LBRACE));
-    case '}': return lexer_advance_with(lexer, init_token("}", TOKEN_RBRACE));
-    case '[': return lexer_advance_with(lexer, init_token("[", TOKEN_LBRACKET));
-    case ']': return lexer_advance_with(lexer, init_token("]", TOKEN_RBRACKET));
-    case ':': return lexer_advance_with(lexer, init_token(":", TOKEN_COLON));
-    case ',': return lexer_advance_with(lexer, init_token(",", TOKEN_COMMA));
+    case '=':
+      return lexer_advance_with(lexer, init_token("=", TOKEN_EQUALS));
+    case '(':
+      return lexer_advance_with(lexer, init_token("(", TOKEN_LPAREN));
+    case ')':
+      return lexer_advance_with(lexer, init_token(")", TOKEN_RPAREN));
+    case '{':
+      return lexer_advance_with(lexer, init_token("{", TOKEN_LBRACE));
+    case '}':
+      return lexer_advance_with(lexer, init_token("}", TOKEN_RBRACE));
+    case '[':
+      return lexer_advance_with(lexer, init_token("[", TOKEN_LBRACKET));
+    case ']':
+      return lexer_advance_with(lexer, init_token("]", TOKEN_RBRACKET));
+    case ':':
+      return lexer_advance_with(lexer, init_token(":", TOKEN_COLON));
+    case ',':
+      return lexer_advance_with(lexer, init_token(",", TOKEN_COMMA));
     case '<': {
       if (lexer_peek_next(lexer) == '=') {
         lexer_advance(lexer);
         return lexer_advance_with(lexer, init_token("<=", TOKEN_LEQ));
       }
-      if (lexer_peek_next(lexer) == '<') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token("<<", TOKEN_LSHIFT)));
+      if (lexer_peek_next(lexer) == '<')
+        return lexer_advance_with(
+            lexer, lexer_advance_with(lexer, init_token("<<", TOKEN_LSHIFT)));
       return lexer_advance_with(lexer, init_token("<", TOKEN_LT));
     }
     case '>': {
-      if (lexer_peek_next(lexer) == '=') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token(">=", TOKEN_GEQ)));
-      if (lexer_peek_next(lexer) == '>') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token(">>", TOKEN_RSHIFT)));
+      if (lexer_peek_next(lexer) == '=')
+        return lexer_advance_with(
+            lexer, lexer_advance_with(lexer, init_token(">=", TOKEN_GEQ)));
+      if (lexer_peek_next(lexer) == '>')
+        return lexer_advance_with(
+            lexer, lexer_advance_with(lexer, init_token(">>", TOKEN_RSHIFT)));
       return lexer_advance_with(lexer, init_token(">", TOKEN_GT));
     }
     case '-': {
-      if (lexer_peek_next(lexer) == '>') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token("->", TOKEN_ARROW_RIGHT)));
+      if (lexer_peek_next(lexer) == '>')
+        return lexer_advance_with(
+            lexer,
+            lexer_advance_with(lexer, init_token("->", TOKEN_ARROW_RIGHT)));
       return lexer_advance_with(lexer, init_token("-", TOKEN_MINUS));
     }
-    case ';': return lexer_advance_with(lexer, init_token(";", TOKEN_SEMICOLON));
-    case '+': return lexer_advance_with(lexer, init_token("+", TOKEN_PLUS));
-    case '*': return lexer_advance_with(lexer, init_token("*", TOKEN_MULTIPLY));
+    case ';':
+      return lexer_advance_with(lexer, init_token(";", TOKEN_SEMICOLON));
+    case '+':
+      return lexer_advance_with(lexer, init_token("+", TOKEN_PLUS));
+    case '*':
+      return lexer_advance_with(lexer, init_token("*", TOKEN_MULTIPLY));
     case '/': {
-      if (lexer_peek_next(lexer) == '/') return lexer_advance_with(lexer, lexer_advance_with(lexer, init_token("//", TOKEN_COMMENT)));
+      if (lexer_peek_next(lexer) == '/')
+        return lexer_advance_with(
+            lexer, lexer_advance_with(lexer, init_token("//", TOKEN_COMMENT)));
       return lexer_advance_with(lexer, init_token("/", TOKEN_DIVIDE));
     }
-    case '"': return lexer_advance_with(lexer, lexer_parse_string(lexer));
+    case '"':
+      return lexer_advance_with(lexer, lexer_parse_string(lexer));
     default: {
-      if (isalpha(c) || c == '_') return lexer_advance_with(lexer, lexer_parse_id(lexer));
+      if (isalpha(c) || c == '_')
+        return lexer_advance_with(lexer, lexer_parse_id(lexer));
       if (isdigit(c)) return lexer_advance_with(lexer, lexer_parse_int(lexer));
     }
   }
