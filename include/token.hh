@@ -34,7 +34,12 @@ enum class TokenType {
 };
 
 class Token {
-  Token(std::string value, TokenType type) {}
+ public:
+  Token(std::string value, TokenType type) {
+    this->value = value;
+    this->type = type;
+    position = 0;
+  }
 
  private:
   std::string value;
