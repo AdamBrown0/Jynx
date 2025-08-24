@@ -2,36 +2,41 @@
 #define LEXER_HH
 
 #include <cstring>
+#include <istream>
+#include <optional>
 #include <string>
 
 #include "token.hh"
 
 class Lexer {
  public:
-  Lexer(std::string src) {
-    this->src = src;
-    src_size = std::strlen(src.c_str());
-    index = 0;
-    current = src[index];
+  explicit Lexer(std::istream& input) : in(input), line(1) {
+    keywords.insert("int", TokenType::KW_INT);
+    keywords.insert("string", TokenType::KW_STRING);
+    keywords.insert("class", TokenType::KW_CLASS);
   }
 
-  Token next_token();
+  std::optional<Token> next_token();
 
  private:
-  std::string src;
-  size_t src_size;
-  char current;
-  unsigned int index;
+  std::istream& in;
+  int line;
+
+  KeywordTrie keywords;
+
+  Token make_token(TokenType type, std::string value) {
+    return Token(type, value, line);
+  }
 
   void advance();
   void print();
-  char peek();
-  char peek_next();
-  Token advance_with();
+  // char peek();
+  // char peek_next();
+  // Token advance_with();
   void skip_whitespace();
-  Token parse_id();
-  Token parse_int();
-  Token parse_string();
+  Token identifier();
+  Token number();
+  Token string_literal();
 };
 
 #endif  // LEXER_HH

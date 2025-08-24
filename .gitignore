@@ -55,5 +55,6 @@ jotter
 .idea
 build
 cmake-build-debug
+.vscode
 
 .cache
