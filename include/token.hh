@@ -2,6 +2,7 @@
 #define TOKEN_H_
 
 #include <string>
+
 enum class TokenType {
   TOKEN_ID,
   TOKEN_EQUALS,
