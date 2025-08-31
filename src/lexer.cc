@@ -112,7 +112,7 @@ Token Lexer::identifier() {
   return make_token(TokenType::TOKEN_ID, buf);
 }
 
-Token Lexer::number() {
+Token Lexer::number() const {
   std::string buf;
   while (!in.eof() && std::isdigit(in.peek())) buf.push_back(in.get());
   return make_token(TokenType::TOKEN_INT, buf);

@@ -1,7 +1,6 @@
 #ifndef LEXER_HH
 #define LEXER_HH
 
-#include <cstring>
 #include <istream>
 #include <optional>
 #include <string>
@@ -24,7 +23,7 @@ class Lexer {
 
   KeywordTrie keywords;
 
-  Token make_token(TokenType type, std::string value) {
+  Token make_token(TokenType type, std::string value) const {
     return Token(type, value, line);
   }
 
@@ -35,7 +34,7 @@ class Lexer {
   // Token advance_with();
   void skip_whitespace();
   Token identifier();
-  Token number();
+  Token number() const;
   Token string_literal();
 };
 

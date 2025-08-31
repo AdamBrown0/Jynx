@@ -82,6 +82,7 @@ class Token {
       : value(value), type(type), line(line) {}
 
   TokenType getType() const { return type; }
+  std::string getValue() const { return value; }
 
   void print() {
     std::printf("TokenType: %s Value: %s Line: %d\n", this->to_string(),
