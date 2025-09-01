@@ -51,6 +51,10 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# meson
+subprojects/*
+!subprojects/*.wrap
+
 jotter
 .idea
 build

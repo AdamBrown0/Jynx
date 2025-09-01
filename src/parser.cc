@@ -1,58 +1,97 @@
 #include "parser.hh"
+#include <iostream>
 
 #include "ast.hh"
+#include "log.hh"
 #include "token.hh"
 
 ASTNode* Parser::parseProgram() {
-  // guhhh
-
-  std::optional<Token> tok_opt = lexer.next_token();
-  while (tok_opt.has_value() &&
-         tok_opt.value().getType() != TokenType::TOKEN_EOF) {
-    current = tok_opt.value();
-
+  // guhhhh
+  while ((current = lexer.next_token()).getType() != TokenType::TOKEN_EOF) {
     switch (current.getType()) {
-      case TokenType::KW_INT:
+      case TokenType::TOKEN_DATA_TYPE:
         return Parser::parseVarDecl();
       default:
         return nullptr;
     }
-
   }
   return nullptr;
 }
 
-VarDeclNode* Parser::parseVarDecl() {
+ExprNode* Parser::parseVarDecl() {
   // current must be the keyword
-  auto* node = new VarDeclNode;
-  node->type = current.getType();
+  Token type_token = current;
 
-  std::optional<Token> tok_opt = lexer.next_token();
-  if (!tok_opt.has_value() || tok_opt.value().getType() != TokenType::TOKEN_ID)
-    exit(1);
-  current = tok_opt.value();
-
+  current = lexer.next_token();
   // current must be the identifier
-  node->name = current.getValue();
+  Token identifier = current;
 
-  tok_opt = lexer.next_token();
-  if (!tok_opt.has_value()) exit(1);
-  current = tok_opt.value();
-
+  current = lexer.next_token();
   // current must either be an equals, in which case we parseExpr, or a semi
   // colon, in which case we consume and move on
-  if (current.getType() == TokenType::TOKEN_SEMICOLON) return node;
+  if (current.getType() == TokenType::TOKEN_SEMICOLON)
+    return new VarDeclNode(type_token, identifier, nullptr);
 
   if (current.getType() == TokenType::TOKEN_EQUALS) {
-    node->initializer = parseExpr();
-    return node;
+    current = lexer.next_token();  // skip equals
+    return new VarDeclNode(type_token, identifier, parseBinaryExpr());
   }
 
-  delete node;
   return nullptr;
 }
 
 // int a = 5; -> vardecl(int a, expr=(literal(5)))
 // int b;
 
-ExprNode* Parser::parseExpr() { return new ExprNode; }
+ExprNode* Parser::parseExpr() {
+  using Tt = TokenType;
+  switch (current.getType()) {
+    case Tt::TOKEN_LPAREN: {
+      current = lexer.next_token();  // gobble up open parenthesis
+      ExprNode* expr = parseBinaryExpr(); // parse the expression inside parentheses
+      // current should now be the closing parenthesis
+      if (current.getType() == Tt::TOKEN_RPAREN) {
+        current = lexer.next_token(); // consume closing parenthesis
+      }
+      return expr;
+    }
+    default:
+      return parseLiteralExpr();
+  }
+
+  return nullptr;
+}
+
+ExprNode* Parser::parseBinaryExpr() { return parseBinaryExpr(0); }
+
+ExprNode* Parser::parseBinaryExpr(int parent_precedence) {
+  ExprNode* left;
+  int unary_precedence = getUnaryPrecedence(current.getType());
+  if (unary_precedence != -1 && unary_precedence > parent_precedence) {
+    Token unary_op = current;
+    current = lexer.next_token();
+    Token operand = current;
+    current = lexer.next_token();
+    left = new UnaryExprNode(unary_op, operand);
+  } else {
+    left = parseExpr();
+  }
+
+  int precedence;
+  while ((precedence = getBinaryPrecedence(current.getType())) != -1 && precedence > parent_precedence) {
+    Token op_token = current;
+    current = lexer.next_token();
+    
+    ExprNode* right = parseBinaryExpr(precedence);
+    
+    left = new BinaryExprNode(left, op_token, right);
+  }
+
+  return left;
+}
+
+ExprNode* Parser::parseLiteralExpr() {
+  ExprNode* node = new LiteralExprNode(current, lexer.getLine(), lexer.getCol());
+  current = lexer.next_token();
+  return node;
+}

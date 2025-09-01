@@ -32,10 +32,9 @@
   X(TOKEN_LSHIFT)      \
   X(TOKEN_RSHIFT)      \
   X(TOKEN_COMMENT)     \
-  X(TOKEN_EOF)         \
-  X(KW_INT)            \
-  X(KW_STRING)         \
-  X(KW_CLASS)
+  X(TOKEN_DATA_TYPE)   \
+  X(TOKEN_UNKNOWN)     \
+  X(TOKEN_EOF)
 
 enum class TokenType {
 #define X(name) name,
@@ -43,51 +42,18 @@ enum class TokenType {
 #undef X
 };
 
-struct TrieNode {
-  std::unordered_map<char, std::unique_ptr<TrieNode>> children;
-  bool is_terminal = false;
-  TokenType kw_type;  // if (is_terminal)
-};
-
-class KeywordTrie {
-  std::unique_ptr<TrieNode> root;
-
- public:
-  KeywordTrie() : root(std::make_unique<TrieNode>()) {}
-
-  void insert(const std::string& word, TokenType type) {
-    TrieNode* node = root.get();
-    for (char c : word) {
-      if (!node->children[c]) node->children[c] = std::make_unique<TrieNode>();
-      node = node->children[c].get();
-    }
-    node->is_terminal = true;
-    node->kw_type = type;
-  }
-
-  TokenType* find(const std::string& word) {
-    TrieNode* node = root.get();
-    for (char c : word) {
-      if (!node->children[c]) return nullptr;
-      node = node->children[c].get();
-    }
-    if (node->is_terminal) return &node->kw_type;
-    return nullptr;
-  }
-};
-
 class Token {
  public:
-  Token(TokenType type, std::string value, int line)
-      : value(value), type(type), line(line) {}
+  Token() {}
+  Token(TokenType type, std::string value, int line, int col)
+      : value(value), type(type), line(line), col(col) {}
 
   TokenType getType() const { return type; }
   std::string getValue() const { return value; }
+  int getLine() const { return line; }
+  int getCol() const { return col; }
 
-  void print() {
-    std::printf("TokenType: %s Value: %s Line: %d\n", this->to_string(),
-                value.c_str(), line);
-  }
+  void print(); // Declaration only - implementation in token.cc
 
   constexpr const char* to_string() {
     switch (type) {
@@ -105,6 +71,7 @@ class Token {
   std::string value;
   TokenType type;
   int line;
+  int col;
 };
 
 #endif  // TOKEN_H_

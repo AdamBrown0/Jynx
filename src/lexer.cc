@@ -5,7 +5,7 @@
 
 #include "../include/token.hh"
 
-std::optional<Token> Lexer::next_token() {
+Token Lexer::next_token() {
   skip_whitespace();
 
   if (in.eof()) return make_token(TokenType::TOKEN_EOF, "");
@@ -21,7 +21,7 @@ std::optional<Token> Lexer::next_token() {
   // strings
   if (c == '"') return string_literal();
 
-  in.get();
+  advance();  // consume the character
   switch (c) {
     case '(':
       return make_token(TokenType::TOKEN_LPAREN, "(");
@@ -40,30 +40,32 @@ std::optional<Token> Lexer::next_token() {
     case ',':
       return make_token(TokenType::TOKEN_COMMA, ",");
     case '<': {
-      char c = in.get();
-      if (c == '=') {
+      char next = in.peek();
+      if (next == '=') {
+        advance();  // consume the '='
         return make_token(TokenType::TOKEN_LEQ, "<=");
       }
-      if (c == '<') {
+      if (next == '<') {
+        advance();  // consume the second '<'
         return make_token(TokenType::TOKEN_LSHIFT, "<<");
       }
-      in.unget();
       return make_token(TokenType::TOKEN_LT, "<");
     }
     case '>': {
-      char c = in.get();
-      if (c == '=') {
+      char next = in.peek();
+      if (next == '=') {
+        advance();  // consume the '='
         return make_token(TokenType::TOKEN_GEQ, ">=");
       }
-      if (c == '>') {
+      if (next == '>') {
+        advance();  // consume the second '>'
         return make_token(TokenType::TOKEN_RSHIFT, ">>");
       }
-      in.unget();
       return make_token(TokenType::TOKEN_GT, ">");
     }
     case '-': {
       if (in.peek() == '>') {
-        in.get();
+        advance();  // consume the '>'
         return make_token(TokenType::TOKEN_ARROW_RIGHT, "->");
       }
       return make_token(TokenType::TOKEN_MINUS, "-");
@@ -80,23 +82,35 @@ std::optional<Token> Lexer::next_token() {
       return make_token(TokenType::TOKEN_DIVIDE, "/");
   }
 
-  return std::nullopt;
+  return make_token(TokenType::TOKEN_UNKNOWN, "");
+}
+
+void Lexer::advance() {
+  char c = in.get();
+  if (c == '\n') {
+    line++;
+    col = 0;
+  } else {
+    col++;
+  }
 }
 
 void Lexer::skip_whitespace() {
   while (!in.eof()) {
     char c = in.peek();
     if (std::isspace(c)) {
-      if (c == '\n') line++;
-      in.get();
+      advance();  // This will handle line/col tracking
     } else if (c == '/') {
-      in.get();                // consume the '/'
+      advance();                // consume the '/'
       if (in.peek() == '/') {  // line comment
-        in.get();              // consume the second '/'
-        while (!in.eof() && in.get() != '\n');
-        line++;
+        advance();              // consume the second '/'
+        while (!in.eof() && in.peek() != '\n') {
+          advance();
+        }
+        if (!in.eof()) advance();  // consume the newline
       } else {
         in.unget();  // put back the '/' - it's a divide operator
+        col--;       // adjust column since we put the character back
         break;
       }
     } else
@@ -106,27 +120,32 @@ void Lexer::skip_whitespace() {
 
 Token Lexer::identifier() {
   std::string buf;
-  while (!in.eof() && (std::isalnum(in.peek()) || in.peek() == '_'))
-    buf.push_back(in.get());
+  while (!in.eof() && (std::isalnum(in.peek()) || in.peek() == '_')) {
+    buf.push_back(in.peek());
+    advance();
+  }
   if (TokenType* type = keywords.find(buf)) return make_token(*type, buf);
   return make_token(TokenType::TOKEN_ID, buf);
 }
 
-Token Lexer::number() const {
+Token Lexer::number() {
   std::string buf;
-  while (!in.eof() && std::isdigit(in.peek())) buf.push_back(in.get());
+  while (!in.eof() && std::isdigit(in.peek())) {
+    buf.push_back(in.peek());
+    advance();
+  }
   return make_token(TokenType::TOKEN_INT, buf);
 }
 
 Token Lexer::string_literal() {
   std::string buf;
-  in.get();  // skip first quote marks
+  advance();  // skip first quote marks
 
   while (!in.eof() && in.peek() != '"') {
-    char c = in.get();
-    if (c == '\n') line++;
+    char c = in.peek();
     buf.push_back(c);
+    advance();
   }
-  in.get();  // skip last quote marks
+  advance();  // skip last quote marks
   return make_token(TokenType::TOKEN_STRING, buf);
 }

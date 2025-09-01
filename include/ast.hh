@@ -14,29 +14,47 @@ struct ASTNode {
 };
 
 struct ExprNode : ASTNode {
-  enum class Kind {
-    Binary,
-    Literal,
-    Variable,
-    Call,
-  };
-  Kind kind;
+  ExprNode() {}
 };
 
 struct VarDeclNode : ExprNode {
-  TokenType type;
-  std::string name;
-  ExprNode* initializer;
+  Token type_token;
+  Token identifier;
+  std::unique_ptr<ExprNode> initializer;
+
+  VarDeclNode(Token type_token, Token identifier, ExprNode* initializer) : type_token(std::move(type_token)) {
+    this->identifier = identifier;
+    this->initializer = std::unique_ptr<ExprNode>(initializer);
+  }
 };
 
 struct BinaryExprNode : ExprNode {
   std::unique_ptr<ExprNode> left;
-  TokenType operand;
+  Token op;
   std::unique_ptr<ExprNode> right;
+
+  BinaryExprNode(ExprNode* left, Token op, ExprNode* right) {
+    this->left = std::unique_ptr<ExprNode>(left);
+    this->op = op;
+    this->right = std::unique_ptr<ExprNode>(right);
+  }
 };
 
-struct LiteralNode : ExprNode {
-  // fuck
+struct UnaryExprNode : ExprNode {
+  Token op;
+  Token operand;
+
+  UnaryExprNode(Token op, Token operand) : op(std::move(op)), operand(std::move(operand)) {}
+};
+
+struct LiteralExprNode : ExprNode {
+  Token literal_token;
+
+  LiteralExprNode(Token token, int line, int col) : literal_token(token) {
+    this->literal_token = token;
+    this->line = line;
+    this->col = col;
+  }
 };
 
 #endif  // AST_H_

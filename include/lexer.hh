@@ -6,35 +6,37 @@
 #include <string>
 
 #include "token.hh"
+#include "trie.hh"
 
 class Lexer {
  public:
-  explicit Lexer(std::istream& input) : in(input), line(1) {
-    keywords.insert("int", TokenType::KW_INT);
-    keywords.insert("string", TokenType::KW_STRING);
-    keywords.insert("class", TokenType::KW_CLASS);
+  explicit Lexer(std::istream& input) : in(input), line(0), col(0) {
+    keywords.insert("int", TokenType::TOKEN_DATA_TYPE);
+    keywords.insert("string", TokenType::TOKEN_DATA_TYPE);
+    keywords.insert("class", TokenType::TOKEN_DATA_TYPE);
   }
 
-  std::optional<Token> next_token();
+  Token next_token();
+
+  int getLine() { return line; }
+  int getCol() { return col; }
 
  private:
   std::istream& in;
   int line;
+  int col;
 
   KeywordTrie keywords;
 
   Token make_token(TokenType type, std::string value) const {
-    return Token(type, value, line);
+    return Token(type, value, line, col);
   }
 
   void advance();
   void print();
-  // char peek();
-  // char peek_next();
-  // Token advance_with();
   void skip_whitespace();
   Token identifier();
-  Token number() const;
+  Token number();
   Token string_literal();
 };
 
