@@ -88,10 +88,10 @@ Token Lexer::next_token() {
 void Lexer::advance() {
   char c = in.get();
   if (c == '\n') {
-    line++;
-    col = 0;
+    location.line++;
+    location.col = 0;
   } else {
-    col++;
+    location.col++;
   }
 }
 
@@ -110,7 +110,7 @@ void Lexer::skip_whitespace() {
         if (!in.eof()) advance();  // consume the newline
       } else {
         in.unget();  // put back the '/' - it's a divide operator
-        col--;       // adjust column since we put the character back
+        location.col--;       // adjust column since we put the character back
         break;
       }
     } else

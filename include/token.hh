@@ -1,9 +1,8 @@
 #ifndef TOKEN_H_
 #define TOKEN_H_
 
-#include <memory>
 #include <string>
-#include <unordered_map>
+#include "sourcelocation.hh"
 
 #define TOKEN_LIST     \
   X(TOKEN_ID)          \
@@ -33,6 +32,7 @@
   X(TOKEN_RSHIFT)      \
   X(TOKEN_COMMENT)     \
   X(TOKEN_DATA_TYPE)   \
+  X(KW_IF)             \
   X(TOKEN_UNKNOWN)     \
   X(TOKEN_EOF)
 
@@ -45,13 +45,13 @@ enum class TokenType {
 class Token {
  public:
   Token() {}
-  Token(TokenType type, std::string value, int line, int col)
-      : value(value), type(type), line(line), col(col) {}
+  Token(TokenType type, std::string value, SourceLocation loc)
+      : value(value), type(type), location(loc) {}
 
   TokenType getType() const { return type; }
   std::string getValue() const { return value; }
-  int getLine() const { return line; }
-  int getCol() const { return col; }
+  int getLine() const { return location.line; }
+  int getCol() const { return location.col; }
 
   void print(); // Declaration only - implementation in token.cc
 
@@ -70,8 +70,7 @@ class Token {
  private:
   std::string value;
   TokenType type;
-  int line;
-  int col;
+  SourceLocation location;
 };
 
 #endif  // TOKEN_H_

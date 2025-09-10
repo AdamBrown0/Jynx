@@ -2,34 +2,36 @@
 #define LEXER_HH
 
 #include <istream>
-#include <optional>
 #include <string>
 
+#include "log.hh"
 #include "token.hh"
 #include "trie.hh"
 
 class Lexer {
  public:
-  explicit Lexer(std::istream& input) : in(input), line(0), col(0) {
+  explicit Lexer(std::istream& input) : in(input), location() {
     keywords.insert("int", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("string", TokenType::TOKEN_DATA_TYPE);
+    keywords.insert("bool", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("class", TokenType::TOKEN_DATA_TYPE);
+    keywords.insert("if", TokenType::KW_IF);
   }
 
   Token next_token();
 
-  int getLine() { return line; }
-  int getCol() { return col; }
+  int getLine() { return location.line; }
+  int getCol() { return location.col; }
+  SourceLocation getLocation() { return location; }
 
  private:
   std::istream& in;
-  int line;
-  int col;
+  SourceLocation location;
 
   KeywordTrie keywords;
 
   Token make_token(TokenType type, std::string value) const {
-    return Token(type, value, line, col);
+    return Token(type, value, location);
   }
 
   void advance();

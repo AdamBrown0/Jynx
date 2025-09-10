@@ -129,10 +129,11 @@ namespace Log::Compiler {
         }
     }
     
-    void lexer_error(const std::string& message, int line, int col) {
+    void lexer_error(const std::string& message, SourceLocation loc) {
         std::stringstream ss;
-        ss << "Lexer error at line " << line << ", col " << col << ": " << message;
+        ss << "Lexer error at " << loc.to_string() << ": " << message;
         Logger::error(ss.str());
+        exit(1); // token not found
     }
     
     void parser_enter(const std::string& rule) {
@@ -153,6 +154,7 @@ namespace Log::Compiler {
         ss << "Parser error at line " << token.getLine() << ", col " << token.getCol() 
            << ": " << message << " (found: '" << token.getValue() << "')";
         Logger::error(ss.str());
+        exit(1); // syntax error
     }
     
     void semantic_error(const std::string& message, int line, int col) {
@@ -163,11 +165,8 @@ namespace Log::Compiler {
 }
 
 // AST printing functions (enhanced from existing)
-void Log::print_ast(ASTNode* root) {
-    print_ast(root, "", true, false);
-}
-
-void Log::print_ast(ASTNode* root, std::string indent, bool isFirst, bool isLast) {
+template<typename Extra>
+void print_ast_templated(ASTNode<Extra>* root, std::string indent, bool isFirst, bool isLast) {
     if (!root) {
         std::cout << indent << "null" << std::endl;
         return;
@@ -188,16 +187,25 @@ void Log::print_ast(ASTNode* root, std::string indent, bool isFirst, bool isLast
     std::cout << TREE_COLOR << indent << marker << RESET;
     
     // Print node type and details with colors
-    if (auto varDecl = dynamic_cast<VarDeclNode*>(root)) {
+    if (auto program = dynamic_cast<ProgramNode<Extra>*>(root)) {
+        std::cout << VAR_DECL_COLOR << "Program" << RESET << std::endl;
+        
+        // Print all children with proper tree structure
+        // Use base indent, no additional spacing since Program is typically the root
+        for (size_t i = 0; i < program->children.size(); ++i) {
+            bool isLastChild = (i == program->children.size() - 1);
+            print_ast_templated(program->children[i].get(), indent, false, isLastChild);
+        }
+    } else if (auto varDecl = dynamic_cast<VarDeclNode<Extra>*>(root)) {
         std::cout << VAR_DECL_COLOR << "VarDecl: " << RESET 
-                  << BOLD_WHITE << varDecl->identifier.getValue() << std::endl;
+                  << BOLD_WHITE << varDecl->identifier.getValue() << RESET << std::endl;
         
         // Print initializer if it exists
         if (varDecl->initializer) {
-            std::string newIndent = indent + (isFirst ? "" : "    ");
-            print_ast(varDecl->initializer.get(), newIndent, false, true);
+            std::string newIndent = indent + (isLast ? "    " : "│   ");
+            print_ast_templated(varDecl->initializer.get(), newIndent, false, true);
         }
-    } else if (auto binaryExpr = dynamic_cast<BinaryExprNode*>(root)) {
+    } else if (auto binaryExpr = dynamic_cast<BinaryExprNode<Extra>*>(root)) {
         std::cout << BINARY_EXPR_COLOR << "BinaryExpr: " << RESET 
                   << OPERATOR_COLOR << "'" << binaryExpr->op.getValue() << "'" << RESET << std::endl;
         
@@ -206,27 +214,43 @@ void Log::print_ast(ASTNode* root, std::string indent, bool isFirst, bool isLast
         
         if (binaryExpr->left && binaryExpr->right) {
             // Both children exist
-            print_ast(binaryExpr->left.get(), newIndent, false, false);
-            print_ast(binaryExpr->right.get(), newIndent, false, true);
+            print_ast_templated(binaryExpr->left.get(), newIndent, false, false);
+            print_ast_templated(binaryExpr->right.get(), newIndent, false, true);
         } else if (binaryExpr->left) {
             // Only left child
-            print_ast(binaryExpr->left.get(), newIndent, false, true);
+            print_ast_templated(binaryExpr->left.get(), newIndent, false, true);
         } else if (binaryExpr->right) {
             // Only right child
-            print_ast(binaryExpr->right.get(), newIndent, false, true);
+            print_ast_templated(binaryExpr->right.get(), newIndent, false, true);
         }
-    } else if (auto unaryExpr = dynamic_cast<UnaryExprNode*>(root)) {
+    } else if (auto unaryExpr = dynamic_cast<UnaryExprNode<Extra>*>(root)) {
         std::cout << UNARY_EXPR_COLOR << "UnaryExpr: " << RESET 
-                  << OPERATOR_COLOR << "'" << unaryExpr->op.getValue() << "'" << RESET
-                  << " operand: " << LITERAL_COLOR << "'" << unaryExpr->operand.getValue() << "'" << RESET << std::endl;
-    } else if (auto literalExpr = dynamic_cast<LiteralExprNode*>(root)) {
+                  << OPERATOR_COLOR << "'" << unaryExpr->op.getValue() << "'" << RESET << std::endl;
+        
+        // Calculate new indent based on current position
+        std::string newIndent = indent + (isLast ? "    " : "│   ");
+        
+        // Print the operand as a proper AST node
+        if (unaryExpr->operand) {
+            print_ast_templated(unaryExpr->operand.get(), newIndent, false, true);
+        }
+    } else if (auto literalExpr = dynamic_cast<LiteralExprNode<Extra>*>(root)) {
         std::cout << LITERAL_COLOR << "Literal: " << RESET 
-                  << "'" << BOLD_WHITE << literalExpr->literal_token.getValue() << "'" << std::endl;
-    } else if (auto expr = dynamic_cast<ExprNode*>(root)) {
+                  << "'" << BOLD_WHITE << literalExpr->literal_token.getValue() << RESET << "'" << std::endl;
+    } else if (auto expr = dynamic_cast<ExprNode<Extra>*>(root)) {
         std::cout << "Expression (generic)" << std::endl;
     } else {
         std::cout << "ASTNode (unknown type)" << std::endl;
     }
+}
+
+// Wrapper functions for backwards compatibility
+void Log::print_ast(ASTNode<ParseExtra>* root) {
+    print_ast_templated(root, "", true, false);
+}
+
+void Log::print_ast(ASTNode<ParseExtra>* root, std::string indent, bool isFirst, bool isLast) {
+    print_ast_templated(root, indent, isFirst, isLast);
 }
 
 // Utility functions

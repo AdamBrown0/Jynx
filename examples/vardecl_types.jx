@@ -1,0 +1,3 @@
+int i = 67;
+string str = "67" + "69";
+bool b = false;
