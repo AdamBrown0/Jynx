@@ -1,3 +1,3 @@
-# Jynx-Compiler
+# Jynx Compiler
 
-A compiler written in C
+A compiler written in C++
