@@ -1,6 +1,8 @@
 #ifndef TRIE_H_
 #define TRIE_H_
 
+#include <memory>
+#include <unordered_map>
 #include "token.hh"
 
 struct TrieNode {

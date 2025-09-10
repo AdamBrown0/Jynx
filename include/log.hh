@@ -6,9 +6,12 @@
 #include <sstream>
 #include <vector>
 #include <chrono>
+#include "sourcelocation.hh"
 
-#include "token.hh"
-#include "ast.hh"
+// Forward declarations to avoid circular includes
+class Token;
+template <typename Extra> struct ASTNode;
+struct ParseExtra;
 
 namespace Log {
   // Log levels
@@ -124,16 +127,16 @@ namespace Log {
   // Specialized logging functions for compiler components
   namespace Compiler {
     void lexer_token(const Token& token);
-    void lexer_error(const std::string& message, int line, int col);
+    void lexer_error(const std::string& message, SourceLocation loc);
     void parser_enter(const std::string& rule);
     void parser_exit(const std::string& rule, bool success);
     void parser_error(const std::string& message, const Token& token);
     void semantic_error(const std::string& message, int line, int col);
   }
 
-  // AST printing functions (existing)
-  void print_ast(ASTNode* root);
-  void print_ast(ASTNode* root, std::string indent, bool isFirst, bool isLast);
+  // AST printing functions (updated for templated AST)
+  void print_ast(ASTNode<ParseExtra>* root);
+  void print_ast(ASTNode<ParseExtra>* root, std::string indent, bool isFirst, bool isLast);
   
   // Utility functions
   void print_separator(const std::string& title = "");
@@ -150,7 +153,7 @@ namespace Log {
 
 // Compiler-specific macros
 #define LOG_TOKEN(token) Log::Compiler::lexer_token(token)
-#define LOG_LEXER_ERROR(msg, line, col) Log::Compiler::lexer_error(msg, line, col)
+#define LOG_LEXER_ERROR(msg, loc) Log::Compiler::lexer_error(msg, loc)
 #define LOG_PARSER_ENTER(rule) Log::Compiler::parser_enter(rule)
 #define LOG_PARSER_EXIT(rule, success) Log::Compiler::parser_exit(rule, success)
 #define LOG_PARSER_ERROR(msg, token) Log::Compiler::parser_error(msg, token)

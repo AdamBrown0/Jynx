@@ -7,12 +7,12 @@ project(
   ]
 )
 
-src = ['src/main.cc', 'src/lexer.cc', 'src/parser.cc']
+src = ['src/main.cc', 'src/lexer.cc', 'src/parser.cc', 'src/sema.cc']
 incdir = include_directories('include')
 
 core_lib = static_library(
   'jynxcore',
-  ['src/lexer.cc', 'src/parser.cc', 'src/log.cc', 'src/token.cc'],
+  ['src/lexer.cc', 'src/parser.cc', 'src/sema.cc', 'src/log.cc', 'src/token.cc'],
   include_directories: incdir,
 )
 

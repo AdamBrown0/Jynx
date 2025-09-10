@@ -7,6 +7,7 @@
 #include "lexer.hh"
 #include "log.hh"
 #include "parser.hh"
+#include "sema.hh"
 
 std::string file_contents(const std::string& filepath) {
   std::ifstream file(filepath, std::ios::binary | std::ios::ate);
@@ -51,11 +52,14 @@ int main(const int argc, char** argv) {
 
   Parser parser(lexer);
 
-  ASTNode* ast = parser.parseProgram();
+  ProgramNode<ParseExtra>* ast = parser.parseProgram();
   if (ast != nullptr) {
     Log::print_ast(ast);
-    delete ast;
   } else {
     LOG_ERROR("Parser returned null - no AST generated");
   }
+
+  Sema sema;
+  sema.analyze(*ast);
+  delete ast;
 }
