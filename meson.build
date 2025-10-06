@@ -12,7 +12,7 @@ incdir = include_directories('include')
 
 core_lib = static_library(
   'jynxcore',
-  ['src/lexer.cc', 'src/parser.cc', 'src/sema.cc', 'src/log.cc', 'src/token.cc'],
+  ['src/lexer.cc', 'src/parser.cc', 'src/sema.cc', 'src/log.cc', 'src/token.cc', 'src/gen.cc', 'src/visitor.cc', 'src/visitor/typecheckervisitor.cc', 'src/visitor/symbolcollectorvisitor.cc', 'src/visitor/treetransformer.cc'],
   include_directories: incdir,
 )
 

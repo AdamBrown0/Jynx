@@ -1,6 +1,8 @@
 #ifndef PARSER_H_
 #define PARSER_H_
 
+#include <deque>
+
 #include "ast.hh"
 #include "lexer.hh"
 #include "token.hh"
@@ -12,9 +14,17 @@ class Parser {
   ProgramNode<ParseExtra>* parseProgram();
 
  private:
+  /// @internal
   Lexer& lexer;
+  /// @internal
   Token current;
 
+  /// @internal
+  std::deque<Token> peeked_tokens;
+
+  /// Returns the binary precedence for operator
+  /// Used in binary expressions (i.e. 5 + 2 * 3)
+  /// @return Precedence
   int getBinaryPrecedence(TokenType type) {
     using Tk = TokenType;
     switch (type) {
@@ -29,6 +39,8 @@ class Parser {
     }
   }
 
+  /// Returns the unary precedence for operator
+  /// Used in unary expressions (i.e. -1)
   int getUnaryPrecedence(TokenType type) {
     using Tk = TokenType;
     switch (type) {
@@ -40,18 +52,41 @@ class Parser {
     }
   }
 
+  /// Peek at the next token in the stream
+  /// @return Next token
+  Token peek(size_t count) {
+    while (peeked_tokens.size() < count)
+      peeked_tokens.push_back(lexer.next_token());
+
+    return peeked_tokens.at(count - 1);
+  }
+
+  /// Advance parser to next token in token stream
+  /// @return Next token
   Token advance() {
-    current = lexer.next_token();
+    if (!peeked_tokens.empty()) {
+      current = peeked_tokens.front();
+      peeked_tokens.pop_front();
+    } else {
+      current = lexer.next_token();
+    }
     return current;
   }
 
+  /// Return the current token, then advance to next token
+  /// @return Current token
   Token ret_advance() {
     Token ret = current;
     advance();
     return ret;
   }
 
+  /// @cond INTERNAL
   using _StmtNode = StmtNode<ParseExtra>;
+  using _ExprNode = ExprNode<ParseExtra>;
+  using _ASTNode = ASTNode<ParseExtra>;
+  /// @endcond
+
   // statements
   _StmtNode* parseStatement();
   _StmtNode* parseBlock();
@@ -67,7 +102,6 @@ class Parser {
   _StmtNode* parseMethodDecl();
   _StmtNode* parseConstructorDecl();
 
-  using _ExprNode = ExprNode<ParseExtra>;
   // expressions
   _ExprNode* parseExpr();
   _ExprNode* parseBinaryExpr();
@@ -78,7 +112,6 @@ class Parser {
   _ExprNode* parseAssignmentExtr();
   _ExprNode* parseMethodCall();
 
-  using _ASTNode = ASTNode<ParseExtra>;
   // supporting
   _ASTNode* parseArgument();
   _ASTNode* parseParam();

@@ -1,14 +1,31 @@
 #include "sema.hh"
+
 #include "ast.hh"
 #include "log.hh"
-#include "visitor.hh"
+#include "visitor/symbolcollector.hh"
+#include "visitor/treetransformer.hh"
+#include "visitor/typechecker.hh"
 
-std::unique_ptr<StmtNode<SemaExtra>> Sema::analyze(StmtNode<ParseExtra>& root) {
-  // pass 1: symbol table and scops
-  
+ProgramNode<SemaExtra>* Sema::analyze(ProgramNode<ParseExtra>& root) {
+  // pass 1: symbol table and scopes
+  LOG_DEBUG("Collecting symbols");
+  SymbolCollectorVisitor symbol_collector;
+  root.accept(symbol_collector);
+  if (symbol_collector.has_errors()) {
+    LOG_ERROR("Symbol collector has failed with {} errors",
+              symbol_collector.error_count());
+  }
 
-  // pass 2: resolve types
+  LOG_DEBUG("Type/decl checking");
+  TypeCheckerVisitor type_checker;
+  root.accept(type_checker);
 
-  // pass 3: check types
+  if (type_checker.has_errors()) {
+    LOG_ERROR("Type checker has failed with {} errors",
+              type_checker.error_count());
+  }
 
+  LOG_DEBUG("Transforming tree");
+  TreeTransformer tree_transformer(type_checker.get_expr_types());
+  return tree_transformer.transform(root);
 }

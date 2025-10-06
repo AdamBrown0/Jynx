@@ -1,9 +1,9 @@
-#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
 
+#include "gen.hh"
 #include "lexer.hh"
 #include "log.hh"
 #include "parser.hh"
@@ -54,12 +54,22 @@ int main(const int argc, char** argv) {
 
   ProgramNode<ParseExtra>* ast = parser.parseProgram();
   if (ast != nullptr) {
-    Log::print_ast(ast);
+    Log::print_ast_reflection(ast);
   } else {
     LOG_ERROR("Parser returned null - no AST generated");
   }
 
   Sema sema;
-  sema.analyze(*ast);
+  ProgramNode<SemaExtra>* sema_tree = sema.analyze(*ast);
+
+  CodeGenerator gen;
+  std::string code = gen.generate(*sema_tree);
+  LOG_INFO("\n{}", code);
+
+  std::ofstream out("out.s");
+  out << code;
+  out.close();
+
   delete ast;
+  delete sema_tree;
 }

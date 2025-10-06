@@ -50,6 +50,11 @@ struct ASTNode {
 template <typename Extra>
 struct ExprNode : ASTNode<Extra> {
   ExprNode(SourceLocation loc) : ASTNode<Extra>(loc) {}
+
+  template<typename Visitor>
+  void accept(Visitor& visitor) {
+    visitor.visit(*this);
+  }
 };
 
 template <typename Extra>
@@ -116,7 +121,7 @@ struct AssignmentExprNode : ExprNode<Extra> {
 
   AssignmentExprNode(uptr<ExprNode<Extra>> left, Token op,
                      uptr<ExprNode<Extra>> right, SourceLocation loc)
-      : ExprNode<Extra>(loc), left(left), op(op), right(right) {}
+      : ExprNode<Extra>(loc), left(std::move(left)), op(op), right(std::move(right)) {}
 
   template<typename Visitor>
   void accept(Visitor& visitor) {
@@ -180,6 +185,11 @@ struct ParamNode : ASTNode<Extra> {
 template <typename Extra>
 struct StmtNode : ASTNode<Extra> {
   StmtNode(SourceLocation loc) : ASTNode<Extra>(loc) {}
+
+  template<typename Visitor>
+  void accept(Visitor& visitor) {
+    visitor.visit(*this);
+  }
 };
 
 template <typename Extra>
@@ -192,9 +202,7 @@ struct ProgramNode : StmtNode<Extra> {
 
   template<typename Visitor>
   void accept(Visitor& visitor) {
-    LOG_DEBUG("ProgramNode accepted");
     visitor.visit(*this);
-    LOG_DEBUG("ProgramNode visited, now children");
 
     for (const auto& child : children) {
       child->accept(visitor);
@@ -230,6 +238,7 @@ struct VarDeclNode : StmtNode<Extra> {
 
   template<typename Visitor>
   void accept(Visitor& visitor) {
+    LOG_DEBUG("VarDecl accepted");
     visitor.visit(*this);
   }
 };
@@ -366,7 +375,7 @@ struct ParseExtra {
 };
 
 struct SemaExtra {
-  TokenType* resolved_type = nullptr;
+  TokenType resolved_type = TokenType::TOKEN_UNKNOWN;
 };
 
 // other extras

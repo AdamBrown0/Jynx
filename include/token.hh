@@ -33,6 +33,7 @@
   X(TOKEN_COMMENT)     \
   X(TOKEN_DATA_TYPE)   \
   X(KW_IF)             \
+  X(KW_ELSE)             \
   X(TOKEN_UNKNOWN)     \
   X(TOKEN_EOF)
 
@@ -53,8 +54,10 @@ class Token {
   int getLine() const { return location.line; }
   int getCol() const { return location.col; }
 
+  /// Print token info
   void print(); // Declaration only - implementation in token.cc
 
+  /// Convert enum entry to string (via macro)
   constexpr const char* to_string() {
     switch (type) {
 #define X(name)         \
@@ -68,8 +71,11 @@ class Token {
   }
 
  private:
+  /// Value of token
   std::string value;
+  /// Type of token
   TokenType type;
+  /// Location in source of token
   SourceLocation location;
 };
 

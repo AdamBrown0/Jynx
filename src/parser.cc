@@ -44,17 +44,29 @@ StmtNode<ParseExtra>* Parser::parseBlock() {
 StmtNode<ParseExtra>* Parser::parseIfStmt() {
   // <if_stmt> ::= "if" "(" <expression> ")" <statement> [ "else" <statement> ]
 
-  if (current.getType() != TokenType::TOKEN_LPAREN)
+  if (current.getType() == TokenType::KW_ELSE) {
+    advance();
+    return Parser::parseStatement();
+  }
+
+  if (advance().getType() != TokenType::TOKEN_LPAREN)
     LOG_PARSER_ERROR("Expected opening parenthesis", current);
 
   _ExprNode* condition = Parser::parseBinaryExpr();
 
-  if (current.getType() != TokenType::TOKEN_RPAREN)
-    LOG_PARSER_ERROR("Expected closing parenthesis", current);
-
   _StmtNode* statement = Parser::parseStatement();
 
-  return new IfStmtNode<ParseExtra>(condition, statement, nullptr,
+  // [ "else" <statement> ]
+
+  IfStmtNode<ParseExtra>* else_statement = nullptr;
+
+  if (peek(1).getType() == TokenType::KW_ELSE) {
+    advance();
+    else_statement =
+        reinterpret_cast<IfStmtNode<ParseExtra>*>(Parser::parseIfStmt());
+  }
+
+  return new IfStmtNode<ParseExtra>(condition, statement, else_statement,
                                     lexer.getLocation());
 }
 
