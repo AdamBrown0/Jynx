@@ -1,0 +1,15 @@
+PROJECT_NAME           = "Jynx Compiler"
+OUTPUT_DIRECTORY       = docs
+INPUT                  = src include
+RECURSIVE              = YES
+EXTRACT_ALL            = NO
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = YES
+HAVE_DOT               = YES   # if Graphviz is installed
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+DOT_IMAGE_FORMAT       = svg
+EXTRACT_PRIVATE        = YES
+INTERNAL_DOCS          = NO

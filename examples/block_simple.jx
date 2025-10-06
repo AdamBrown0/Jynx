@@ -1,0 +1,4 @@
+{
+    string simple_block = "this is a simple block";
+    int parenthesis = ( ( 6 + ( 8 - 1 ) ) / 69 ) * 999;
+}
