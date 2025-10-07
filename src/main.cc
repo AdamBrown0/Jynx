@@ -66,7 +66,7 @@ int main(const int argc, char** argv) {
   std::string code = gen.generate(*sema_tree);
   LOG_INFO("\n{}", code);
 
-  std::ofstream out("out.s");
+  std::ofstream out("program.s");
   out << code;
   out.close();
 
