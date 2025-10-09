@@ -9,28 +9,28 @@
 #include "parser.hh"
 #include "sema.hh"
 
-std::string file_contents(const std::string& filepath) {
-  std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-  if (!file) {
-    LOG_FATAL("Could not open file: {}", filepath);
-    return "";
-  }
+// std::string file_contents(const std::string& filepath) {
+//   std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+//   if (!file) {
+//     LOG_FATAL("Could not open file: {}", filepath);
+//     return "";
+//   }
 
-  std::streamsize file_size = file.tellg();
-  if (file_size < 0) {
-    LOG_FATAL("Could not determine size of file: {}", filepath);
-    return "";
-  }
+//   std::streamsize file_size = file.tellg();
+//   if (file_size < 0) {
+//     LOG_FATAL("Could not determine size of file: {}", filepath);
+//     return "";
+//   }
 
-  std::string contents(file_size, '\0');
-  file.seekg(0, std::ios::beg);
-  if (!file.read(&contents[0], file_size)) {
-    LOG_FATAL("Could not read contents of file: {}", filepath);
-    return "";
-  }
+//   std::string contents(file_size, '\0');
+//   file.seekg(0, std::ios::beg);
+//   if (!file.read(&contents[0], file_size)) {
+//     LOG_FATAL("Could not read contents of file: {}", filepath);
+//     return "";
+//   }
 
-  return contents;
-}
+//   return contents;
+// }
 
 void print_usage(char** argv) {
   LOG_FATAL("USAGE: {} <path-to-file>\n", argv[0]);

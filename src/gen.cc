@@ -17,9 +17,9 @@ std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
   setupRegisters();
 
   LOG_DEBUG("[GEN] Boilerplate");
-  // text_section << ".intel_syntax noprefix\n";
-  text_section << "global _start\n";
-  text_section << "section .text\n";
+  text_section << ".intel_syntax noprefix\n";
+  text_section << ".section .text\n";
+  text_section << ".global _start\n";
   emitLabel("_jynx_main");
   emit("push rbp");
   emit("mov rbp, rsp\n");
@@ -30,7 +30,6 @@ std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
 
   LOG_DEBUG("[GEN] Eval stack");
   if (!eval_stack.empty()) {
-    LOG_WARN("[GEN] Eval stack not empty");
     std::string top = eval_stack.back();
     eval_stack.pop_back();
     emitMove("rax", top);
@@ -66,7 +65,6 @@ void CodeGenerator::visit(ProgramNode<SemaExtra> &node) {
 }
 
 void CodeGenerator::visit(VarDeclNode<SemaExtra> &node) {
-  LOG_DEBUG("[GEN] Visiting VarDeclNode");
   std::string name = node.identifier.getValue();
   std::string loc = getVariableLocation(name);
 
@@ -74,7 +72,6 @@ void CodeGenerator::visit(VarDeclNode<SemaExtra> &node) {
     node.initializer->accept(*this);
     std::string r = eval_stack.back();
     // eval_stack.pop_back();
-    LOG_DEBUG("[GEN] VarDeclNode eval_stack {}", r);
     emitMove(loc, r);
     freeRegister(r);
   } else {
@@ -83,8 +80,6 @@ void CodeGenerator::visit(VarDeclNode<SemaExtra> &node) {
 }
 
 void CodeGenerator::visit(BinaryExprNode<SemaExtra> &node) {
-  LOG_DEBUG("[GEN] Visiting BinaryExprNode");
-
   node.left->accept(*this);
   node.right->accept(*this);
 
@@ -94,15 +89,12 @@ void CodeGenerator::visit(BinaryExprNode<SemaExtra> &node) {
   eval_stack.pop_back();
   std::string dest = left;
 
-  LOG_DEBUG("[GEN] Left: {}", left);
   emitArithmetic(node.op.getType(), left, right, dest);
   freeRegister(right);
   eval_stack.push_back(left);
-  LOG_DEBUG("[GEN] BinaryExprNode eval_stack {}", eval_stack.back());
 }
 
 void CodeGenerator::visit(LiteralExprNode<SemaExtra> &node) {
-  LOG_DEBUG("[GEN] Visiting LiteralExprNode");
   if (node.literal_token.getType() == TokenType::TOKEN_INT) {
     std::string r = allocateRegister(true);
     if (r.empty()) r = "rax";

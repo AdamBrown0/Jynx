@@ -64,5 +64,5 @@ cmake-build-debug
 .cache
 
 docs
-out.s
+program.s
 program

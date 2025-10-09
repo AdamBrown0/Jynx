@@ -55,7 +55,6 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
         emit("imul " + dest + ", " + right);
         break;
       case TokenType::TOKEN_DIVIDE:
-        LOG_DEBUG("[GEN] Left/dest: {}", left);
         if (dest != "rax") emitMove("rax", dest);
         emit("cqo");
         emit("idiv " + right);

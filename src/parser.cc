@@ -25,6 +25,8 @@ StmtNode<ParseExtra>* Parser::parseStatement() {
       return Parser::parseVarDecl();
     case TokenType::KW_IF:
       return Parser::parseIfStmt();
+    // case TokenType::TOKEN_ID:
+    // return Parser::parseAssignmentExpr();
     default:
       return Parser::parseExprStmt();
   }
@@ -154,3 +156,16 @@ ExprNode<ParseExtra>* Parser::parseLiteralExpr() {
   advance();
   return node;
 }
+
+// StmtNode<ParseExtra>* Parser::parseAssignmentExpr() { // this really wants to be an expr since (a = 2) > 2
+//   // <assignment_expr> := <identifier> = <expression>
+//   // for now just do ident = expr, in future can do all the other stuff
+//   Token identifier = current;
+
+//   if (advance().getType() != TokenType::TOKEN_EQUALS) {
+//     LOG_PARSER_ERROR("Expected assignment operator", current);
+//   }
+
+//   advance(); // skip equals
+//   return new AssignmentExprNode<ParseExtra>()
+// }

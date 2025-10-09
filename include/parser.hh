@@ -109,7 +109,7 @@ class Parser {
   _ExprNode* parseUnaryExpr();
   _ExprNode* parseLiteralExpr();
   _ExprNode* parseIdentifierExpr();
-  _ExprNode* parseAssignmentExtr();
+  _StmtNode* parseAssignmentExpr();
   _ExprNode* parseMethodCall();
 
   // supporting
