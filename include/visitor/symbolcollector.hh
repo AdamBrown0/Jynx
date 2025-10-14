@@ -6,9 +6,9 @@
 
 class SymbolCollectorVisitor : public ASTVisitor<ParseExtra> {
  public:
-    std::unordered_map<std::string, Symbol> get_global_symbols() {
-      return global_symbols;
-    }
+  std::unordered_map<std::string, Symbol> get_global_symbols() {
+    return global_symbols;
+  }
 
   void visit(ASTNode<ParseExtra> &node) override;
   void visit(BinaryExprNode<ParseExtra> &node) override;
@@ -28,6 +28,7 @@ class SymbolCollectorVisitor : public ASTVisitor<ParseExtra> {
   void visit(FieldDeclNode<ParseExtra> &node) override;
   void visit(MethodDeclNode<ParseExtra> &node) override;
   void visit(ConstructorDeclNode<ParseExtra> &node) override;
+  void visit(ExprStmtNode<ParseExtra> &node) override;
 };
 
 #endif  // SYMBOLCOLLECTOR_H_

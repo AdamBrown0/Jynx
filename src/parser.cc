@@ -85,7 +85,6 @@ StmtNode<ParseExtra>* Parser::parseVarDecl() {
   // current must either be an equals, in which case we parseExpr, or a semi
   // colon, in which case we consume and move on
   if (current.getType() == TokenType::TOKEN_SEMICOLON) {
-    advance();
     return new VarDeclNode<ParseExtra>(type_token, identifier, nullptr,
                                        lexer.getLocation());
   } else if (current.getType() == TokenType::TOKEN_EQUALS) {
@@ -170,10 +169,4 @@ ExprNode<ParseExtra>* Parser::parseLiteralExpr() {
       new LiteralExprNode<ParseExtra>(current, lexer.getLocation());
   advance();
   return node;
-}
-
-StmtNode<ParseExtra>* Parser::parseAssignmentExpr() {
-  // <assignment_expr> := <identifier> = <expression>
-  // for now just do ident = expr, in future can do all the other stuff
-  //
 }

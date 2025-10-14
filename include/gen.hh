@@ -32,6 +32,7 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
   void visit(FieldDeclNode<SemaExtra> &node) override;
   void visit(MethodDeclNode<SemaExtra> &node) override;
   void visit(ConstructorDeclNode<SemaExtra> &node) override;
+  void visit(ExprStmtNode<SemaExtra> &node) override;
 
  private:
   void emit(const std::string &instruction) {

@@ -1,0 +1,7 @@
+int cond = 6;
+
+if ( cond < 7 ) {
+   cond = 19;
+} else {
+  cond = 1;
+}

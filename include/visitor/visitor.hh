@@ -35,45 +35,52 @@ class ASTVisitor {
   size_t error_count() const { return errors.size(); }
 
   virtual void visit(ASTNode<Extra> &node) {
-
-  // Try to dispatch to concrete types
-  if (auto* varDecl = dynamic_cast<VarDeclNode<Extra>*>(&node)) {
-    visit(*varDecl);
-  } else if (auto* program = dynamic_cast<ProgramNode<Extra>*>(&node)) {
-    visit(*program);
-  } else if (auto* binary = dynamic_cast<BinaryExprNode<Extra>*>(&node)) {
-    visit(*binary);
-  } else if (auto* block = dynamic_cast<BlockNode<Extra>*>(&node)) {
-    visit(*block);
-  } else if (auto* literal = dynamic_cast<LiteralExprNode<Extra>*>(&node)) {
-    visit(*literal);
-  } else if (auto* identifier = dynamic_cast<IdentifierExprNode<Extra>*>(&node)) {
-    visit(*identifier);
-  } else if (auto* unary = dynamic_cast<UnaryExprNode<Extra>*>(&node)) {
-    visit(*unary);
-  } else if (auto* assignment = dynamic_cast<AssignmentExprNode<Extra>*>(&node)) {
-    visit(*assignment);
-  } else if (auto* methodCall = dynamic_cast<MethodCallNode<Extra>*>(&node)) {
-    visit(*methodCall);
-  } else if (auto* argument = dynamic_cast<ArgumentNode<Extra>*>(&node)) {
-    visit(*argument);
-  } else if (auto* param = dynamic_cast<ParamNode<Extra>*>(&node)) {
-    visit(*param);
-  } else if (auto* ifStmt = dynamic_cast<IfStmtNode<Extra>*>(&node)) {
-    visit(*ifStmt);
-  } else if (auto* returnStmt = dynamic_cast<ReturnStmtNode<Extra>*>(&node)) {
-    visit(*returnStmt);
-  } else if (auto* classNode = dynamic_cast<ClassNode<Extra>*>(&node)) {
-    visit(*classNode);
-  } else if (auto* fieldDecl = dynamic_cast<FieldDeclNode<Extra>*>(&node)) {
-    visit(*fieldDecl);
-  } else if (auto* methodDecl = dynamic_cast<MethodDeclNode<Extra>*>(&node)) {
-    visit(*methodDecl);
-  } else if (auto* ctorDecl = dynamic_cast<ConstructorDeclNode<Extra>*>(&node)) {
-    visit(*ctorDecl);
-  } else {
-    LOG_DEBUG("No specific dispatch found for type: {}", typeid(node).name());
-  }
+    // Try to dispatch to concrete types
+    if (auto *varDecl = dynamic_cast<VarDeclNode<Extra> *>(&node)) {
+      visit(*varDecl);
+    } else if (auto *program = dynamic_cast<ProgramNode<Extra> *>(&node)) {
+      visit(*program);
+    } else if (auto *binary = dynamic_cast<BinaryExprNode<Extra> *>(&node)) {
+      visit(*binary);
+    } else if (auto *block = dynamic_cast<BlockNode<Extra> *>(&node)) {
+      visit(*block);
+    } else if (auto *literal = dynamic_cast<LiteralExprNode<Extra> *>(&node)) {
+      visit(*literal);
+    } else if (auto *identifier =
+                   dynamic_cast<IdentifierExprNode<Extra> *>(&node)) {
+      visit(*identifier);
+    } else if (auto *unary = dynamic_cast<UnaryExprNode<Extra> *>(&node)) {
+      visit(*unary);
+    } else if (auto *expr_stmt = dynamic_cast<ExprStmtNode<Extra> *>(&node)) {
+      visit(*expr_stmt);
+    } else if (auto *assignment =
+                   dynamic_cast<AssignmentExprNode<Extra> *>(&node)) {
+      visit(*assignment);
+    } else if (auto *methodCall =
+                   dynamic_cast<MethodCallNode<Extra> *>(&node)) {
+      visit(*methodCall);
+    } else if (auto *argument = dynamic_cast<ArgumentNode<Extra> *>(&node)) {
+      visit(*argument);
+    } else if (auto *param = dynamic_cast<ParamNode<Extra> *>(&node)) {
+      visit(*param);
+    } else if (auto *ifStmt = dynamic_cast<IfStmtNode<Extra> *>(&node)) {
+      visit(*ifStmt);
+    } else if (auto *returnStmt =
+                   dynamic_cast<ReturnStmtNode<Extra> *>(&node)) {
+      visit(*returnStmt);
+    } else if (auto *classNode = dynamic_cast<ClassNode<Extra> *>(&node)) {
+      visit(*classNode);
+    } else if (auto *fieldDecl = dynamic_cast<FieldDeclNode<Extra> *>(&node)) {
+      visit(*fieldDecl);
+    } else if (auto *methodDecl =
+                   dynamic_cast<MethodDeclNode<Extra> *>(&node)) {
+      visit(*methodDecl);
+    } else if (auto *ctorDecl =
+                   dynamic_cast<ConstructorDeclNode<Extra> *>(&node)) {
+      visit(*ctorDecl);
+    } else {
+      LOG_DEBUG("No specific dispatch found for type: {}", typeid(node).name());
+    }
   };
   virtual void visit(BinaryExprNode<Extra> &node) = 0;
   virtual void visit(UnaryExprNode<Extra> &node) = 0;
@@ -92,6 +99,7 @@ class ASTVisitor {
   virtual void visit(FieldDeclNode<Extra> &node) = 0;
   virtual void visit(MethodDeclNode<Extra> &node) = 0;
   virtual void visit(ConstructorDeclNode<Extra> &node) = 0;
+  virtual void visit(ExprStmtNode<Extra> &node) = 0;
 
  protected:
   std::unordered_map<std::string, Symbol> global_symbols;

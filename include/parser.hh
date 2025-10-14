@@ -30,11 +30,16 @@ class Parser {
     switch (type) {
       case Tk::TOKEN_MULTIPLY:
       case Tk::TOKEN_DIVIDE:
-        return 3;
+        return 4;
       case Tk::TOKEN_PLUS:
       case Tk::TOKEN_MINUS:
-        return 2;
+        return 3;
       case Tk::TOKEN_EQUALS:
+        return 2;
+      case Tk::TOKEN_GT:
+      case Tk::TOKEN_GEQ:
+      case Tk::TOKEN_LT:
+      case Tk::TOKEN_LEQ:
         return 1;
       default:
         return -1;
@@ -111,7 +116,7 @@ class Parser {
   _ExprNode* parseUnaryExpr();
   _ExprNode* parseLiteralExpr();
   _ExprNode* parseIdentifierExpr();
-  _StmtNode* parseAssignmentExpr();
+  // _StmtNode* parseAssignmentExpr(); // fairly sure ts isnt needed
   _ExprNode* parseMethodCall();
 
   // supporting

@@ -167,3 +167,4 @@ void CodeGenerator::visit(MethodDeclNode<SemaExtra> &node) {
 void CodeGenerator::visit(ConstructorDeclNode<SemaExtra> &node) {
   // Stub: not implemented yet
 }
+void CodeGenerator::visit(ExprStmtNode<SemaExtra> &node) {}

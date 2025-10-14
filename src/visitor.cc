@@ -1,20 +1,20 @@
 #include "visitor/visitor.hh"
-#include "visitor/symbolcollector.hh"
-#include "visitor/typechecker.hh"
 
 #include "ast.hh"
+#include "visitor/symbolcollector.hh"
+#include "visitor/typechecker.hh"
 
 // ============================================================================
 // SymbolCollectorVisitor stub implementations
 // ============================================================================
 void SymbolCollectorVisitor::visit(ASTNode<ParseExtra>& node) {
-    ASTVisitor<ParseExtra>::visit(node);
+  ASTVisitor<ParseExtra>::visit(node);
 }
 // void SymbolCollectorVisitor::visit(BinaryExprNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(UnaryExprNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(LiteralExprNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(IdentifierExprNode<ParseExtra>& node) {}
-void SymbolCollectorVisitor::visit(AssignmentExprNode<ParseExtra>& node) {}
+// void SymbolCollectorVisitor::visit(AssignmentExprNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(MethodCallNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ArgumentNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ParamNode<ParseExtra>& node) {}
@@ -32,13 +32,13 @@ void SymbolCollectorVisitor::visit(ConstructorDeclNode<ParseExtra>& node) {}
 // TypeCheckerVisitor stub implementations
 // ============================================================================
 void TypeCheckerVisitor::visit(ASTNode<ParseExtra>& node) {
-    ASTVisitor<ParseExtra>::visit(node);
+  ASTVisitor<ParseExtra>::visit(node);
 }
 // void TypeCheckerVisitor::visit(BinaryExprNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(UnaryExprNode<ParseExtra>& node) {}
 // void TypeCheckerVisitor::visit(LiteralExprNode<ParseExtra>& node) {}
 // void TypeCheckerVisitor::visit(IdentifierExprNode<ParseExtra>& node) {}
-void TypeCheckerVisitor::visit(AssignmentExprNode<ParseExtra>& node) {}
+// void TypeCheckerVisitor::visit(AssignmentExprNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(MethodCallNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(ArgumentNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(ParamNode<ParseExtra>& node) {}

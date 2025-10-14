@@ -33,9 +33,11 @@ class TreeTransformer : ASTVisitor<ParseExtra> {
   void visit(FieldDeclNode<ParseExtra> &node) override;
   void visit(MethodDeclNode<ParseExtra> &node) override;
   void visit(ConstructorDeclNode<ParseExtra> &node) override;
+  void visit(ExprStmtNode<ParseExtra> &node) override;
 
  private:
-  std::unordered_map<ASTNode<ParseExtra> *, TokenType> expr_types;  // Own the copy
+  std::unordered_map<ASTNode<ParseExtra> *, TokenType>
+      expr_types;  // Own the copy
 
   std::stack<StmtNode<SemaExtra> *> stmt_stack;
   std::stack<ExprNode<SemaExtra> *> expr_stack;

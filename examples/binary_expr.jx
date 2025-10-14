@@ -1,0 +1,6 @@
+int ret;
+int simple = 5 + 2;
+int nested = (5 + 2) / ( 4 * ( 3 - 2 ) );
+if ( simple * nested > 2 ) {
+   ret = simple;
+}

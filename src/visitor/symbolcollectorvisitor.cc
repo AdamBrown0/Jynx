@@ -22,8 +22,34 @@ void SymbolCollectorVisitor::visit(BinaryExprNode<ParseExtra> &node) {
 }
 
 void SymbolCollectorVisitor::visit(ProgramNode<ParseExtra> &node) {
-  LOG_DEBUG("SymbolCollectorVisitor: Visiting ProgramNode with {} children", node.children.size());
+  LOG_DEBUG("SymbolCollectorVisitor: Visiting ProgramNode with {} children",
+            node.children.size());
   // for (auto& child : node.children) {
   //   child->accept(*this);
   // }
+}
+
+void SymbolCollectorVisitor::visit(ExprStmtNode<ParseExtra> &node) {
+  LOG_DEBUG("[Sym] ExprStmtNode");
+  node.expr->accept(*this);
+}
+
+void SymbolCollectorVisitor::visit(AssignmentExprNode<ParseExtra> &node) {
+  LOG_DEBUG("[Sym] AssignmentExprNode");
+  if (node.left) node.left->accept(*this);
+  if (node.right) node.right->accept(*this);
+
+  if (node.op.getType() == TokenType::TOKEN_EQUALS) {
+    if (auto *identifier =
+            dynamic_cast<LiteralExprNode<ParseExtra> *>(node.left.get())) {
+      if (check_symbol(identifier->literal_token.getValue())) {
+        LOG_DEBUG("[Sym] Found");
+      } else {
+        report_error("Attempted to assign value to invalid variable",
+                     node.location);
+      }
+    } else {
+      report_error("Expected identifier to assign to", node.location);
+    }
+  }
 }

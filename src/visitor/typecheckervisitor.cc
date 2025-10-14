@@ -60,3 +60,24 @@ void TypeCheckerVisitor::visit(LiteralExprNode<ParseExtra>& node) {
   std::string value = node.literal_token.getValue();
   set_expr_type(&node, literal_type);
 }
+
+void TypeCheckerVisitor::visit(ExprStmtNode<ParseExtra>& node) {
+  if (node.expr) node.expr->accept(*this);
+}
+
+void TypeCheckerVisitor::visit(AssignmentExprNode<ParseExtra>& node) {
+  if (node.left) node.left->accept(*this);
+  if (node.right) node.right->accept(*this);
+
+  if (node.op.getType() == TokenType::TOKEN_EQUALS) {
+    if (auto* identifier =
+            dynamic_cast<LiteralExprNode<ParseExtra>*>(node.left.get())) {
+      if (lookup_symbol(identifier->literal_token.getValue())->type ==
+          get_expr_type(node.right.get())) {
+        LOG_DEBUG("[Type] Correct");
+      } else {
+        report_error("Tried to assign mismatching type", node.location);
+      }
+    }
+  }
+}

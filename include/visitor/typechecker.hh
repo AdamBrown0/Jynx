@@ -37,6 +37,7 @@ class TypeCheckerVisitor : public ASTVisitor<ParseExtra> {
   void visit(FieldDeclNode<ParseExtra> &node) override;
   void visit(MethodDeclNode<ParseExtra> &node) override;
   void visit(ConstructorDeclNode<ParseExtra> &node) override;
+  void visit(ExprStmtNode<ParseExtra> &node) override;
 
  private:
   std::unordered_map<ASTNode<ParseExtra> *, TokenType> expr_types;
@@ -67,7 +68,8 @@ class TypeCheckerVisitor : public ASTVisitor<ParseExtra> {
       case TokenType::TOKEN_DIVIDE:
         if (left == TokenType::TOKEN_INT && right == TokenType::TOKEN_INT)
           return TokenType::TOKEN_INT;
-        if (left == TokenType::TOKEN_STRING) // "str" + 2 is valid, 2 + "str" is not
+        if (left ==
+            TokenType::TOKEN_STRING)  // "str" + 2 is valid, 2 + "str" is not
           return TokenType::TOKEN_STRING;
         // only doing int and int for now, could add string and other
         return TokenType::TOKEN_UNKNOWN;

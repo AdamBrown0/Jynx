@@ -171,3 +171,5 @@ void TreeTransformer::visit(MethodDeclNode<ParseExtra> &) {
 void TreeTransformer::visit(ConstructorDeclNode<ParseExtra> &) {
   // Stub: not implemented yet
 }
+
+void TreeTransformer::visit(ExprStmtNode<ParseExtra> &node) {}
