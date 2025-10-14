@@ -41,8 +41,8 @@ void SymbolCollectorVisitor::visit(AssignmentExprNode<ParseExtra> &node) {
 
   if (node.op.getType() == TokenType::TOKEN_EQUALS) {
     if (auto *identifier =
-            dynamic_cast<LiteralExprNode<ParseExtra> *>(node.left.get())) {
-      if (check_symbol(identifier->literal_token.getValue())) {
+            dynamic_cast<IdentifierExprNode<ParseExtra> *>(node.left.get())) {
+      if (check_symbol(identifier->identifier.getValue())) {
         LOG_DEBUG("[Sym] Found");
       } else {
         report_error("Attempted to assign value to invalid variable",

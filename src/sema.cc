@@ -17,7 +17,7 @@ ProgramNode<SemaExtra>* Sema::analyze(ProgramNode<ParseExtra>& root) {
   }
 
   LOG_DEBUG("Type/decl checking");
-  TypeCheckerVisitor type_checker;
+  TypeCheckerVisitor type_checker(symbol_collector.get_global_symbols());
   root.accept(type_checker);
 
   if (type_checker.has_errors()) {

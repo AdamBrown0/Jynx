@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "ast.hh"
+#include "log.hh"
 
 struct Symbol {
   std::string name;

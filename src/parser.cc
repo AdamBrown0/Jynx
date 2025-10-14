@@ -118,6 +118,8 @@ ExprNode<ParseExtra>* Parser::parseExpr() {
       }
       return expr;
     }
+    case Tk::TOKEN_ID:
+      return parseIdentifierExpr();
     default:
       return parseLiteralExpr();
   }
@@ -167,6 +169,13 @@ ExprNode<ParseExtra>* Parser::parseUnaryExpr() {
 ExprNode<ParseExtra>* Parser::parseLiteralExpr() {
   _ExprNode* node =
       new LiteralExprNode<ParseExtra>(current, lexer.getLocation());
+  advance();
+  return node;
+}
+
+ExprNode<ParseExtra>* Parser::parseIdentifierExpr() {
+  _ExprNode* node =
+      new IdentifierExprNode<ParseExtra>(current, lexer.getLocation());
   advance();
   return node;
 }
