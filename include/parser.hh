@@ -30,9 +30,11 @@ class Parser {
     switch (type) {
       case Tk::TOKEN_MULTIPLY:
       case Tk::TOKEN_DIVIDE:
-        return 2;
+        return 3;
       case Tk::TOKEN_PLUS:
       case Tk::TOKEN_MINUS:
+        return 2;
+      case Tk::TOKEN_EQUALS:
         return 1;
       default:
         return -1;

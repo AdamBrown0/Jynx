@@ -1,6 +1,7 @@
 #include "parser.hh"
 
 #include "ast.hh"
+#include "ast_utils.hh"
 #include "log.hh"
 
 ProgramNode<ParseExtra>* Parser::parseProgram() {
@@ -25,8 +26,6 @@ StmtNode<ParseExtra>* Parser::parseStatement() {
       return Parser::parseVarDecl();
     case TokenType::KW_IF:
       return Parser::parseIfStmt();
-    // case TokenType::TOKEN_ID:
-    // return Parser::parseAssignmentExpr();
     default:
       return Parser::parseExprStmt();
   }
@@ -75,26 +74,37 @@ StmtNode<ParseExtra>* Parser::parseIfStmt() {
 StmtNode<ParseExtra>* Parser::parseVarDecl() {
   // current must be the keyword
   Token type_token = ret_advance();
+  if (type_token.getType() != TokenType::TOKEN_DATA_TYPE)
+    LOG_PARSER_ERROR("Expected data type", type_token);
 
   // current must be the identifier
   Token identifier = ret_advance();
+  if (identifier.getType() != TokenType::TOKEN_ID)
+    LOG_PARSER_ERROR("Expected identifier", identifier);
 
   // current must either be an equals, in which case we parseExpr, or a semi
   // colon, in which case we consume and move on
-  if (current.getType() == TokenType::TOKEN_SEMICOLON)
+  if (current.getType() == TokenType::TOKEN_SEMICOLON) {
+    advance();
     return new VarDeclNode<ParseExtra>(type_token, identifier, nullptr,
                                        lexer.getLocation());
-
-  if (current.getType() == TokenType::TOKEN_EQUALS) {
+  } else if (current.getType() == TokenType::TOKEN_EQUALS) {
     advance();  // skip equals
     return new VarDeclNode<ParseExtra>(type_token, identifier,
                                        parseBinaryExpr(), lexer.getLocation());
+  } else {
+    LOG_PARSER_ERROR("Expected semi-colon or initializer", current);
   }
 
   return nullptr;
 }
 
-StmtNode<ParseExtra>* Parser::parseExprStmt() { return nullptr; }
+StmtNode<ParseExtra>* Parser::parseExprStmt() {
+  ExprStmtNode<ParseExtra>* expr =
+      new ExprStmtNode<ParseExtra>(parseBinaryExpr(), lexer.getLocation());
+
+  return expr;
+}
 
 ExprNode<ParseExtra>* Parser::parseExpr() {
   using Tk = TokenType;
@@ -134,8 +144,13 @@ ExprNode<ParseExtra>* Parser::parseBinaryExpr(int parent_precedence) {
 
     _ExprNode* right = parseBinaryExpr(precedence);
 
-    left = new BinaryExprNode<ParseExtra>(left, op_token, right,
-                                          lexer.getLocation());
+    if (op_token.getType() == TokenType::TOKEN_EQUALS) {
+      left = new AssignmentExprNode<ParseExtra>(left, op_token, right,
+                                                lexer.getLocation());
+    } else {
+      left = new BinaryExprNode<ParseExtra>(left, op_token, right,
+                                            lexer.getLocation());
+    }
   }
 
   return left;
@@ -157,15 +172,8 @@ ExprNode<ParseExtra>* Parser::parseLiteralExpr() {
   return node;
 }
 
-// StmtNode<ParseExtra>* Parser::parseAssignmentExpr() { // this really wants to be an expr since (a = 2) > 2
-//   // <assignment_expr> := <identifier> = <expression>
-//   // for now just do ident = expr, in future can do all the other stuff
-//   Token identifier = current;
-
-//   if (advance().getType() != TokenType::TOKEN_EQUALS) {
-//     LOG_PARSER_ERROR("Expected assignment operator", current);
-//   }
-
-//   advance(); // skip equals
-//   return new AssignmentExprNode<ParseExtra>()
-// }
+StmtNode<ParseExtra>* Parser::parseAssignmentExpr() {
+  // <assignment_expr> := <identifier> = <expression>
+  // for now just do ident = expr, in future can do all the other stuff
+  //
+}

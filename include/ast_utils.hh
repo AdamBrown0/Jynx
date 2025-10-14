@@ -70,6 +70,12 @@ public:
             }
             return "return";
         }
+        else if (auto expr_stmt = dynamic_cast<ExprStmtNode<Extra>*>(node)) {
+            if (expr_stmt->expr) {
+                return node_to_string(expr_stmt->expr.get()) + ";";
+            }
+            return "empty_statement;";
+        }
         
         // ============ Class-related Nodes ============
         else if (auto class_node = dynamic_cast<ClassNode<Extra>*>(node)) {
@@ -122,6 +128,7 @@ public:
         if (dynamic_cast<BlockNode<Extra>*>(node)) return "Block";
         if (dynamic_cast<IfStmtNode<Extra>*>(node)) return "IfStmt";
         if (dynamic_cast<ReturnStmtNode<Extra>*>(node)) return "ReturnStmt";
+        if (dynamic_cast<ExprStmtNode<Extra>*>(node)) return "ExprStmt";
         if (dynamic_cast<ClassNode<Extra>*>(node)) return "Class";
         if (dynamic_cast<FieldDeclNode<Extra>*>(node)) return "FieldDecl";
         if (dynamic_cast<MethodDeclNode<Extra>*>(node)) return "MethodDecl";

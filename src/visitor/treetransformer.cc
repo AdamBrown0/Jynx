@@ -99,11 +99,8 @@ void TreeTransformer::visit(AssignmentExprNode<ParseExtra> &node) {
   ExprNode<SemaExtra> *right_raw = expr_stack.top();
   expr_stack.pop();
 
-  auto *assign = new AssignmentExprNode<SemaExtra>(
-      uptr<ExprNode<SemaExtra>>(left_raw), 
-      node.op, 
-      uptr<ExprNode<SemaExtra>>(right_raw), 
-      node.location);
+  auto *assign = new AssignmentExprNode<SemaExtra>(left_raw, node.op, right_raw,
+                                                   node.location);
   assign->extra.resolved_type = lookupType(&node);
 
   expr_stack.push(assign);
@@ -150,7 +147,8 @@ void TreeTransformer::visit(IfStmtNode<ParseExtra> &node) {
     stmt_stack.pop();
   }
 
-  auto *if_stmt = new IfStmtNode<SemaExtra>(cond, stmt, else_stmt, node.location);
+  auto *if_stmt =
+      new IfStmtNode<SemaExtra>(cond, stmt, else_stmt, node.location);
   stmt_stack.push(if_stmt);
 }
 

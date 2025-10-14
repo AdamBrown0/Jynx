@@ -2,9 +2,9 @@
 
 // include or import
 // include for stdlib, import for non stdlib
-include io::print;
+//include io::print;
 
-import myLib::wenimechuinsuma;
+//import myLib::wenimechuinsuma;
 
 
 class MyClass {

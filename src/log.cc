@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <ctime>
 #include "ast.hh"
+#include "ast_utils.hh"
 
 using namespace Log;
 
@@ -174,7 +175,7 @@ namespace Log::Compiler {
     }
 }
 
-// AST printing functions (enhanced from existing)
+// AST printing functions using ast_utils
 template<typename Extra>
 void print_ast_templated(ASTNode<Extra>* root, std::string indent, bool isFirst, bool isLast) {
     if (!root) {
@@ -196,61 +197,86 @@ void print_ast_templated(ASTNode<Extra>* root, std::string indent, bool isFirst,
     // Print the current node with tree structure in gray
     std::cout << TREE_COLOR << indent << marker << RESET;
     
-    // Print node type and details with colors
+    // Get node type and details using ASTStringBuilder
+    std::string node_type = ASTStringBuilder::node_type_name(root);
+    std::string node_details = ASTStringBuilder::node_to_string(root);
+    
+    // Choose color based on node type
+    std::string color;
+    if (node_type == "VarDecl" || node_type == "Block" || node_type == "IfStmt" || 
+        node_type == "ReturnStmt" || node_type == "Class" || node_type == "FieldDecl" ||
+        node_type == "MethodDecl" || node_type == "ConstructorDecl" || node_type == "Param") {
+        color = VAR_DECL_COLOR;
+    } else if (node_type == "BinaryExpr" || node_type == "Assignment" || node_type == "MethodCall") {
+        color = BINARY_EXPR_COLOR;
+    } else if (node_type == "UnaryExpr") {
+        color = UNARY_EXPR_COLOR;
+    } else if (node_type == "Literal" || node_type == "Identifier" || node_type == "Argument") {
+        color = LITERAL_COLOR;
+    } else {
+        color = BOLD_WHITE; // Default color for unknown types
+    }
+    
+    std::cout << color << node_type << ": " << RESET << node_details << std::endl;
+    
+    // Print children based on node type
+    std::string newIndent = indent + (isLast ? "    " : "│   ");
+    std::vector<ASTNode<Extra>*> children;
+    
+    // Collect children based on node type
     if (auto program = dynamic_cast<ProgramNode<Extra>*>(root)) {
-        std::cout << VAR_DECL_COLOR << "Program" << RESET << std::endl;
-        
-        // Print all children with proper tree structure
-        // Use base indent, no additional spacing since Program is typically the root
-        for (size_t i = 0; i < program->children.size(); ++i) {
-            bool isLastChild = (i == program->children.size() - 1);
-            print_ast_templated(program->children[i].get(), indent, false, isLastChild);
+        for (const auto& child : program->children) {
+            if (child) children.push_back(child.get());
         }
     } else if (auto varDecl = dynamic_cast<VarDeclNode<Extra>*>(root)) {
-        std::cout << VAR_DECL_COLOR << "VarDecl: " << RESET 
-                  << BOLD_WHITE << varDecl->identifier.getValue() << RESET << std::endl;
-        
-        // Print initializer if it exists
-        if (varDecl->initializer) {
-            std::string newIndent = indent + (isLast ? "    " : "│   ");
-            print_ast_templated(varDecl->initializer.get(), newIndent, false, true);
-        }
+        if (varDecl->initializer) children.push_back(varDecl->initializer.get());
     } else if (auto binaryExpr = dynamic_cast<BinaryExprNode<Extra>*>(root)) {
-        std::cout << BINARY_EXPR_COLOR << "BinaryExpr: " << RESET 
-                  << OPERATOR_COLOR << "'" << binaryExpr->op.getValue() << "'" << RESET << std::endl;
-        
-        // Calculate new indent based on current position
-        std::string newIndent = indent + (isLast ? "    " : "│   ");
-        
-        if (binaryExpr->left && binaryExpr->right) {
-            // Both children exist
-            print_ast_templated(binaryExpr->left.get(), newIndent, false, false);
-            print_ast_templated(binaryExpr->right.get(), newIndent, false, true);
-        } else if (binaryExpr->left) {
-            // Only left child
-            print_ast_templated(binaryExpr->left.get(), newIndent, false, true);
-        } else if (binaryExpr->right) {
-            // Only right child
-            print_ast_templated(binaryExpr->right.get(), newIndent, false, true);
-        }
+        if (binaryExpr->left) children.push_back(binaryExpr->left.get());
+        if (binaryExpr->right) children.push_back(binaryExpr->right.get());
     } else if (auto unaryExpr = dynamic_cast<UnaryExprNode<Extra>*>(root)) {
-        std::cout << UNARY_EXPR_COLOR << "UnaryExpr: " << RESET 
-                  << OPERATOR_COLOR << "'" << unaryExpr->op.getValue() << "'" << RESET << std::endl;
-        
-        // Calculate new indent based on current position
-        std::string newIndent = indent + (isLast ? "    " : "│   ");
-        
-        // Print the operand as a proper AST node
-        if (unaryExpr->operand) {
-            print_ast_templated(unaryExpr->operand.get(), newIndent, false, true);
+        if (unaryExpr->operand) children.push_back(unaryExpr->operand.get());
+    } else if (auto assignment = dynamic_cast<AssignmentExprNode<Extra>*>(root)) {
+        if (assignment->left) children.push_back(assignment->left.get());
+        if (assignment->right) children.push_back(assignment->right.get());
+    } else if (auto methodCall = dynamic_cast<MethodCallNode<Extra>*>(root)) {
+        if (methodCall->expr) children.push_back(methodCall->expr.get());
+        for (const auto& arg : methodCall->arg_list) {
+            if (arg) children.push_back(arg.get());
         }
-    } else if (auto literalExpr = dynamic_cast<LiteralExprNode<Extra>*>(root)) {
-        std::cout << LITERAL_COLOR << "Literal: " << RESET 
-                  << "'" << BOLD_WHITE << literalExpr->literal_token.getValue() << RESET << "'" << std::endl;
-    } else if (auto expr = dynamic_cast<ExprNode<Extra>*>(root)) {
-        std::cout << "Expression (generic)" << std::endl;
-    } else {
-        std::cout << "ASTNode (unknown type)" << std::endl;
+    } else if (auto block = dynamic_cast<BlockNode<Extra>*>(root)) {
+        for (const auto& stmt : block->statements) {
+            if (stmt) children.push_back(stmt.get());
+        }
+    } else if (auto ifStmt = dynamic_cast<IfStmtNode<Extra>*>(root)) {
+        if (ifStmt->condition) children.push_back(ifStmt->condition.get());
+        if (ifStmt->statement) children.push_back(ifStmt->statement.get());
+        if (ifStmt->else_stmt) children.push_back(ifStmt->else_stmt.get());
+    } else if (auto returnStmt = dynamic_cast<ReturnStmtNode<Extra>*>(root)) {
+        if (returnStmt->ret) children.push_back(returnStmt->ret.get());
+    } else if (auto exprStmt = dynamic_cast<ExprStmtNode<Extra>*>(root)) {
+        if (exprStmt->expr) children.push_back(exprStmt->expr.get());
+    } else if (auto classNode = dynamic_cast<ClassNode<Extra>*>(root)) {
+        for (const auto& member : classNode->members) {
+            if (member) children.push_back(member.get());
+        }
+    } else if (auto methodDecl = dynamic_cast<MethodDeclNode<Extra>*>(root)) {
+        for (const auto& param : methodDecl->param_list) {
+            if (param) children.push_back(param.get());
+        }
+        if (methodDecl->body) children.push_back(methodDecl->body.get());
+    } else if (auto constructorDecl = dynamic_cast<ConstructorDeclNode<Extra>*>(root)) {
+        for (const auto& param : constructorDecl->param_list) {
+            if (param) children.push_back(param.get());
+        }
+        if (constructorDecl->body) children.push_back(constructorDecl->body.get());
+    } else if (auto arg = dynamic_cast<ArgumentNode<Extra>*>(root)) {
+        if (arg->expr) children.push_back(arg->expr.get());
+    }
+    
+    // Print all children
+    for (size_t i = 0; i < children.size(); ++i) {
+        bool isLastChild = (i == children.size() - 1);
+        print_ast_templated(children[i], newIndent, false, isLastChild);
     }
 }
 
@@ -263,16 +289,10 @@ void Log::print_ast(ASTNode<ParseExtra>* root, std::string indent, bool isFirst,
     print_ast_templated(root, indent, isFirst, isLast);
 }
 
-// Reflection-based AST Printer
-#include <typeindex>
-#include <functional>
-#include <unordered_map>
-
+// Simplified reflection-based AST Printer using ast_utils
 template<typename Extra>
-class ReflectionASTPrinter {
+class SimpleASTPrinter {
 private:
-    using NodeHandler = std::function<void(ASTNode<Extra>*, const std::string&, bool, bool, std::ostream&)>;
-    std::unordered_map<std::type_index, NodeHandler> handlers;
     std::ostream& output;
     
     // Color constants
@@ -281,15 +301,11 @@ private:
     static const std::string BINARY_EXPR_COLOR;
     static const std::string UNARY_EXPR_COLOR;
     static const std::string LITERAL_COLOR;
-    static const std::string OPERATOR_COLOR;
     static const std::string TREE_COLOR;
-    static const std::string BOLD_WHITE;
     static const std::string PROGRAM_COLOR;
     
 public:
-    ReflectionASTPrinter(std::ostream& os = std::cout) : output(os) {
-        register_all_handlers();
-    }
+    SimpleASTPrinter(std::ostream& os = std::cout) : output(os) {}
     
     void print(ASTNode<Extra>* root, const std::string& indent = "", bool isFirst = true, bool isLast = true) {
         if (!root) {
@@ -297,322 +313,124 @@ public:
             return;
         }
         
-        std::type_index nodeType = std::type_index(typeid(*root));
+        std::string marker = isFirst ? "" : isLast ? "└── " : "├── ";
+        std::string node_type = ASTStringBuilder::node_type_name(root);
+        std::string node_details = ASTStringBuilder::detailed_node_info(root);
         
-        if (handlers.count(nodeType)) {
-            handlers[nodeType](root, indent, isFirst, isLast, output);
-        } else {
-            // Fallback for unknown types
-            std::string marker = isFirst ? "" : isLast ? "└── " : "├── ";
-            output << TREE_COLOR << indent << marker << RESET 
-                   << "Unknown[" << nodeType.name() << "]" << std::endl;
+        // Choose color based on node type
+        std::string color = get_color_for_node_type(node_type);
+        
+        // Print the node
+        output << TREE_COLOR << indent << marker << RESET 
+               << color << node_type << ": " << RESET 
+               << node_details << std::endl;
+        
+        // Print children
+        std::string newIndent = indent + (isLast ? "    " : "│   ");
+        auto children = get_children(root);
+        
+        for (size_t i = 0; i < children.size(); ++i) {
+            bool isLastChild = (i == children.size() - 1);
+            if (children[i]) {
+                print(children[i], newIndent, false, isLastChild);
+            }
         }
     }
     
 private:
-    void register_all_handlers() {
-        // ============ Expression Nodes ============
-        
-        // Register BinaryExprNode handler
-        register_handler<BinaryExprNode<Extra>>("BinaryExpr", BINARY_EXPR_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << OPERATOR_COLOR << "'" << node->op.getValue() << "'" << RESET;
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                if (node->left) children.push_back(node->left.get());
-                if (node->right) children.push_back(node->right.get());
-                return children;
-            });
-        
-        // Register UnaryExprNode handler
-        register_handler<UnaryExprNode<Extra>>("UnaryExpr", UNARY_EXPR_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << OPERATOR_COLOR << "'" << node->op.getValue() << "'" << RESET;
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                if (node->operand) {
-                    return {node->operand.get()};
-                }
-                return {};
-            });
-        
-        // Register LiteralExprNode handler
-        register_handler<LiteralExprNode<Extra>>("Literal", LITERAL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": '" << BOLD_WHITE << node->literal_token.getValue() << RESET << "'";
-            });
-            
-        // Register IdentifierExprNode handler
-        register_handler<IdentifierExprNode<Extra>>("Identifier", LITERAL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << BOLD_WHITE << node->identifier.getValue() << RESET;
-            });
-            
-        // Register AssignmentExprNode handler
-        register_handler<AssignmentExprNode<Extra>>("Assignment", BINARY_EXPR_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << OPERATOR_COLOR << node->op.getValue() << RESET;
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                if (node->left) children.push_back(node->left.get());
-                if (node->right) children.push_back(node->right.get());
-                return children;
-            });
-            
-        // Register MethodCallNode handler
-        register_handler<MethodCallNode<Extra>>("MethodCall", BINARY_EXPR_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << BOLD_WHITE << node->identifier.getValue() << RESET << "()";
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                if (node->expr) children.push_back(node->expr.get());
-                for (const auto& arg : node->arg_list) {
-                    if (arg) children.push_back(arg.get());
-                }
-                return children;
-            });
-
-        // ============ Statement Nodes ============
-        
-        // Register ProgramNode handler
-        register_handler<ProgramNode<Extra>>("Program", PROGRAM_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)node; (void)indent; (void)isFirst; (void)isLast;
-                // Special handling for ProgramNode - print children directly
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                for (const auto& child : node->children) {
-                    if (child) children.push_back(child.get());
-                }
-                return children;
-            });
-        
-        // Register VarDeclNode handler
-        register_handler<VarDeclNode<Extra>>("VarDecl", VAR_DECL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << OPERATOR_COLOR << node->type_token.getValue() << RESET 
-                       << " " << BOLD_WHITE << node->identifier.getValue() << RESET;
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                if (node->initializer) {
-                    return {node->initializer.get()};
-                }
-                return {};
-            });
-        
-        // Register BlockNode handler
-        register_handler<BlockNode<Extra>>("Block", VAR_DECL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": {" << node->statements.size() << " statements}";
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                for (const auto& stmt : node->statements) {
-                    if (stmt) children.push_back(stmt.get());
-                }
-                return children;
-            });
-        
-        // Register IfStmtNode handler
-        register_handler<IfStmtNode<Extra>>("IfStmt", VAR_DECL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)node; (void)indent; (void)isFirst; (void)isLast;
-                // No additional details for if statement
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                if (node->condition) children.push_back(node->condition.get());
-                if (node->statement) children.push_back(node->statement.get());
-                if (node->else_stmt) children.push_back(node->else_stmt.get());
-                return children;
-            });
-            
-        // Register ReturnStmtNode handler
-        register_handler<ReturnStmtNode<Extra>>("ReturnStmt", VAR_DECL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)node; (void)indent; (void)isFirst; (void)isLast;
-                // No additional details
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                if (node->ret) {
-                    return {node->ret.get()};
-                }
-                return {};
-            });
-
-        // ============ Class-related Nodes ============
-        
-        // Register ClassNode handler
-        register_handler<ClassNode<Extra>>("Class", PROGRAM_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << BOLD_WHITE << node->identifier.getValue() << RESET 
-                       << " {" << node->members.size() << " members}";
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                for (const auto& member : node->members) {
-                    if (member) children.push_back(member.get());
-                }
-                return children;
-            });
-            
-        // Register FieldDeclNode handler
-        register_handler<FieldDeclNode<Extra>>("FieldDecl", VAR_DECL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << OPERATOR_COLOR << node->access_modifier.getValue() << RESET
-                       << (node->is_static ? " static" : "")
-                       << " " << OPERATOR_COLOR << node->type.getValue() << RESET
-                       << " " << BOLD_WHITE << node->identifier.getValue() << RESET;
-            });
-            
-        // Register MethodDeclNode handler
-        register_handler<MethodDeclNode<Extra>>("MethodDecl", BINARY_EXPR_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << OPERATOR_COLOR << node->access_modifier.getValue() << RESET
-                       << (node->is_static ? " static" : "")
-                       << " " << OPERATOR_COLOR << node->type.getValue() << RESET
-                       << " " << BOLD_WHITE << node->identifier.getValue() << RESET
-                       << "(" << node->param_list.size() << " params)";
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                for (const auto& param : node->param_list) {
-                    if (param) children.push_back(param.get());
-                }
-                if (node->body) children.push_back(node->body.get());
-                return children;
-            });
-            
-        // Register ConstructorDeclNode handler
-        register_handler<ConstructorDeclNode<Extra>>("ConstructorDecl", BINARY_EXPR_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << BOLD_WHITE << node->identifier.getValue() << RESET
-                       << "(" << node->param_list.size() << " params)";
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                std::vector<ASTNode<Extra>*> children;
-                for (const auto& param : node->param_list) {
-                    if (param) children.push_back(param.get());
-                }
-                if (node->body) children.push_back(node->body.get());
-                return children;
-            });
-
-        // ============ Supporting Nodes ============
-        
-        // Register ArgumentNode handler
-        register_handler<ArgumentNode<Extra>>("Argument", LITERAL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)node; (void)indent; (void)isFirst; (void)isLast;
-                // No additional details
-            },
-            [this](auto* node, const std::string& indent, bool isLast) -> std::vector<ASTNode<Extra>*> {
-                (void)indent; (void)isLast;
-                if (node->expr) {
-                    return {node->expr.get()};
-                }
-                return {};
-            });
-            
-        // Register ParamNode handler
-        register_handler<ParamNode<Extra>>("Param", VAR_DECL_COLOR,
-            [this](auto* node, const std::string& indent, bool isFirst, bool isLast) {
-                (void)indent; (void)isFirst; (void)isLast;
-                output << ": " << OPERATOR_COLOR << node->type.getValue() << RESET
-                       << " " << BOLD_WHITE << node->identifier.getValue() << RESET;
-            });
+    std::string get_color_for_node_type(const std::string& node_type) {
+        if (node_type == "VarDecl" || node_type == "Block" || node_type == "IfStmt" || 
+            node_type == "ReturnStmt" || node_type == "FieldDecl" || node_type == "Param" ||
+            node_type == "ExprStmt") {
+            return VAR_DECL_COLOR;
+        } else if (node_type == "BinaryExpr" || node_type == "Assignment" || node_type == "MethodCall" ||
+                   node_type == "MethodDecl" || node_type == "ConstructorDecl") {
+            return BINARY_EXPR_COLOR;
+        } else if (node_type == "UnaryExpr") {
+            return UNARY_EXPR_COLOR;
+        } else if (node_type == "Literal" || node_type == "Identifier" || node_type == "Argument") {
+            return LITERAL_COLOR;
+        } else if (node_type == "Program" || node_type == "Class") {
+            return PROGRAM_COLOR;
+        }
+        return RESET; // Default
     }
     
-    template<typename NodeType>
-    void register_handler(
-        const std::string& name, 
-        const std::string& color,
-        std::function<void(NodeType*, const std::string&, bool, bool)> detailsPrinter = nullptr,
-        std::function<std::vector<ASTNode<Extra>*>(NodeType*, const std::string&, bool)> childGetter = nullptr) {
+    std::vector<ASTNode<Extra>*> get_children(ASTNode<Extra>* node) {
+        std::vector<ASTNode<Extra>*> children;
         
-        handlers[std::type_index(typeid(NodeType))] = 
-            [this, name, color, detailsPrinter, childGetter](
-                ASTNode<Extra>* node, const std::string& indent, bool isFirst, bool isLast, std::ostream& os) {
-                
-                auto* typedNode = static_cast<NodeType*>(node);
-                
-                // Print the node header
-                std::string marker = isFirst ? "" : isLast ? "└── " : "├── ";
-                os << TREE_COLOR << indent << marker << RESET << color << name << RESET;
-                
-                // Print node-specific details
-                if (detailsPrinter) {
-                    detailsPrinter(typedNode, indent, isFirst, isLast);
-                }
-                os << std::endl;
-                
-                // Print children if any
-                if (childGetter) {
-                    std::string newIndent = indent + (isLast ? "    " : "│   ");
-                    auto children = childGetter(typedNode, newIndent, isLast);
-                    
-                    for (size_t i = 0; i < children.size(); ++i) {
-                        bool isLastChild = (i == children.size() - 1);
-                        if (children[i]) {
-                            print(children[i], newIndent, false, isLastChild);
-                        }
-                    }
-                }
-            };
+        if (auto program = dynamic_cast<ProgramNode<Extra>*>(node)) {
+            for (const auto& child : program->children) {
+                if (child) children.push_back(child.get());
+            }
+        } else if (auto varDecl = dynamic_cast<VarDeclNode<Extra>*>(node)) {
+            if (varDecl->initializer) children.push_back(varDecl->initializer.get());
+        } else if (auto binaryExpr = dynamic_cast<BinaryExprNode<Extra>*>(node)) {
+            if (binaryExpr->left) children.push_back(binaryExpr->left.get());
+            if (binaryExpr->right) children.push_back(binaryExpr->right.get());
+        } else if (auto unaryExpr = dynamic_cast<UnaryExprNode<Extra>*>(node)) {
+            if (unaryExpr->operand) children.push_back(unaryExpr->operand.get());
+        } else if (auto assignment = dynamic_cast<AssignmentExprNode<Extra>*>(node)) {
+            if (assignment->left) children.push_back(assignment->left.get());
+            if (assignment->right) children.push_back(assignment->right.get());
+        } else if (auto methodCall = dynamic_cast<MethodCallNode<Extra>*>(node)) {
+            if (methodCall->expr) children.push_back(methodCall->expr.get());
+            for (const auto& arg : methodCall->arg_list) {
+                if (arg) children.push_back(arg.get());
+            }
+        } else if (auto block = dynamic_cast<BlockNode<Extra>*>(node)) {
+            for (const auto& stmt : block->statements) {
+                if (stmt) children.push_back(stmt.get());
+            }
+        } else if (auto ifStmt = dynamic_cast<IfStmtNode<Extra>*>(node)) {
+            if (ifStmt->condition) children.push_back(ifStmt->condition.get());
+            if (ifStmt->statement) children.push_back(ifStmt->statement.get());
+            if (ifStmt->else_stmt) children.push_back(ifStmt->else_stmt.get());
+        } else if (auto returnStmt = dynamic_cast<ReturnStmtNode<Extra>*>(node)) {
+            if (returnStmt->ret) children.push_back(returnStmt->ret.get());
+        } else if (auto exprStmt = dynamic_cast<ExprStmtNode<Extra>*>(node)) {
+            if (exprStmt->expr) children.push_back(exprStmt->expr.get());
+        } else if (auto classNode = dynamic_cast<ClassNode<Extra>*>(node)) {
+            for (const auto& member : classNode->members) {
+                if (member) children.push_back(member.get());
+            }
+        } else if (auto methodDecl = dynamic_cast<MethodDeclNode<Extra>*>(node)) {
+            for (const auto& param : methodDecl->param_list) {
+                if (param) children.push_back(param.get());
+            }
+            if (methodDecl->body) children.push_back(methodDecl->body.get());
+        } else if (auto constructorDecl = dynamic_cast<ConstructorDeclNode<Extra>*>(node)) {
+            for (const auto& param : constructorDecl->param_list) {
+                if (param) children.push_back(param.get());
+            }
+            if (constructorDecl->body) children.push_back(constructorDecl->body.get());
+        } else if (auto arg = dynamic_cast<ArgumentNode<Extra>*>(node)) {
+            if (arg->expr) children.push_back(arg->expr.get());
+        }
+        
+        return children;
     }
 };
 
 // Static color definitions
 template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::RESET = "\033[0m";
+const std::string SimpleASTPrinter<Extra>::RESET = "\033[0m";
 template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::VAR_DECL_COLOR = "\033[1;34m";
+const std::string SimpleASTPrinter<Extra>::VAR_DECL_COLOR = "\033[1;34m";
 template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::BINARY_EXPR_COLOR = "\033[1;32m";
+const std::string SimpleASTPrinter<Extra>::BINARY_EXPR_COLOR = "\033[1;32m";
 template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::UNARY_EXPR_COLOR = "\033[1;33m";
+const std::string SimpleASTPrinter<Extra>::UNARY_EXPR_COLOR = "\033[1;33m";
 template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::LITERAL_COLOR = "\033[1;36m";
+const std::string SimpleASTPrinter<Extra>::LITERAL_COLOR = "\033[1;36m";
 template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::OPERATOR_COLOR = "\033[1;31m";
+const std::string SimpleASTPrinter<Extra>::TREE_COLOR = "\033[90m";
 template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::TREE_COLOR = "\033[90m";
-template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::BOLD_WHITE = "\033[1;37m";
-template<typename Extra>
-const std::string ReflectionASTPrinter<Extra>::PROGRAM_COLOR = "\033[1;35m";
+const std::string SimpleASTPrinter<Extra>::PROGRAM_COLOR = "\033[1;35m";
 
-// New reflection-based print function
+// New simplified reflection-based print function
 void Log::print_ast_reflection(ASTNode<ParseExtra>* root) {
-    ReflectionASTPrinter<ParseExtra> printer;
+    SimpleASTPrinter<ParseExtra> printer;
     printer.print(root);
 }
 
