@@ -110,7 +110,7 @@ void CodeGenerator::visit(LiteralExprNode<SemaExtra> &node) {
 }
 
 void CodeGenerator::visit(IdentifierExprNode<SemaExtra> &node) {
-  // nop
+  LOG_DEBUG("[GEN] Visited ident");
 }
 
 void CodeGenerator::visit(IfStmtNode<SemaExtra> &node) {
@@ -167,4 +167,6 @@ void CodeGenerator::visit(MethodDeclNode<SemaExtra> &node) {
 void CodeGenerator::visit(ConstructorDeclNode<SemaExtra> &node) {
   // Stub: not implemented yet
 }
-void CodeGenerator::visit(ExprStmtNode<SemaExtra> &node) {}
+void CodeGenerator::visit(ExprStmtNode<SemaExtra> &node) {
+  LOG_DEBUG("[GEN] Visited exprstmt");
+}

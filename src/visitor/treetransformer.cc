@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "ast.hh"
+#include "log.hh"
 
 ProgramNode<SemaExtra> *TreeTransformer::transform(
     ProgramNode<ParseExtra> &root) {
@@ -85,9 +86,11 @@ void TreeTransformer::visit(UnaryExprNode<ParseExtra> &node) {
 }
 
 void TreeTransformer::visit(IdentifierExprNode<ParseExtra> &node) {
+  LOG_DEBUG("[Tree] visited ident");
   auto *id = new IdentifierExprNode<SemaExtra>(node.identifier, node.location);
   id->extra.resolved_type = lookupType(&node);
   expr_stack.push(id);
+  LOG_DEBUG("[Tree] finished ident");
 }
 
 void TreeTransformer::visit(AssignmentExprNode<ParseExtra> &node) {
@@ -104,6 +107,7 @@ void TreeTransformer::visit(AssignmentExprNode<ParseExtra> &node) {
   assign->extra.resolved_type = lookupType(&node);
 
   expr_stack.push(assign);
+  LOG_DEBUG("[Tree] finished assignment");
 }
 
 void TreeTransformer::visit(MethodCallNode<ParseExtra> &) {
@@ -172,4 +176,7 @@ void TreeTransformer::visit(ConstructorDeclNode<ParseExtra> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(ExprStmtNode<ParseExtra> &node) {}
+void TreeTransformer::visit(ExprStmtNode<ParseExtra> &node) {
+  LOG_DEBUG("[Tree] Visited exprstmt");
+  node.expr->accept(*this);
+}
