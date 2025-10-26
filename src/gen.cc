@@ -124,7 +124,23 @@ void CodeGenerator::visit(BlockNode<SemaExtra> &node) {
 }
 
 void CodeGenerator::visit(AssignmentExprNode<SemaExtra> &node) {
-  // Stub: not implemented yet
+  LOG_DEBUG("[GEN] Visited assignmentExpr");
+
+  node.right->accept(*this);
+  std::string right_reg = eval_stack.back();
+  eval_stack.pop_back();
+
+  if (auto *identifier =
+          dynamic_cast<IdentifierExprNode<SemaExtra> *>(node.left.get())) {
+    std::string var_name = identifier->identifier.getValue();
+    std::string var_location = getVariableLocation(var_name);
+
+    emitMove(var_location, right_reg);
+
+    eval_stack.push_back(right_reg);
+  } else {
+    LOG_WARN("[GEN] Unsupported assignmentExpr type");
+  }
 }
 
 // Additional required visitor stubs
@@ -169,4 +185,5 @@ void CodeGenerator::visit(ConstructorDeclNode<SemaExtra> &node) {
 }
 void CodeGenerator::visit(ExprStmtNode<SemaExtra> &node) {
   LOG_DEBUG("[GEN] Visited exprstmt");
+  if (node.expr) node.expr->accept(*this);
 }

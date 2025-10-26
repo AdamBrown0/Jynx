@@ -179,4 +179,9 @@ void TreeTransformer::visit(ConstructorDeclNode<ParseExtra> &) {
 void TreeTransformer::visit(ExprStmtNode<ParseExtra> &node) {
   LOG_DEBUG("[Tree] Visited exprstmt");
   node.expr->accept(*this);
+  ExprNode<SemaExtra> *expr = expr_stack.top();
+  expr_stack.pop();
+
+  auto *expr_stmt = new ExprStmtNode<SemaExtra>(expr, node.location);
+  stmt_stack.push(expr_stmt);
 }

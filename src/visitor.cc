@@ -27,6 +27,7 @@ void SymbolCollectorVisitor::visit(ClassNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(FieldDeclNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(MethodDeclNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ConstructorDeclNode<ParseExtra>& node) {}
+// void SymbolCollectorVisitor::visit(ExprStmtNode<ParseExtra>& node) {}
 
 // ============================================================================
 // TypeCheckerVisitor stub implementations
@@ -51,3 +52,4 @@ void TypeCheckerVisitor::visit(ClassNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(FieldDeclNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(MethodDeclNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(ConstructorDeclNode<ParseExtra>& node) {}
+// void TypeCheckerVisitor::visit(ExprStmtNode<ParseExtra>& node) {}
