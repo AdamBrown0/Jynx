@@ -2,6 +2,7 @@
 #define TOKEN_H_
 
 #include <string>
+
 #include "sourcelocation.hh"
 
 #define TOKEN_LIST     \
@@ -19,6 +20,7 @@
   X(TOKEN_GT)          \
   X(TOKEN_LEQ)         \
   X(TOKEN_GEQ)         \
+  X(TOKEN_DEQ)         \
   X(TOKEN_ARROW_RIGHT) \
   X(TOKEN_INT)         \
   X(TOKEN_STRING)      \
@@ -33,7 +35,8 @@
   X(TOKEN_COMMENT)     \
   X(TOKEN_DATA_TYPE)   \
   X(KW_IF)             \
-  X(KW_ELSE)             \
+  X(KW_ELSE)           \
+  X(KW_RETURN)         \
   X(TOKEN_UNKNOWN)     \
   X(TOKEN_EOF)
 
@@ -55,7 +58,7 @@ class Token {
   int getCol() const { return location.col; }
 
   /// Print token info
-  void print(); // Declaration only - implementation in token.cc
+  void print();  // Declaration only - implementation in token.cc
 
   /// Convert enum entry to string (via macro)
   constexpr const char* to_string() {

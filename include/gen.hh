@@ -5,6 +5,7 @@
 #include <string>
 
 #include "ast.hh"
+#include "log.hh"
 #include "visitor/visitor.hh"
 
 class CodeGenerator : public ASTVisitor<SemaExtra> {
@@ -65,12 +66,19 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
         break;
     }
   }
-  void emitCompare(const std::string &left, const std::string &right);
-  void emitJump(const std::string &label);
+  void emitCompare(const std::string &left, const std::string &right) {
+    emit("cmp " + left + ", " + right);
+  }
+  void emitJump(const std::string &label) { emit("jmp " + label); }
   void emitConditionalJump(const std::string &condition,
-                           const std::string &label);
+                           const std::string &label) {
+    emit("j" + condition + " " + label);
+  }
   void emitCall(const std::string &function) { emit("call " + function); }
-  void emitReturn();
+  void emitReturn() {
+    emit("leave");
+    emit("ret");
+  }
   void emitLabel(const std::string &label) { text_section << label << ":\n"; }
 
   std::string allocateRegister(bool local) {
@@ -87,7 +95,7 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
 
   void freeRegister(const std::string &reg) {
     if (std::find(caller_saved_registers.begin(), caller_saved_registers.end(),
-                  reg) != caller_saved_registers.end()) {
+                  reg) == caller_saved_registers.end()) {
       caller_saved_registers.push_back(reg);
     } else {
       callee_saved_registers.push_back(reg);
@@ -128,7 +136,22 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
   int current_stack_offset = 0;
   int label_counter = 0;
 
-  std::string generateUniqueLabel(const std::string &prefix = "L");
+  std::string generateUniqueLabel(const std::string &prefix = "L") {
+    return prefix + std::to_string(++label_counter);
+  }
+
+  bool isComparisonOp(TokenType op) {
+    switch (op) {
+      case TokenType::TOKEN_DEQ:
+      case TokenType::TOKEN_GEQ:
+      case TokenType::TOKEN_GT:
+      case TokenType::TOKEN_LEQ:
+      case TokenType::TOKEN_LT:
+        return true;
+      default:
+        return false;
+    }
+  }
 };
 
 #endif  // GEN_H_

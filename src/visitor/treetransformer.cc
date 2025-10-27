@@ -144,10 +144,10 @@ void TreeTransformer::visit(IfStmtNode<ParseExtra> &node) {
   StmtNode<SemaExtra> *stmt = stmt_stack.top();
   stmt_stack.pop();
 
-  IfStmtNode<SemaExtra> *else_stmt = nullptr;
+  StmtNode<SemaExtra> *else_stmt = nullptr;
   if (node.else_stmt) {
     node.else_stmt->accept(*this);
-    else_stmt = dynamic_cast<IfStmtNode<SemaExtra> *>(stmt_stack.top());
+    else_stmt = stmt_stack.top();
     stmt_stack.pop();
   }
 
@@ -156,8 +156,13 @@ void TreeTransformer::visit(IfStmtNode<ParseExtra> &node) {
   stmt_stack.push(if_stmt);
 }
 
-void TreeTransformer::visit(ReturnStmtNode<ParseExtra> &) {
-  // Stub: not implemented yet
+void TreeTransformer::visit(ReturnStmtNode<ParseExtra> &node) {
+  node.ret->accept(*this);
+  ExprNode<SemaExtra> *ret = expr_stack.top();
+  expr_stack.pop();
+
+  auto *return_stmt = new ReturnStmtNode<SemaExtra>(ret, node.location);
+  stmt_stack.push(return_stmt);
 }
 
 void TreeTransformer::visit(ClassNode<ParseExtra> &) {

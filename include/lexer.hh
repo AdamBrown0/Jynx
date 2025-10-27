@@ -10,7 +10,6 @@
 
 class Lexer {
  public:
-
   /// Set up built in keywords (types, flow control)
   explicit Lexer(std::istream& input) : in(input), location() {
     keywords.insert("int", TokenType::TOKEN_DATA_TYPE);
@@ -19,6 +18,7 @@ class Lexer {
     keywords.insert("class", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("if", TokenType::KW_IF);
     keywords.insert("else", TokenType::KW_ELSE);
+    keywords.insert("return", TokenType::KW_RETURN);
   }
 
   /// Returns the next token from the source file

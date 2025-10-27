@@ -26,6 +26,8 @@ StmtNode<ParseExtra>* Parser::parseStatement() {
       return Parser::parseVarDecl();
     case TokenType::KW_IF:
       return Parser::parseIfStmt();
+    case TokenType::KW_RETURN:
+      return Parser::parseReturnStmt();
     default:
       return Parser::parseExprStmt();
   }
@@ -59,12 +61,11 @@ StmtNode<ParseExtra>* Parser::parseIfStmt() {
 
   // [ "else" <statement> ]
 
-  IfStmtNode<ParseExtra>* else_statement = nullptr;
+  StmtNode<ParseExtra>* else_statement = nullptr;
 
   if (peek(1).getType() == TokenType::KW_ELSE) {
     advance();
-    else_statement =
-        reinterpret_cast<IfStmtNode<ParseExtra>*>(Parser::parseIfStmt());
+    else_statement = Parser::parseIfStmt();
   }
 
   return new IfStmtNode<ParseExtra>(condition, statement, else_statement,
@@ -96,6 +97,13 @@ StmtNode<ParseExtra>* Parser::parseVarDecl() {
   }
 
   return nullptr;
+}
+
+StmtNode<ParseExtra>* Parser::parseReturnStmt() {
+  // <return_stmt> ::= "return" <expression> ";"
+  advance();
+  _ExprNode* expression = Parser::parseBinaryExpr();
+  return new ReturnStmtNode<ParseExtra>(expression, lexer.getLocation());
 }
 
 StmtNode<ParseExtra>* Parser::parseExprStmt() {

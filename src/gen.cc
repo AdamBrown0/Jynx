@@ -29,19 +29,19 @@ std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
   root_noconst.accept(*this);
 
   LOG_DEBUG("[GEN] Eval stack");
-  if (!eval_stack.empty()) {
-    std::string top = eval_stack.back();
-    eval_stack.pop_back();
-    emitMove("rax", top);
-    freeRegister(top);
-  } else {
-    emitMove("rax", "0");
-  }
+  // if (!eval_stack.empty()) {
+  //   std::string top = eval_stack.back();
+  //   eval_stack.pop_back();
+  //   emitMove("rax", top);
+  //   freeRegister(top);
+  // } else {
+  //   emitMove("rax", "0");
+  // }
 
   LOG_DEBUG("[GEN] Leaving");
   // leave
-  emit("leave");
-  emit("ret\n");
+  // emit("leave");
+  // emit("ret\n");
 
   // generate entrypoint
   emitLabel("_start");
@@ -89,9 +89,14 @@ void CodeGenerator::visit(BinaryExprNode<SemaExtra> &node) {
   eval_stack.pop_back();
   std::string dest = left;
 
-  emitArithmetic(node.op.getType(), left, right, dest);
+  if (isComparisonOp(node.op.getType()))
+    emitCompare(left, right);
+  else {
+    std::string dest = left;
+    emitArithmetic(node.op.getType(), left, right, dest);
+    eval_stack.push_back(left);
+  }
   freeRegister(right);
-  eval_stack.push_back(left);
 }
 
 void CodeGenerator::visit(LiteralExprNode<SemaExtra> &node) {
@@ -101,20 +106,69 @@ void CodeGenerator::visit(LiteralExprNode<SemaExtra> &node) {
     emitMove(r, node.literal_token.getValue());
     eval_stack.push_back(r);
   } else {  // only support int for now
-    LOG_WARN("[GEN] Unsupported type");
+    // LOG_WARN("[GEN] Unsupported type: {}", node.literal_token.to_string());
     std::string r = allocateRegister(true);
     if (r.empty()) r = "rax";
-    emit("xor" + r + ", " + r);
+    emit("xor " + r + ", " + r);
     eval_stack.push_back(r);
   }
 }
 
 void CodeGenerator::visit(IdentifierExprNode<SemaExtra> &node) {
   LOG_DEBUG("[GEN] Visited ident");
+
+  std::string name = node.identifier.getValue();
+  std::string var_location = getVariableLocation(name);
+  std::string r = allocateRegister(true);
+  if (r.empty()) r = "rax";
+
+  emitMove(r, var_location);
+  eval_stack.push_back(r);
 }
 
 void CodeGenerator::visit(IfStmtNode<SemaExtra> &node) {
-  // Stub: not implemented yet
+  LOG_DEBUG("[GEN] Visited ifstmt");
+
+  std::string false_label = generateUniqueLabel("if_false");
+  std::string end_label = generateUniqueLabel("if_end");
+
+  if (auto *cond =
+          dynamic_cast<BinaryExprNode<SemaExtra> *>(node.condition.get())) {
+    node.condition->accept(*this);
+
+    switch (cond->op.getType()) {
+      case TokenType::TOKEN_DEQ:
+        emitConditionalJump("ne", false_label);
+        break;
+      case TokenType::TOKEN_GEQ:
+        emitConditionalJump("l", false_label);
+        break;
+      case TokenType::TOKEN_GT:
+        emitConditionalJump("le", false_label);
+        break;
+      case TokenType::TOKEN_LEQ:
+        emitConditionalJump("g", false_label);
+        break;
+      case TokenType::TOKEN_LT:
+        emitConditionalJump("ge", false_label);
+        break;
+      default:
+        LOG_ERROR("[GEN] Expected conditional operator, found {}",
+                  cond->op.to_string());
+    }
+  }
+
+  node.statement->accept(*this);
+
+  if (node.else_stmt) {
+    emitJump(end_label);
+  }
+
+  emitLabel(false_label);
+  if (node.else_stmt) {
+    node.else_stmt->accept(*this);
+    emitLabel(end_label);
+  }
 }
 
 void CodeGenerator::visit(BlockNode<SemaExtra> &node) {
@@ -165,7 +219,13 @@ void CodeGenerator::visit(ParamNode<SemaExtra> &node) {
 }
 
 void CodeGenerator::visit(ReturnStmtNode<SemaExtra> &node) {
-  // Stub: not implemented yet
+  LOG_DEBUG("[GEN] Visited returnstmt");
+  node.ret->accept(*this);
+  std::string expr_reg = eval_stack.back();
+  eval_stack.pop_back();
+
+  emitMove("rax", expr_reg);
+  emitReturn();
 }
 
 void CodeGenerator::visit(ClassNode<SemaExtra> &node) {

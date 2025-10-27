@@ -1,7 +1,8 @@
 int cond = 5;
 int ret = 0;
-if (cond == 5) {
+if (cond >= 6) {
   ret = 1;
 } else {
   ret = 2;
 }
+ret;

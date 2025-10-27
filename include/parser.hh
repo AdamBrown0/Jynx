@@ -36,6 +36,7 @@ class Parser {
         return 3;
       case Tk::TOKEN_EQUALS:
         return 2;
+      case Tk::TOKEN_DEQ:
       case Tk::TOKEN_GT:
       case Tk::TOKEN_GEQ:
       case Tk::TOKEN_LT:

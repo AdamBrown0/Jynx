@@ -248,10 +248,10 @@ template <typename Extra>
 struct IfStmtNode : StmtNode<Extra> {
   uptr<ExprNode<Extra>> condition;
   uptr<StmtNode<Extra>> statement;
-  uptr<IfStmtNode<Extra>> else_stmt;
+  uptr<StmtNode<Extra>> else_stmt;
 
   IfStmtNode(ExprNode<Extra>* condition, StmtNode<Extra>* statement,
-             IfStmtNode<Extra>* else_stmt, SourceLocation loc)
+             StmtNode<Extra>* else_stmt, SourceLocation loc)
       : StmtNode<Extra>(loc),
         condition(std::move(condition)),
         statement(std::move(statement)),
@@ -267,7 +267,7 @@ template <typename Extra>
 struct ReturnStmtNode : StmtNode<Extra> {
   uptr<ExprNode<Extra>> ret;
 
-  ReturnStmtNode(uptr<ExprNode<Extra>> ret, SourceLocation loc)
+  ReturnStmtNode(ExprNode<Extra>* ret, SourceLocation loc)
       : StmtNode<Extra>(loc), ret(std::move(ret)) {}
 
   template <typename Visitor>

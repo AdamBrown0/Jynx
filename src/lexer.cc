@@ -72,8 +72,13 @@ Token Lexer::next_token() {
     }
     case ';':
       return make_token(TokenType::TOKEN_SEMICOLON, ";");
-    case '=':
+    case '=': {
+      if (in.peek() == '=') {
+        advance();  // consume the second '='
+        return make_token(TokenType::TOKEN_DEQ, "==");
+      }
       return make_token(TokenType::TOKEN_EQUALS, "=");
+    }
     case '+':
       return make_token(TokenType::TOKEN_PLUS, "+");
     case '*':
@@ -101,16 +106,16 @@ void Lexer::skip_whitespace() {
     if (std::isspace(c)) {
       advance();  // This will handle line/col tracking
     } else if (c == '/') {
-      advance();                // consume the '/'
+      advance();               // consume the '/'
       if (in.peek() == '/') {  // line comment
-        advance();              // consume the second '/'
+        advance();             // consume the second '/'
         while (!in.eof() && in.peek() != '\n') {
           advance();
         }
         if (!in.eof()) advance();  // consume the newline
       } else {
-        in.unget();  // put back the '/' - it's a divide operator
-        location.col--;       // adjust column since we put the character back
+        in.unget();      // put back the '/' - it's a divide operator
+        location.col--;  // adjust column since we put the character back
         break;
       }
     } else
