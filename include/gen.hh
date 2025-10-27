@@ -28,6 +28,7 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
   void visit(BlockNode<SemaExtra> &node) override;
   void visit(VarDeclNode<SemaExtra> &node) override;
   void visit(IfStmtNode<SemaExtra> &node) override;
+  void visit(WhileStmtNode<SemaExtra> &node) override;
   void visit(ReturnStmtNode<SemaExtra> &node) override;
   void visit(ClassNode<SemaExtra> &node) override;
   void visit(FieldDeclNode<SemaExtra> &node) override;

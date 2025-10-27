@@ -100,8 +100,9 @@ class Parser {
   _StmtNode* parseBlock();
   _StmtNode* parseVarDecl();
   _StmtNode* parseIfStmt();
-  _StmtNode* parseElseStmt();
+  // _StmtNode* parseElseStmt();
   _StmtNode* parseReturnStmt();
+  _StmtNode* parseWhileStmt();
   _StmtNode* parseExprStmt();
 
   // class related

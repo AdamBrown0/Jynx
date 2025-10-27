@@ -44,7 +44,7 @@ std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
   // emit("ret\n");
 
   // generate entrypoint
-  emitLabel("_start");
+  emitLabel("\n_start");
   emitCall("_jynx_main");
   emitMove("rdi", "rax");
   emitMove("rax", "60");
@@ -169,6 +169,44 @@ void CodeGenerator::visit(IfStmtNode<SemaExtra> &node) {
     node.else_stmt->accept(*this);
     emitLabel(end_label);
   }
+}
+
+void CodeGenerator::visit(WhileStmtNode<SemaExtra> &node) {
+  LOG_DEBUG("[GEN] Visited whilestmt");
+
+  std::string start_label = generateUniqueLabel("loop_start");
+  std::string end_label = generateUniqueLabel("loop_end");
+
+  emitLabel(start_label);
+  if (auto *cond =
+          dynamic_cast<BinaryExprNode<SemaExtra> *>(node.condition.get())) {
+    node.condition->accept(*this);
+
+    switch (cond->op.getType()) {
+      case TokenType::TOKEN_DEQ:
+        emitConditionalJump("ne", end_label);
+        break;
+      case TokenType::TOKEN_GEQ:
+        emitConditionalJump("l", end_label);
+        break;
+      case TokenType::TOKEN_GT:
+        emitConditionalJump("le", end_label);
+        break;
+      case TokenType::TOKEN_LEQ:
+        emitConditionalJump("g", end_label);
+        break;
+      case TokenType::TOKEN_LT:
+        emitConditionalJump("ge", end_label);
+        break;
+      default:
+        LOG_ERROR("[GEN] Expected conditional operator, found {}",
+                  cond->op.to_string());
+    }
+  }
+
+  node.statement->accept(*this);
+  emitJump(start_label);
+  emitLabel(end_label);
 }
 
 void CodeGenerator::visit(BlockNode<SemaExtra> &node) {

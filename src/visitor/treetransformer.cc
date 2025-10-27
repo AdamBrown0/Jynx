@@ -156,6 +156,19 @@ void TreeTransformer::visit(IfStmtNode<ParseExtra> &node) {
   stmt_stack.push(if_stmt);
 }
 
+void TreeTransformer::visit(WhileStmtNode<ParseExtra> &node) {
+  node.condition->accept(*this);
+  ExprNode<SemaExtra> *cond = expr_stack.top();
+  expr_stack.pop();
+
+  node.statement->accept(*this);
+  StmtNode<SemaExtra> *stmt = stmt_stack.top();
+  stmt_stack.pop();
+
+  auto *while_stmt = new WhileStmtNode<SemaExtra>(cond, stmt, node.location);
+  stmt_stack.push(while_stmt);
+}
+
 void TreeTransformer::visit(ReturnStmtNode<ParseExtra> &node) {
   node.ret->accept(*this);
   ExprNode<SemaExtra> *ret = expr_stack.top();

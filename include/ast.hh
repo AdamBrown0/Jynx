@@ -264,6 +264,18 @@ struct IfStmtNode : StmtNode<Extra> {
 };
 
 template <typename Extra>
+struct WhileStmtNode : StmtNode<Extra> {
+  uptr<ExprNode<Extra>> condition;
+  uptr<StmtNode<Extra>> statement;
+
+  WhileStmtNode(ExprNode<Extra>* condition, StmtNode<Extra>* statement,
+                SourceLocation loc)
+      : StmtNode<Extra>(loc),
+        condition(std::move(condition)),
+        statement(std::move(statement)) {}
+};
+
+template <typename Extra>
 struct ReturnStmtNode : StmtNode<Extra> {
   uptr<ExprNode<Extra>> ret;
 

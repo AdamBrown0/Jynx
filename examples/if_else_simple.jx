@@ -5,4 +5,4 @@ if (cond >= 6) {
 } else {
   ret = 2;
 }
-ret;
+return ret;

@@ -23,6 +23,7 @@ class SymbolCollectorVisitor : public ASTVisitor<ParseExtra> {
   void visit(BlockNode<ParseExtra> &node) override;
   void visit(VarDeclNode<ParseExtra> &node) override;
   void visit(IfStmtNode<ParseExtra> &node) override;
+  void visit(WhileStmtNode<ParseExtra> &) override {};
   void visit(ReturnStmtNode<ParseExtra> &node) override;
   void visit(ClassNode<ParseExtra> &node) override;
   void visit(FieldDeclNode<ParseExtra> &node) override;

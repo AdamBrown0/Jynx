@@ -26,6 +26,8 @@ StmtNode<ParseExtra>* Parser::parseStatement() {
       return Parser::parseVarDecl();
     case TokenType::KW_IF:
       return Parser::parseIfStmt();
+    case TokenType::KW_WHILE:
+      return Parser::parseWhileStmt();
     case TokenType::KW_RETURN:
       return Parser::parseReturnStmt();
     default:
@@ -97,6 +99,21 @@ StmtNode<ParseExtra>* Parser::parseVarDecl() {
   }
 
   return nullptr;
+}
+
+StmtNode<ParseExtra>* Parser::parseWhileStmt() {
+  // <while_stmt> ::= "while" "(" <expression> ")" <statement>
+
+  // advance();
+  if (advance().getType() != TokenType::TOKEN_LPAREN)
+    LOG_PARSER_ERROR("Expected opening parenthesis", current);
+
+  _ExprNode* condition = Parser::parseBinaryExpr();
+
+  _StmtNode* statement = Parser::parseStatement();
+
+  return new WhileStmtNode<ParseExtra>(condition, statement,
+                                       lexer.getLocation());
 }
 
 StmtNode<ParseExtra>* Parser::parseReturnStmt() {

@@ -37,6 +37,7 @@
   X(KW_IF)             \
   X(KW_ELSE)           \
   X(KW_RETURN)         \
+  X(KW_WHILE)          \
   X(TOKEN_UNKNOWN)     \
   X(TOKEN_EOF)
 

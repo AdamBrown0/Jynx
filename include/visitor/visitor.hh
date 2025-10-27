@@ -66,6 +66,8 @@ class ASTVisitor {
       visit(*param);
     } else if (auto *ifStmt = dynamic_cast<IfStmtNode<Extra> *>(&node)) {
       visit(*ifStmt);
+    } else if (auto *whileStmt = dynamic_cast<WhileStmtNode<Extra> *>(&node)) {
+      visit(*whileStmt);
     } else if (auto *returnStmt =
                    dynamic_cast<ReturnStmtNode<Extra> *>(&node)) {
       visit(*returnStmt);
@@ -95,6 +97,7 @@ class ASTVisitor {
   virtual void visit(BlockNode<Extra> &node) = 0;
   virtual void visit(VarDeclNode<Extra> &node) = 0;
   virtual void visit(IfStmtNode<Extra> &node) = 0;
+  virtual void visit(WhileStmtNode<Extra> &node) = 0;
   virtual void visit(ReturnStmtNode<Extra> &node) = 0;
   virtual void visit(ClassNode<Extra> &node) = 0;
   virtual void visit(FieldDeclNode<Extra> &node) = 0;
