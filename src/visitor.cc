@@ -36,7 +36,7 @@ void TypeCheckerVisitor::visit(ASTNode<ParseExtra>& node) {
   ASTVisitor<ParseExtra>::visit(node);
 }
 // void TypeCheckerVisitor::visit(BinaryExprNode<ParseExtra>& node) {}
-void TypeCheckerVisitor::visit(UnaryExprNode<ParseExtra>& node) {}
+// void TypeCheckerVisitor::visit(UnaryExprNode<ParseExtra>& node) {}
 // void TypeCheckerVisitor::visit(LiteralExprNode<ParseExtra>& node) {}
 // void TypeCheckerVisitor::visit(IdentifierExprNode<ParseExtra>& node) {}
 // void TypeCheckerVisitor::visit(AssignmentExprNode<ParseExtra>& node) {}

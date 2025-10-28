@@ -33,6 +33,8 @@
 
 <if_stmt> ::= "if" "(" <expression> ")" <statement> [ "else" <statement> ]
 
+<while_stmt> ::= "while" "(" <expression> ")" <statement>
+
 <return_stmt> ::= "return" <expression> ";"
 
 <expr_stmt> ::= <expression> ";"

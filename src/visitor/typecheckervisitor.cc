@@ -8,18 +8,18 @@ void TypeCheckerVisitor::visit(BinaryExprNode<ParseExtra>& node) {
   if (node.left) node.left->accept(*this);
   if (node.right) node.right->accept(*this);
 
-  TokenType left_type = get_expr_type(node.left.get());
-  TokenType right_type = get_expr_type(node.right.get());
+  TypeInfo left_type = get_expr_type(node.left.get());
+  TypeInfo right_type = get_expr_type(node.right.get());
 
-  if (left_type == TokenType::TOKEN_UNKNOWN ||
-      right_type == TokenType::TOKEN_UNKNOWN) {
+  if (left_type.token_type == TokenType::TOKEN_UNKNOWN ||
+      right_type.token_type == TokenType::TOKEN_UNKNOWN) {
     set_expr_type(&node, TokenType::TOKEN_UNKNOWN);
     return;
   }
 
-  TokenType result_type =
+  TypeInfo result_type =
       check_binary_op(node.op.getType(), left_type, right_type);
-  if (result_type == TokenType::TOKEN_UNKNOWN) {
+  if (result_type.token_type == TokenType::TOKEN_UNKNOWN) {
     std::string error =
         "Invalid binary operation: " + ASTStringBuilder::node_to_string(&node);
     report_error(error, node.location);
@@ -38,7 +38,12 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<ParseExtra>& node) {
     return;
   }
 
-  set_expr_type(&node, symbol->type);
+  if (symbol->is_class) {
+    set_expr_type(&node, TokenType::TOKEN_DATA_TYPE, symbol->name);
+  } else {
+    std::string type_name = get_type_name_from_token(symbol->type);
+    set_expr_type(&node, symbol->type, type_name);
+  }
 }
 
 void TypeCheckerVisitor::visit(ProgramNode<ParseExtra>& node) {
@@ -50,15 +55,22 @@ void TypeCheckerVisitor::visit(ProgramNode<ParseExtra>& node) {
 }
 
 void TypeCheckerVisitor::visit(VarDeclNode<ParseExtra>& node) {
+  std::string declared_type = node.type_token.getValue();
+
   if (node.initializer) {
     node.initializer->accept(*this);
+    TypeInfo initializer_type = get_expr_type(node.initializer.get());
+
+    if (!types_compatible(declared_type, initializer_type)) {
+      report_error("Tried to assign type '" + initializer_type.type_name + "' to variable of type '" + declared_type + "'", node.location);
+    }
   }
 }
 
 void TypeCheckerVisitor::visit(LiteralExprNode<ParseExtra>& node) {
   TokenType literal_type = node.literal_token.getType();
-  std::string value = node.literal_token.getValue();
-  set_expr_type(&node, literal_type);
+  std::string type_name = get_type_name_from_token(literal_type);
+  set_expr_type(&node, literal_type, type_name);
 }
 
 void TypeCheckerVisitor::visit(ExprStmtNode<ParseExtra>& node) {
@@ -73,11 +85,28 @@ void TypeCheckerVisitor::visit(AssignmentExprNode<ParseExtra>& node) {
     if (auto* identifier =
             dynamic_cast<LiteralExprNode<ParseExtra>*>(node.left.get())) {
       if (lookup_symbol(identifier->literal_token.getValue())->type ==
-          get_expr_type(node.right.get())) {
+          get_expr_type(node.right.get()).token_type) {
         LOG_DEBUG("[Type] Correct");
       } else {
         report_error("Tried to assign mismatching type", node.location);
       }
     }
+  }
+}
+
+void TypeCheckerVisitor::visit(UnaryExprNode<ParseExtra>& node) {
+  node.operand->accept(*this);
+  TokenType operand_type = get_expr_type(node.operand.get()).token_type;
+
+  switch (node.op.getType()) {
+    case TokenType::TOKEN_MINUS: {
+      if (operand_type != TokenType::TOKEN_INT) {
+        report_error("Unary '-' requires numeric type", node.location);
+      }
+      set_expr_type(&node, operand_type);
+      break;
+    }
+    default:
+      report_error("Unknown unary operator", node.location);
   }
 }

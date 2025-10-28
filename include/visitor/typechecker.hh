@@ -6,6 +6,11 @@
 #include "ast.hh"
 #include "visitor.hh"
 
+typedef struct TypeInfo {
+  TokenType token_type;
+  std::string type_name;
+} TypeInfo;
+
 class TypeCheckerVisitor : public ASTVisitor<ParseExtra> {
  public:
   TypeCheckerVisitor() {}
@@ -14,7 +19,7 @@ class TypeCheckerVisitor : public ASTVisitor<ParseExtra> {
     global_symbols = symbols;
   }
 
-  const std::unordered_map<ASTNode<ParseExtra> *, TokenType> get_expr_types()
+  const std::unordered_map<ASTNode<ParseExtra> *, TypeInfo> get_expr_types()
       const {
     return expr_types;
   }
@@ -41,44 +46,85 @@ class TypeCheckerVisitor : public ASTVisitor<ParseExtra> {
   void visit(ExprStmtNode<ParseExtra> &node) override;
 
  private:
-  std::unordered_map<ASTNode<ParseExtra> *, TokenType> expr_types;
+  std::unordered_map<ASTNode<ParseExtra> *, TypeInfo> expr_types;
 
-  TokenType get_expr_type(ASTNode<ParseExtra> *node) {
-    if (!node) return TokenType::TOKEN_UNKNOWN;
-
+  TypeInfo get_expr_type(ASTNode<ParseExtra> *node) {
+    if (!node) return {TokenType::TOKEN_UNKNOWN, ""};
     auto it = expr_types.find(node);
-    if (it != expr_types.end()) return it->second;
-
-    return TokenType::TOKEN_UNKNOWN;
+    return (it != expr_types.end()) ? it->second
+                                    : TypeInfo{TokenType::TOKEN_UNKNOWN, ""};
   }
 
-  void set_expr_type(ASTNode<ParseExtra> *node, TokenType type) {
-    if (node) expr_types[node] = type;
+  void set_expr_type(ASTNode<ParseExtra> *node, TokenType type,
+                     const std::string &type_name = "") {
+    if (node) expr_types[node] = {type, type_name};
   }
 
-  bool types_compatible(TokenType left, TokenType right) {
-    return left == right;
+  void set_expr_type(ASTNode<ParseExtra> *node, TypeInfo type_info) {
+    if (node) expr_types[node] = type_info;
   }
 
-  TokenType check_binary_op(TokenType op, TokenType left, TokenType right) {
+  bool types_compatible(const std::string &declared_type_name,
+                        const TypeInfo &expr_type_info) {
+    TokenType declared_builtin = resolve_type(declared_type_name);
+    if (declared_builtin != TokenType::TOKEN_UNKNOWN &&
+        declared_builtin != TokenType::TOKEN_DATA_TYPE) {
+      return declared_builtin == expr_type_info.token_type;
+    }
+
+    Symbol *declared_symbol = lookup_symbol(declared_type_name);
+    if (declared_symbol && declared_symbol->is_class) {
+      return declared_type_name == expr_type_info.type_name;
+    }
+
+    return false;
+  }
+
+  TypeInfo check_binary_op(TokenType op, const TypeInfo &left,
+                           const TypeInfo &right) {
     switch (op) {
       // arithmetic operators: +, -, *, /
       case TokenType::TOKEN_PLUS:
-      case TokenType::TOKEN_MINUS:
       case TokenType::TOKEN_MULTIPLY:
+        if (left.token_type == TokenType::TOKEN_STRING) {
+          return {TokenType::TOKEN_STRING, "string"};
+        }
+      case TokenType::TOKEN_MINUS:
       case TokenType::TOKEN_DIVIDE:
-        if (left == TokenType::TOKEN_INT && right == TokenType::TOKEN_INT)
-          return TokenType::TOKEN_INT;
-        if (left ==
-            TokenType::TOKEN_STRING)  // "str" + 2 is valid, 2 + "str" is not
-          return TokenType::TOKEN_STRING;
+        if (left.token_type == TokenType::TOKEN_INT &&
+            right.token_type == TokenType::TOKEN_INT)
+          return {TokenType::TOKEN_INT, "int"};
         // only doing int and int for now, could add string and other
-        return TokenType::TOKEN_UNKNOWN;
+        return {TokenType::TOKEN_UNKNOWN, ""};
 
         // comparison stuff
 
       default:
-        return TokenType::TOKEN_UNKNOWN;
+        return {TokenType::TOKEN_UNKNOWN, ""};
+    }
+  }
+
+  TokenType resolve_type(const std::string &name) {
+    if (name == "int") return TokenType::TOKEN_INT;
+    if (name == "string") return TokenType::TOKEN_STRING;
+    if (name == "bool") return TokenType::TOKEN_INT;
+
+    Symbol *symbol = lookup_symbol(name);
+    if (symbol && symbol->is_class) {
+      return TokenType::TOKEN_DATA_TYPE;
+    }
+
+    return TokenType::TOKEN_UNKNOWN;
+  }
+
+  std::string get_type_name_from_token(TokenType type) {
+    switch (type) {
+      case TokenType::TOKEN_INT:
+        return "int";
+      case TokenType::TOKEN_STRING:
+        return "string";
+      default:
+        return "unknown";
     }
   }
 };

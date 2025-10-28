@@ -38,6 +38,7 @@
   X(KW_ELSE)           \
   X(KW_RETURN)         \
   X(KW_WHILE)          \
+  X(KW_CLASS)          \
   X(TOKEN_UNKNOWN)     \
   X(TOKEN_EOF)
 
@@ -46,6 +47,18 @@ enum class TokenType {
   TOKEN_LIST
 #undef X
 };
+
+inline const char* token_type_to_string(TokenType type) {
+  switch (type) {
+#define X(name)         \
+  case TokenType::name: \
+    return #name;
+    TOKEN_LIST
+#undef X
+    default:
+      return "UNKNOWN";
+  }
+}
 
 class Token {
  public:

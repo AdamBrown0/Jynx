@@ -1,8 +1,10 @@
 #include "log.hh"
 
+#include <cstdlib>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
+#include <system_error>
 
 #include "ast.hh"
 #include "ast_utils.hh"
@@ -143,18 +145,18 @@ void parser_exit(const std::string& rule, bool success) {
   }
 }
 
-// Helper function to get token type string
-const char* token_type_to_string(TokenType type) {
-  switch (type) {
-#define X(name)         \
-  case TokenType::name: \
-    return #name;
-    TOKEN_LIST
-#undef X
-    default:
-      return "UNKNOWN";
-  }
-}
+// // Helper function to get token type string
+// const char* token_type_to_string(TokenType type) {
+//   switch (type) {
+// #define X(name)         \
+//   case TokenType::name: \
+//     return #name;
+//     TOKEN_LIST
+// #undef X
+//     default:
+//       return "UNKNOWN";
+//   }
+// }
 
 void parser_error(const std::string& message, const Token& token) {
   std::stringstream ss;

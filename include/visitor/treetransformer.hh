@@ -6,11 +6,12 @@
 
 #include "ast.hh"
 #include "visitor/visitor.hh"
+#include "visitor/typechecker.hh"
 
 class TreeTransformer : ASTVisitor<ParseExtra> {
  public:
   TreeTransformer(
-      const std::unordered_map<ASTNode<ParseExtra> *, TokenType> &expr_types)
+      const std::unordered_map<ASTNode<ParseExtra> *, TypeInfo> &expr_types)
       : expr_types(expr_types) {}  // Copy the map
 
   ProgramNode<SemaExtra> *transform(ProgramNode<ParseExtra> &node);
@@ -37,15 +38,18 @@ class TreeTransformer : ASTVisitor<ParseExtra> {
   void visit(ExprStmtNode<ParseExtra> &node) override;
 
  private:
-  std::unordered_map<ASTNode<ParseExtra> *, TokenType>
+  std::unordered_map<ASTNode<ParseExtra> *, TypeInfo>
       expr_types;  // Own the copy
 
   std::stack<StmtNode<SemaExtra> *> stmt_stack;
   std::stack<ExprNode<SemaExtra> *> expr_stack;
 
-  TokenType lookupType(ASTNode<ParseExtra> *node) {
+  TypeInfo lookupType(ASTNode<ParseExtra> *node) {
     auto it = expr_types.find(node);
-    return (it != expr_types.end()) ? it->second : TokenType::TOKEN_UNKNOWN;
+    if (it != expr_types.end()) {
+      return it->second;
+    }
+    return {TokenType::TOKEN_UNKNOWN, ""};
   }
 };
 

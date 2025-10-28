@@ -1,5 +1,7 @@
 #include "sema.hh"
 
+#include <cstdlib>
+
 #include "ast.hh"
 #include "log.hh"
 #include "visitor/symbolcollector.hh"
@@ -23,6 +25,7 @@ ProgramNode<SemaExtra>* Sema::analyze(ProgramNode<ParseExtra>& root) {
   if (type_checker.has_errors()) {
     LOG_ERROR("Type checker has failed with {} errors",
               type_checker.error_count());
+    exit(1);
   }
 
   LOG_DEBUG("Transforming tree");

@@ -47,7 +47,7 @@ void TreeTransformer::visit(VarDeclNode<ParseExtra> &node) {
 void TreeTransformer::visit(LiteralExprNode<ParseExtra> &node) {
   auto *literal =
       new LiteralExprNode<SemaExtra>(node.literal_token, node.location);
-  literal->extra.resolved_type = lookupType(&node);
+  literal->extra.resolved_type = lookupType(&node).token_type;
 
   expr_stack.push(literal);
 }
@@ -64,7 +64,7 @@ void TreeTransformer::visit(BinaryExprNode<ParseExtra> &node) {
   auto *binary =
       new BinaryExprNode<SemaExtra>(left, node.op, right, node.location);
 
-  binary->extra.resolved_type = lookupType(&node);
+  binary->extra.resolved_type = lookupType(&node).token_type;
 
   expr_stack.push(binary);
 }
@@ -80,7 +80,7 @@ void TreeTransformer::visit(UnaryExprNode<ParseExtra> &node) {
   expr_stack.pop();
 
   auto *unary = new UnaryExprNode<SemaExtra>(node.op, operand, node.location);
-  unary->extra.resolved_type = lookupType(&node);
+  unary->extra.resolved_type = lookupType(&node).token_type;
 
   expr_stack.push(unary);
 }
@@ -88,7 +88,7 @@ void TreeTransformer::visit(UnaryExprNode<ParseExtra> &node) {
 void TreeTransformer::visit(IdentifierExprNode<ParseExtra> &node) {
   LOG_DEBUG("[Tree] visited ident");
   auto *id = new IdentifierExprNode<SemaExtra>(node.identifier, node.location);
-  id->extra.resolved_type = lookupType(&node);
+  id->extra.resolved_type = lookupType(&node).token_type;
   expr_stack.push(id);
   LOG_DEBUG("[Tree] finished ident");
 }
@@ -104,7 +104,7 @@ void TreeTransformer::visit(AssignmentExprNode<ParseExtra> &node) {
 
   auto *assign = new AssignmentExprNode<SemaExtra>(left_raw, node.op, right_raw,
                                                    node.location);
-  assign->extra.resolved_type = lookupType(&node);
+  assign->extra.resolved_type = lookupType(&node).token_type;
 
   expr_stack.push(assign);
   LOG_DEBUG("[Tree] finished assignment");

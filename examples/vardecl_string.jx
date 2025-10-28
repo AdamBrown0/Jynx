@@ -1,0 +1,2 @@
+string my_str = "string";
+return my_str;

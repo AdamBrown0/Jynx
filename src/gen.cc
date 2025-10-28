@@ -49,10 +49,14 @@ std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
   emitMove("rdi", "rax");
   emitMove("rax", "60");
   emit("syscall");
+  emit("\n");
 
   std::ostringstream out;
   out << text_section.str();
-  // do data section for strings
+  if (!data_section.str().empty()) {
+    out << ".section .data\n";
+    out << data_section.str() << "\n";
+  }
 
   return out.str();
 }
@@ -66,12 +70,12 @@ void CodeGenerator::visit(ProgramNode<SemaExtra> &node) {
 
 void CodeGenerator::visit(VarDeclNode<SemaExtra> &node) {
   std::string name = node.identifier.getValue();
-  std::string loc = getVariableLocation(name);
+  std::string loc = getVariableLocation(node.identifier);
 
   if (node.initializer) {
     node.initializer->accept(*this);
     std::string r = eval_stack.back();
-    // eval_stack.pop_back();
+    eval_stack.pop_back();
     emitMove(loc, r);
     freeRegister(r);
   } else {
@@ -105,8 +109,16 @@ void CodeGenerator::visit(LiteralExprNode<SemaExtra> &node) {
     if (r.empty()) r = "rax";
     emitMove(r, node.literal_token.getValue());
     eval_stack.push_back(r);
+  } else if (node.literal_token.getType() == TokenType::TOKEN_STRING) {
+    std::string label = generateUniqueLabel("str");
+    allocateLocalString(label, node.literal_token.getValue());
+
+    emitWrite(label);
+    std::string r = allocateRegister(true);
+    emit("lea " + r + ", " + formatSlot(local_strings[label].stackOffset));
+    eval_stack.push_back(r);
   } else {  // only support int for now
-    // LOG_WARN("[GEN] Unsupported type: {}", node.literal_token.to_string());
+    LOG_WARN("[GEN] Unsupported type: {}", node.literal_token.to_string());
     std::string r = allocateRegister(true);
     if (r.empty()) r = "rax";
     emit("xor " + r + ", " + r);
@@ -118,7 +130,7 @@ void CodeGenerator::visit(IdentifierExprNode<SemaExtra> &node) {
   LOG_DEBUG("[GEN] Visited ident");
 
   std::string name = node.identifier.getValue();
-  std::string var_location = getVariableLocation(name);
+  std::string var_location = getVariableLocation(node.identifier);
   std::string r = allocateRegister(true);
   if (r.empty()) r = "rax";
 
@@ -225,7 +237,7 @@ void CodeGenerator::visit(AssignmentExprNode<SemaExtra> &node) {
   if (auto *identifier =
           dynamic_cast<IdentifierExprNode<SemaExtra> *>(node.left.get())) {
     std::string var_name = identifier->identifier.getValue();
-    std::string var_location = getVariableLocation(var_name);
+    std::string var_location = getVariableLocation(identifier->identifier);
 
     emitMove(var_location, right_reg);
 

@@ -8,6 +8,11 @@
 #include "log.hh"
 #include "visitor/visitor.hh"
 
+typedef struct LocalStringInfo {
+  int stackOffset;
+  size_t size;
+} LocalStringInfo;
+
 class CodeGenerator : public ASTVisitor<SemaExtra> {
  public:
   CodeGenerator() { setupRegisters(); }
@@ -82,6 +87,47 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
   }
   void emitLabel(const std::string &label) { text_section << label << ":\n"; }
 
+  void emitString(const std::string &name, const std::string &contents) {
+    data_section << name << ":\n";
+    data_section << "   .ascii \"" << contents << "\"" << "\n";
+    data_section << name << "_len = . - " << name << "\n";
+  }
+
+  void emitWrite(const std::string &var_name) {
+    auto it = local_strings.find(var_name);
+    if (it == local_strings.end()) return;
+
+    emit("mov rax, 1");
+    emit("mov rdi, 1");
+    emit("lea rsi, " + formatSlot(it->second.stackOffset));
+    emit("mov rdx, " + std::to_string(it->second.size - 1));
+    emit("syscall");
+  }
+
+  void allocateLocalString(const std::string &var_name,
+                           const std::string &value) {
+    size_t len = value.size() + 1;
+    current_stack_offset += len;
+    int offset = current_stack_offset;
+
+    local_strings[var_name] = {offset, len};
+
+    emit("sub rsp, " + std::to_string(len));
+
+    std::string literal_label = generateUniqueLabel("str");
+    emitString(literal_label, value);
+
+    std::string rsi = allocateRegister(true);
+    std::string rdi = allocateRegister(true);
+    emit("lea " + rsi + ", " + formatStringLabel(literal_label));
+    emit("lea " + rdi + ", " + formatSlot(offset));
+    emit("mov rcx, " + std::to_string(len));
+    emit("rep movsb");
+
+    freeRegister(rsi);
+    freeRegister(rdi);
+  }
+
   std::string allocateRegister(bool local) {
     std::string r;
     if (local) {
@@ -107,13 +153,22 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
     return "[rbp-" + std::to_string(offset) + "]";
   }
 
-  std::string getVariableLocation(const std::string &name) {
-    auto it = stack_offsets.find(name);
+  static inline std::string formatStringLabel(std::string label) {
+    return "[rip+" + label + "]";
+  }
+
+  std::string getVariableLocation(const Token &var) {
+    auto string_it = local_strings.find(var.getValue());
+    if (string_it != local_strings.end()) {
+      return formatSlot(string_it->second.stackOffset);
+    }
+
+    auto it = stack_offsets.find(var.getValue());
     if (it == stack_offsets.end()) {
       current_stack_offset += 8;  // 8-byte
-      stack_offsets[name] = current_stack_offset;
+      stack_offsets[var.getValue()] = current_stack_offset;
       emit("sub rsp, 8");
-      it = stack_offsets.find(name);
+      it = stack_offsets.find(var.getValue());
     }
 
     return formatSlot(it->second);
@@ -133,6 +188,7 @@ class CodeGenerator : public ASTVisitor<SemaExtra> {
   std::vector<std::string> caller_saved_registers;
   std::vector<std::string> callee_saved_registers;
   std::unordered_map<std::string, int> stack_offsets;
+  std::unordered_map<std::string, LocalStringInfo> local_strings;
   std::vector<std::string> eval_stack;
   int current_stack_offset = 0;
   int label_counter = 0;
