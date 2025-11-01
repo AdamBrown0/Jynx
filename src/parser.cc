@@ -118,7 +118,9 @@ StmtNode<ParseExtra>* Parser::parseWhileStmt() {
 
 StmtNode<ParseExtra>* Parser::parseReturnStmt() {
   // <return_stmt> ::= "return" <expression> ";"
+  LOG_PARSER_ENTER("Return stmt");
   advance();
+  LOG_DEBUG("[PARSE] Parsing binary expr");
   _ExprNode* expression = Parser::parseBinaryExpr();
   return new ReturnStmtNode<ParseExtra>(expression, lexer.getLocation());
 }
@@ -131,6 +133,7 @@ StmtNode<ParseExtra>* Parser::parseExprStmt() {
 }
 
 ExprNode<ParseExtra>* Parser::parseExpr() {
+  LOG_DEBUG("[PARSE] ParseExpr current: {}", current.to_string());
   using Tk = TokenType;
   switch (current.getType()) {
     case Tk::TOKEN_LPAREN: {
@@ -155,6 +158,7 @@ ExprNode<ParseExtra>* Parser::parseExpr() {
 ExprNode<ParseExtra>* Parser::parseBinaryExpr() { return parseBinaryExpr(0); }
 
 ExprNode<ParseExtra>* Parser::parseBinaryExpr(int parent_precedence) {
+  LOG_DEBUG("[PARSE] Binary expr entered");
   _ExprNode* left;
   int unary_precedence = getUnaryPrecedence(current.getType());
   if (unary_precedence != -1 && unary_precedence > parent_precedence) {
@@ -163,9 +167,12 @@ ExprNode<ParseExtra>* Parser::parseBinaryExpr(int parent_precedence) {
     left = parseExpr();
   }
 
+  LOG_DEBUG("[PARSE] While loop entering");
   int precedence;
   while ((precedence = getBinaryPrecedence(current.getType())) != -1 &&
          precedence > parent_precedence) {
+    LOG_DEBUG("[PARSE] precedence: {}, parent_precedence: {}", precedence,
+              parent_precedence);
     Token op_token = ret_advance();
 
     _ExprNode* right = parseBinaryExpr(precedence);

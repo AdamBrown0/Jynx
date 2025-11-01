@@ -29,6 +29,12 @@ void SymbolCollectorVisitor::visit(ProgramNode<ParseExtra> &node) {
   // }
 }
 
+void SymbolCollectorVisitor::visit(BlockNode<ParseExtra> &node) {
+  push_scope();
+  for (auto &stmt : node.statements) stmt->accept(*this);
+  pop_scope();
+}
+
 void SymbolCollectorVisitor::visit(ExprStmtNode<ParseExtra> &node) {
   LOG_DEBUG("[Sym] ExprStmtNode");
   node.expr->accept(*this);

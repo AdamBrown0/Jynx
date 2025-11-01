@@ -37,6 +37,7 @@ class Parser {
       case Tk::TOKEN_EQUALS:
         return 2;
       case Tk::TOKEN_DEQ:
+      case Tk::TOKEN_NEQ:
       case Tk::TOKEN_GT:
       case Tk::TOKEN_GEQ:
       case Tk::TOKEN_LT:
@@ -54,7 +55,7 @@ class Parser {
     switch (type) {
       case Tk::TOKEN_PLUS:
       case Tk::TOKEN_MINUS:
-        return 3;  // Higher precedence than binary operators
+        return 5;  // Higher precedence than binary operators
       default:
         return -1;
     }

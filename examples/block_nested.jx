@@ -1,0 +1,11 @@
+{
+    int test = 5;
+    {
+        int test = 6;
+        if (test > 5) {
+            int test = 57;
+            return test;
+        }
+    }
+    return test;
+}

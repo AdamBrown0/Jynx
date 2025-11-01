@@ -19,7 +19,7 @@ void SymbolCollectorVisitor::visit(MethodCallNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ArgumentNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ParamNode<ParseExtra>& node) {}
 // void SymbolCollectorVisitor::visit(ProgramNode<ParseExtra>& node) {}
-void SymbolCollectorVisitor::visit(BlockNode<ParseExtra>& node) {}
+// void SymbolCollectorVisitor::visit(BlockNode<ParseExtra>& node) {}
 // void SymbolCollectorVisitor::visit(VarDeclNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(IfStmtNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ReturnStmtNode<ParseExtra>& node) {}

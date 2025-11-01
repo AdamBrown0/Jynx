@@ -21,6 +21,7 @@
   X(TOKEN_LEQ)         \
   X(TOKEN_GEQ)         \
   X(TOKEN_DEQ)         \
+  X(TOKEN_NEQ)         \
   X(TOKEN_ARROW_RIGHT) \
   X(TOKEN_INT)         \
   X(TOKEN_STRING)      \

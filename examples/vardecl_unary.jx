@@ -1,3 +1,4 @@
 int unary_simple = -69;
 int unary_binary = -(2 + 5);
 int unary_binary_complex = -( ( 5 + 2 ) / ( 6 - 7 ) * -1);
+return unary_binary_complex;

@@ -85,6 +85,11 @@ Token Lexer::next_token() {
       return make_token(TokenType::TOKEN_MULTIPLY, "*");
     case '/':
       return make_token(TokenType::TOKEN_DIVIDE, "/");
+    case '!':
+      if (in.peek() == '=') {
+        advance();
+        return make_token(TokenType::TOKEN_NEQ, "!=");
+      }
   }
 
   return make_token(TokenType::TOKEN_UNKNOWN, "");
