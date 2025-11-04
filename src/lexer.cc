@@ -135,6 +135,7 @@ Token Lexer::identifier() {
     advance();
   }
   if (TokenType* type = keywords.find(buf)) return make_token(*type, buf);
+  // if (in.peek() == '(') return make_token(TokenType::)
   return make_token(TokenType::TOKEN_ID, buf);
 }
 

@@ -80,6 +80,10 @@ StmtNode<ParseExtra>* Parser::parseVarDecl() {
   if (type_token.getType() != TokenType::TOKEN_DATA_TYPE)
     LOG_PARSER_ERROR("Expected data type", type_token);
 
+  // check if function decl
+  if (peek(1).getType() == TokenType::TOKEN_LPAREN)
+    return Parser::parseMethodDecl();
+
   // current must be the identifier
   Token identifier = ret_advance();
   if (identifier.getType() != TokenType::TOKEN_ID)
@@ -98,6 +102,30 @@ StmtNode<ParseExtra>* Parser::parseVarDecl() {
     LOG_PARSER_ERROR("Expected semi-colon or initializer", current);
   }
 
+  return nullptr;
+}
+
+StmtNode<ParseExtra>* Parser::parseMethodDecl() {
+  LOG_DEBUG("[PARSE] Parsing method decl");
+  LOG_TOKEN(current);
+  advance();  // skip opening parenthesis for param list
+  uptr_vector<ParamNode<ParseExtra>> param_list;
+  while (advance().getType() != TokenType::TOKEN_RPAREN) {
+    LOG_TOKEN(current);
+    LOG_DEBUG("[PARSE] Parsing param list");
+    if (current.getType() == TokenType::TOKEN_COMMA) continue;
+    if (current.getType() != TokenType::TOKEN_DATA_TYPE)
+      LOG_PARSER_ERROR("Expected data type for parameter", current);
+    Token type = ret_advance();
+    if (current.getType() != TokenType::TOKEN_ID)
+      LOG_PARSER_ERROR("Expected identifier for parameter", current);
+    Token identifier = current;
+    param_list.emplace_back(
+        new ParamNode<ParseExtra>(type, identifier, lexer.getLocation()));
+  }
+  advance();  // skip closing parenthesis
+  LOG_TOKEN(current);
+  BlockNode<ParseExtra> body = Parser::parseBlock();
   return nullptr;
 }
 

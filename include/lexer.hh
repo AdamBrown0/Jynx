@@ -15,6 +15,7 @@ class Lexer {
     keywords.insert("int", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("string", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("bool", TokenType::TOKEN_DATA_TYPE);
+    keywords.insert("void", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("class", TokenType::KW_CLASS);
     keywords.insert("if", TokenType::KW_IF);
     keywords.insert("else", TokenType::KW_ELSE);
