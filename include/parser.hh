@@ -2,6 +2,7 @@
 #define PARSER_H_
 
 #include <deque>
+#include <optional>
 
 #include "ast.hh"
 #include "lexer.hh"
@@ -108,9 +109,10 @@ class Parser {
 
   // class related
   _StmtNode* parseClass();
-  _StmtNode* parseFieldDecl();
-  _StmtNode* parseMethodDecl();
-  _StmtNode* parseConstructorDecl();
+  ClassMemberNode<ParseExtra>* parseClassMember();
+  ClassMemberNode<ParseExtra>* parseFieldDecl(std::optional<Token>);
+  ClassMemberNode<ParseExtra>* parseMethodDecl(std::optional<Token>);
+  ClassMemberNode<ParseExtra>* parseConstructorDecl();
 
   // expressions
   _ExprNode* parseExpr();

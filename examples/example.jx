@@ -9,7 +9,7 @@
 
 class MyClass {
 
-    public static int myInt;
+    public int myInt;
     private string myString;
 
     MyClass() {
@@ -25,38 +25,39 @@ class MyClass {
     void foo() {
 	print("This is on one line, no newline char");
 	println("This adds newline char");
-	print("This allows to print non string stuff like %{myString}, and %{myInt + 1}"); // format
+	// print("This allows to print non string stuff like %{myString}, and %{myInt + 1}"); // format
     }
 
     int bar(int i) {
 	myInt = i;
-	i // have this return last variable mentioned in function like groovy? rust (based language)
+	// i // have this return last variable mentioned in function like groovy? rust (based language)
     }
 
-    void ptr(int *i) {
-	print("This returns no value, but updates the value stored at pointer");
-	i = 2; // this makes whatever passed in to function now 2
-    }
+  //   void ptr(int *i) {
+	// print("This returns no value, but updates the value stored at pointer");
+	// i = 2; // this makes whatever passed in to function now 2
+  //   }
 
-    void print_multiline_str(void) {
-    	print("""
-		Hello, World!
-		Hello Pookies <3
-		Line 5
-    	"""); // figure this out, could be difficult since indent issues but womp womp
-    }
+    // void print_multiline_str() {
+    // 	print("""
+		// Hello, World!
+		// Hello Pookies <3
+		// Line 5
+    // 	"""); // figure this out, could be difficult since indent issues but womp womp
+    // }
 
     int factorial(int i) {
     	if (i == 1) 
     		return 1;
 
     	return i + factorial(i - 1);
+      // return 10;
     }
 
 }
 
 class Main {
-	int main(int argc, char** argv) {
+	int main(int argc, string argv) {
 		MyClass mc = new MyClass();
 		mc.foo();
 		println(mc.bar(69419));
@@ -65,6 +66,6 @@ class Main {
 		println(" : " + ptr(i));
 		mc.print_multiline_str();
 		print(factorial(100));
-		0
+		return 0;
 	}
 }

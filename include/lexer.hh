@@ -16,6 +16,9 @@ class Lexer {
     keywords.insert("string", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("bool", TokenType::TOKEN_DATA_TYPE);
     keywords.insert("void", TokenType::TOKEN_DATA_TYPE);
+    keywords.insert("public", TokenType::KW_ACCESS_MODIFIER);
+    keywords.insert("private", TokenType::KW_ACCESS_MODIFIER);
+    keywords.insert("protected", TokenType::KW_ACCESS_MODIFIER);
     keywords.insert("class", TokenType::KW_CLASS);
     keywords.insert("if", TokenType::KW_IF);
     keywords.insert("else", TokenType::KW_ELSE);

@@ -135,11 +135,11 @@ struct MethodCallNode : ExprNode<Extra> {
   Token identifier;
   uptr_vector<ArgumentNode<Extra>> arg_list;
 
-  MethodCallNode(uptr<ExprNode<Extra>> expr, Token identifier,
+  MethodCallNode(uptr<ExprNode<Extra>>&& expr, Token identifier,
                  uptr_vector<ArgumentNode<Extra>>&& arg_list,
                  SourceLocation loc)
       : ExprNode<Extra>(loc),
-        expr(expr),
+        expr(std::move(expr)),
         identifier(identifier),
         arg_list(std::move(arg_list)) {}
 
@@ -358,14 +358,14 @@ struct MethodDeclNode : ClassMemberNode<Extra> {
 
   MethodDeclNode(Token access_modifier, bool is_static, Token type,
                  Token identifier, uptr_vector<ParamNode<Extra>>&& param_list,
-                 uptr<BlockNode<Extra>> block, SourceLocation loc)
+                 uptr<BlockNode<Extra>> body, SourceLocation loc)
       : ClassMemberNode<Extra>(loc),
         access_modifier(access_modifier),
         is_static(is_static),
         type(type),
         identifier(identifier),
         param_list(std::move(param_list)),
-        body(std::move(block)) {}
+        body(std::move(body)) {}
 
   template <typename Visitor>
   void accept(Visitor& visitor) {

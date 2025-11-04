@@ -1,0 +1,5 @@
+class my_class {
+  void my_func() {
+    int a = 1;
+  }
+}
