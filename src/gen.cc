@@ -100,7 +100,8 @@ void CodeGenerator::visit(VarDeclNode<SemaExtra> &node) {
       emit("mov QWORD PTR " + formatSlot(lenOff) + ", 0");
     }
   } else {
-    std::string loc = allocateVariableInCurrentScope(node.identifier.getValue());
+    std::string loc =
+        allocateVariableInCurrentScope(node.identifier.getValue());
     if (node.initializer) {
       node.initializer->accept(*this);
       std::string r = eval_stack.back();
@@ -348,7 +349,7 @@ void CodeGenerator::visit(FieldDeclNode<SemaExtra> &node) {
 }
 
 void CodeGenerator::visit(MethodDeclNode<SemaExtra> &node) {
-  // Stub: not implemented yet
+  LOG_DEBUG("[GEN] Generating method: {}", node.identifier.getValue());
 }
 
 void CodeGenerator::visit(ConstructorDeclNode<SemaExtra> &node) {

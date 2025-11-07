@@ -17,7 +17,7 @@ void SymbolCollectorVisitor::visit(IdentifierExprNode<ParseExtra>& node) {}
 // void SymbolCollectorVisitor::visit(AssignmentExprNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(MethodCallNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ArgumentNode<ParseExtra>& node) {}
-void SymbolCollectorVisitor::visit(ParamNode<ParseExtra>& node) {}
+// void SymbolCollectorVisitor::visit(ParamNode<ParseExtra>& node) {}
 // void SymbolCollectorVisitor::visit(ProgramNode<ParseExtra>& node) {}
 // void SymbolCollectorVisitor::visit(BlockNode<ParseExtra>& node) {}
 // void SymbolCollectorVisitor::visit(VarDeclNode<ParseExtra>& node) {}
@@ -25,7 +25,7 @@ void SymbolCollectorVisitor::visit(IfStmtNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ReturnStmtNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ClassNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(FieldDeclNode<ParseExtra>& node) {}
-void SymbolCollectorVisitor::visit(MethodDeclNode<ParseExtra>& node) {}
+// void SymbolCollectorVisitor::visit(MethodDeclNode<ParseExtra>& node) {}
 void SymbolCollectorVisitor::visit(ConstructorDeclNode<ParseExtra>& node) {}
 // void SymbolCollectorVisitor::visit(ExprStmtNode<ParseExtra>& node) {}
 
@@ -50,6 +50,6 @@ void TypeCheckerVisitor::visit(IfStmtNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(ReturnStmtNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(ClassNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(FieldDeclNode<ParseExtra>& node) {}
-void TypeCheckerVisitor::visit(MethodDeclNode<ParseExtra>& node) {}
+// void TypeCheckerVisitor::visit(MethodDeclNode<ParseExtra>& node) {}
 void TypeCheckerVisitor::visit(ConstructorDeclNode<ParseExtra>& node) {}
 // void TypeCheckerVisitor::visit(ExprStmtNode<ParseExtra>& node) {}

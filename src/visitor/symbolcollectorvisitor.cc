@@ -16,6 +16,37 @@ void SymbolCollectorVisitor::visit(VarDeclNode<ParseExtra> &node) {
   }
 }
 
+void SymbolCollectorVisitor::visit(MethodDeclNode<ParseExtra> &node) {
+  Symbol method_symbol;
+  method_symbol.name = node.identifier.getValue();
+  method_symbol.type = node.type.getType();
+  method_symbol.decl_loc = node.location;
+  method_symbol.access_modifier = node.access_modifier.getValue();
+  method_symbol.is_method = true;
+
+  // params
+  if (!node.param_list.empty()) {
+    for (auto &param : node.param_list) {
+      param->accept(*this);
+      method_symbol.param_types.emplace_back(param.get()->type.getType());
+      method_symbol.param_names.emplace_back(
+          param.get()->identifier.getValue());
+    }
+  }
+
+  add_symbol(method_symbol);
+}
+
+void SymbolCollectorVisitor::visit(ParamNode<ParseExtra> &node) {
+  Symbol param_symbol;
+  param_symbol.name = node.identifier.getValue();
+  param_symbol.type = node.type.getType();
+  param_symbol.is_param = true;
+  param_symbol.decl_loc = node.location;
+
+  add_symbol(param_symbol);
+}
+
 void SymbolCollectorVisitor::visit(BinaryExprNode<ParseExtra> &node) {
   if (node.left) node.left->accept(*this);
   if (node.right) node.right->accept(*this);

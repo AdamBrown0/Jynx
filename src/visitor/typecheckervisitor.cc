@@ -62,9 +62,16 @@ void TypeCheckerVisitor::visit(VarDeclNode<ParseExtra>& node) {
     TypeInfo initializer_type = get_expr_type(node.initializer.get());
 
     if (!types_compatible(declared_type, initializer_type)) {
-      report_error("Tried to assign type '" + initializer_type.type_name + "' to variable of type '" + declared_type + "'", node.location);
+      report_error("Tried to assign type '" + initializer_type.type_name +
+                       "' to variable of type '" + declared_type + "'",
+                   node.location);
     }
   }
+}
+
+void TypeCheckerVisitor::visit(MethodDeclNode<ParseExtra>& node) {
+  std::string declared_type = node.type.getValue();
+  // oh i need a way to see what type its actually returning
 }
 
 void TypeCheckerVisitor::visit(LiteralExprNode<ParseExtra>& node) {
