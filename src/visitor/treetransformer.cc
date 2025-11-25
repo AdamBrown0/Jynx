@@ -186,8 +186,22 @@ void TreeTransformer::visit(FieldDeclNode<ParseExtra> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(MethodDeclNode<ParseExtra> &) {
+void TreeTransformer::visit(MethodDeclNode<ParseExtra> &node) {
   // Stub: not implemented yet
+  uptr_vector<ParamNode<SemaExtra>> param_list;
+  for (auto &param : node.param_list) {
+    param->accept(*this);
+    param_list.emplace_back(stmt_stack.top());
+    stmt_stack.pop();
+  }
+  node.body->accept(*this);
+  StmtNode<SemaExtra> *body = stmt_stack.top();
+  stmt_stack.pop();
+
+  auto *methoddecl_stmt = new MethodDeclNode<SemaExtra>(
+      node.access_modifier, node.is_static, node.type, node.identifier,
+      param_list, body, node.location);
+  stmt_stack.push(methoddecl_stmt);
 }
 
 void TreeTransformer::visit(ConstructorDeclNode<ParseExtra> &) {
