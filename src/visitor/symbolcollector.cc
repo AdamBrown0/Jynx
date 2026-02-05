@@ -26,41 +26,9 @@ void SymbolCollectorVisitor::visit(ParamNode<NodeInfo> &node) {
   add_symbol(param_symbol);
 }
 
-void SymbolCollectorVisitor::visit(BinaryExprNode<NodeInfo> &node) {
-  (void)node;
-}
-
-void SymbolCollectorVisitor::visit(ProgramNode<NodeInfo> &node) {
-  LOG_DEBUG("SymbolCollectorVisitor: Visiting ProgramNode with {} children",
-            node.children.size());
-  (void)node;
-}
-
-void SymbolCollectorVisitor::visit(BlockNode<NodeInfo> &node) {
-  (void)node;
-}
-
-void SymbolCollectorVisitor::visit(ExprStmtNode<NodeInfo> &node) {
-  LOG_DEBUG("[Sym] ExprStmtNode");
-  (void)node;
-}
-
-void SymbolCollectorVisitor::visit(AssignmentExprNode<NodeInfo> &node) {
-  LOG_DEBUG("[Sym] AssignmentExprNode");
-  if (node.op.getType() == TokenType::TOKEN_EQUALS) {
-    if (auto *identifier =
-            dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.left.get())) {
-      if (check_symbol(identifier->identifier.getValue())) {
-        LOG_DEBUG("[Sym] Found");
-      } else {
-        report_error("Attempted to assign value to invalid variable",
-                     node.location);
-      }
-    } else {
-      report_error("Expected identifier to assign to", node.location);
-    }
-  }
-}
+void SymbolCollectorVisitor::visit(ClassNode<NodeInfo> &node) { (void)node; }
+void SymbolCollectorVisitor::visit(FieldDeclNode<NodeInfo> &node) { (void)node; }
+void SymbolCollectorVisitor::visit(ConstructorDeclNode<NodeInfo> &node) { (void)node; }
 
 void SymbolCollectorVisitor::enter(BlockNode<NodeInfo> &) { push_scope(); }
 

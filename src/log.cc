@@ -145,20 +145,6 @@ void parser_exit(const std::string& rule, bool success) {
     Logger::debug("Exiting parser rule: " + rule + " (" + result + ")");
   }
 }
-
-// // Helper function to get token type string
-// const char* token_type_to_string(TokenType type) {
-//   switch (type) {
-// #define X(name)         \
-//   case TokenType::name: \
-//     return #name;
-//     TOKEN_LIST
-// #undef X
-//     default:
-//       return "UNKNOWN";
-//   }
-// }
-
 void parser_error(const std::string& message, const Token& token) {
   std::stringstream ss;
   ss << "Parser error at line " << token.getLine() << ", col " << token.getCol()

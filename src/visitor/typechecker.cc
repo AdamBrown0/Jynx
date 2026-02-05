@@ -53,12 +53,6 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
   }
 }
 
-void TypeCheckerVisitor::visit(ProgramNode<NodeInfo>& node) {
-  LOG_DEBUG("TypeCheckerVisitor: Visiting ProgramNode with {} children",
-            node.children.size());
-  (void)node;
-}
-
 void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
   std::string declared_type = node.type_token.getValue();
 
@@ -95,8 +89,8 @@ void TypeCheckerVisitor::visit(ExprStmtNode<NodeInfo>& node) { (void)node; }
 void TypeCheckerVisitor::visit(AssignmentExprNode<NodeInfo>& node) {
   if (node.op.getType() == TokenType::TOKEN_EQUALS) {
     if (auto* identifier =
-            dynamic_cast<LiteralExprNode<NodeInfo>*>(node.left.get())) {
-      if (lookup_symbol(identifier->literal_token.getValue())->type ==
+            dynamic_cast<IdentifierExprNode<NodeInfo>*>(node.left.get())) {
+      if (lookup_symbol(identifier->identifier.getValue())->type ==
           node.right->extra.resolved_type) {
         node.extra.resolved_type = node.right->extra.resolved_type;
         node.extra.type_name = node.right->extra.type_name;

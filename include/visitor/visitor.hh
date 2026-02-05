@@ -102,25 +102,25 @@ class ASTVisitor {
   virtual void exit(ExprStmtNode<Extra> &) {}
 
   virtual void visit(ASTNode<Extra> &) {}
-  virtual void visit(BinaryExprNode<Extra> &node) = 0;
-  virtual void visit(UnaryExprNode<Extra> &node) = 0;
-  virtual void visit(LiteralExprNode<Extra> &node) = 0;
-  virtual void visit(IdentifierExprNode<Extra> &node) = 0;
-  virtual void visit(AssignmentExprNode<Extra> &node) = 0;
-  virtual void visit(MethodCallNode<Extra> &node) = 0;
-  virtual void visit(ArgumentNode<Extra> &node) = 0;
-  virtual void visit(ParamNode<Extra> &node) = 0;
-  virtual void visit(ProgramNode<Extra> &node) = 0;
-  virtual void visit(BlockNode<Extra> &node) = 0;
-  virtual void visit(VarDeclNode<Extra> &node) = 0;
-  virtual void visit(IfStmtNode<Extra> &node) = 0;
-  virtual void visit(WhileStmtNode<Extra> &node) = 0;
-  virtual void visit(ReturnStmtNode<Extra> &node) = 0;
-  virtual void visit(ClassNode<Extra> &node) = 0;
-  virtual void visit(FieldDeclNode<Extra> &node) = 0;
-  virtual void visit(MethodDeclNode<Extra> &node) = 0;
-  virtual void visit(ConstructorDeclNode<Extra> &node) = 0;
-  virtual void visit(ExprStmtNode<Extra> &node) = 0;
+  virtual void visit(BinaryExprNode<Extra> &) {}
+  virtual void visit(UnaryExprNode<Extra> &) {}
+  virtual void visit(LiteralExprNode<Extra> &) {}
+  virtual void visit(IdentifierExprNode<Extra> &) {}
+  virtual void visit(AssignmentExprNode<Extra> &) {}
+  virtual void visit(MethodCallNode<Extra> &) {}
+  virtual void visit(ArgumentNode<Extra> &) {}
+  virtual void visit(ParamNode<Extra> &) {}
+  virtual void visit(ProgramNode<Extra> &) {}
+  virtual void visit(BlockNode<Extra> &) {}
+  virtual void visit(VarDeclNode<Extra> &) {}
+  virtual void visit(IfStmtNode<Extra> &) {}
+  virtual void visit(WhileStmtNode<Extra> &) {}
+  virtual void visit(ReturnStmtNode<Extra> &) {}
+  virtual void visit(ClassNode<Extra> &) {}
+  virtual void visit(FieldDeclNode<Extra> &) {}
+  virtual void visit(MethodDeclNode<Extra> &) {}
+  virtual void visit(ConstructorDeclNode<Extra> &) {}
+  virtual void visit(ExprStmtNode<Extra> &) {}
 
  protected:
   std::unordered_map<std::string, Symbol> global_symbols;

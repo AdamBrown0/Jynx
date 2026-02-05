@@ -18,7 +18,6 @@ core_lib = static_library(
   'src/log.cc',
   'src/token.cc',
   'src/gen.cc',
-  'src/visitor.cc',
   'src/visitor/typechecker.cc',
   'src/visitor/symbolcollector.cc',
   ],
