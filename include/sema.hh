@@ -8,7 +8,7 @@
 class Sema {
  public:
   Sema() {}
-  ProgramNode<SemaExtra>* analyze(ProgramNode<ParseExtra>&);
+  ProgramNode<NodeInfo>* analyze(ProgramNode<NodeInfo>&);
 
  private:
 };

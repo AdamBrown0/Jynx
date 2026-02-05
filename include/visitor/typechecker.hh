@@ -11,7 +11,7 @@ typedef struct TypeInfo {
   std::string type_name;
 } TypeInfo;
 
-class TypeCheckerVisitor : public ASTVisitor<ParseExtra> {
+class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
  public:
   TypeCheckerVisitor() {}
 
@@ -19,48 +19,48 @@ class TypeCheckerVisitor : public ASTVisitor<ParseExtra> {
     global_symbols = symbols;
   }
 
-  const std::unordered_map<ASTNode<ParseExtra> *, TypeInfo> get_expr_types()
+  const std::unordered_map<ASTNode<NodeInfo> *, TypeInfo> get_expr_types()
       const {
     return expr_types;
   }
 
-  void visit(ASTNode<ParseExtra> &node) override;
-  void visit(BinaryExprNode<ParseExtra> &node) override;
-  void visit(UnaryExprNode<ParseExtra> &node) override;
-  void visit(LiteralExprNode<ParseExtra> &node) override;
-  void visit(IdentifierExprNode<ParseExtra> &node) override;
-  void visit(AssignmentExprNode<ParseExtra> &node) override;
-  void visit(MethodCallNode<ParseExtra> &node) override;
-  void visit(ArgumentNode<ParseExtra> &node) override;
-  void visit(ParamNode<ParseExtra> &node) override;
-  void visit(ProgramNode<ParseExtra> &node) override;
-  void visit(BlockNode<ParseExtra> &node) override;
-  void visit(VarDeclNode<ParseExtra> &node) override;
-  void visit(IfStmtNode<ParseExtra> &node) override;
-  void visit(WhileStmtNode<ParseExtra> &) override {};
-  void visit(ReturnStmtNode<ParseExtra> &node) override;
-  void visit(ClassNode<ParseExtra> &node) override;
-  void visit(FieldDeclNode<ParseExtra> &node) override;
-  void visit(MethodDeclNode<ParseExtra> &node) override;
-  void visit(ConstructorDeclNode<ParseExtra> &node) override;
-  void visit(ExprStmtNode<ParseExtra> &node) override;
+  void visit(ASTNode<NodeInfo> &node) override;
+  void visit(BinaryExprNode<NodeInfo> &node) override;
+  void visit(UnaryExprNode<NodeInfo> &node) override;
+  void visit(LiteralExprNode<NodeInfo> &node) override;
+  void visit(IdentifierExprNode<NodeInfo> &node) override;
+  void visit(AssignmentExprNode<NodeInfo> &node) override;
+  void visit(MethodCallNode<NodeInfo> &node) override;
+  void visit(ArgumentNode<NodeInfo> &node) override;
+  void visit(ParamNode<NodeInfo> &node) override;
+  void visit(ProgramNode<NodeInfo> &node) override;
+  void visit(BlockNode<NodeInfo> &node) override;
+  void visit(VarDeclNode<NodeInfo> &node) override;
+  void visit(IfStmtNode<NodeInfo> &node) override;
+  void visit(WhileStmtNode<NodeInfo> &) override {};
+  void visit(ReturnStmtNode<NodeInfo> &node) override;
+  void visit(ClassNode<NodeInfo> &node) override;
+  void visit(FieldDeclNode<NodeInfo> &node) override;
+  void visit(MethodDeclNode<NodeInfo> &node) override;
+  void visit(ConstructorDeclNode<NodeInfo> &node) override;
+  void visit(ExprStmtNode<NodeInfo> &node) override;
 
  private:
-  std::unordered_map<ASTNode<ParseExtra> *, TypeInfo> expr_types;
+  std::unordered_map<ASTNode<NodeInfo> *, TypeInfo> expr_types;
 
-  TypeInfo get_expr_type(ASTNode<ParseExtra> *node) {
+  TypeInfo get_expr_type(ASTNode<NodeInfo> *node) {
     if (!node) return {TokenType::TOKEN_UNKNOWN, ""};
     auto it = expr_types.find(node);
     return (it != expr_types.end()) ? it->second
                                     : TypeInfo{TokenType::TOKEN_UNKNOWN, ""};
   }
 
-  void set_expr_type(ASTNode<ParseExtra> *node, TokenType type,
+  void set_expr_type(ASTNode<NodeInfo> *node, TokenType type,
                      const std::string &type_name = "") {
     if (node) expr_types[node] = {type, type_name};
   }
 
-  void set_expr_type(ASTNode<ParseExtra> *node, TypeInfo type_info) {
+  void set_expr_type(ASTNode<NodeInfo> *node, TypeInfo type_info) {
     if (node) expr_types[node] = type_info;
   }
 

@@ -8,7 +8,7 @@
 #include "visitor/treetransformer.hh"
 #include "visitor/typechecker.hh"
 
-ProgramNode<SemaExtra>* Sema::analyze(ProgramNode<ParseExtra>& root) {
+ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
   // pass 1: symbol table and scopes
   LOG_DEBUG("Collecting symbols");
   SymbolCollectorVisitor symbol_collector;

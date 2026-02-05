@@ -5,17 +5,17 @@
 #include "ast.hh"
 #include "log.hh"
 
-ProgramNode<SemaExtra> *TreeTransformer::transform(
-    ProgramNode<ParseExtra> &root) {
+ProgramNode<NodeInfo> *TreeTransformer::transform(
+    ProgramNode<NodeInfo> &root) {
   TreeTransformer::visit(root);  // need to do more things in loop
 
-  auto *transformed = dynamic_cast<ProgramNode<SemaExtra> *>(stmt_stack.top());
+  auto *transformed = dynamic_cast<ProgramNode<NodeInfo> *>(stmt_stack.top());
   stmt_stack.pop();
   return transformed;
 }
 
-void TreeTransformer::visit(ProgramNode<ParseExtra> &node) {
-  uptr_vector<StmtNode<SemaExtra>> children;
+void TreeTransformer::visit(ProgramNode<NodeInfo> &node) {
+  uptr_vector<StmtNode<NodeInfo>> children;
 
   for (auto &child : node.children) {
     child->accept(*this);
@@ -23,12 +23,12 @@ void TreeTransformer::visit(ProgramNode<ParseExtra> &node) {
     stmt_stack.pop();
   }
 
-  auto *program = new ProgramNode<SemaExtra>(std::move(children));
+  auto *program = new ProgramNode<NodeInfo>(std::move(children));
   stmt_stack.push(program);
 }
 
-void TreeTransformer::visit(VarDeclNode<ParseExtra> &node) {
-  ExprNode<SemaExtra> *init = nullptr;
+void TreeTransformer::visit(VarDeclNode<NodeInfo> &node) {
+  ExprNode<NodeInfo> *init = nullptr;
 
   if (node.initializer) {
     node.initializer->accept(*this);
@@ -36,7 +36,7 @@ void TreeTransformer::visit(VarDeclNode<ParseExtra> &node) {
     expr_stack.pop();
   }
 
-  auto *decl = new VarDeclNode<SemaExtra>(node.type_token, node.identifier,
+  auto *decl = new VarDeclNode<NodeInfo>(node.type_token, node.identifier,
                                           init, node.location);
 
   decl->extra.resolved_type = node.type_token.getType();
@@ -44,25 +44,25 @@ void TreeTransformer::visit(VarDeclNode<ParseExtra> &node) {
   stmt_stack.push(decl);
 }
 
-void TreeTransformer::visit(LiteralExprNode<ParseExtra> &node) {
+void TreeTransformer::visit(LiteralExprNode<NodeInfo> &node) {
   auto *literal =
-      new LiteralExprNode<SemaExtra>(node.literal_token, node.location);
+      new LiteralExprNode<NodeInfo>(node.literal_token, node.location);
   literal->extra.resolved_type = lookupType(&node).token_type;
 
   expr_stack.push(literal);
 }
 
-void TreeTransformer::visit(BinaryExprNode<ParseExtra> &node) {
+void TreeTransformer::visit(BinaryExprNode<NodeInfo> &node) {
   node.left->accept(*this);
-  ExprNode<SemaExtra> *left = expr_stack.top();
+  ExprNode<NodeInfo> *left = expr_stack.top();
   expr_stack.pop();
 
   node.right->accept(*this);
-  ExprNode<SemaExtra> *right = expr_stack.top();
+  ExprNode<NodeInfo> *right = expr_stack.top();
   expr_stack.pop();
 
   auto *binary =
-      new BinaryExprNode<SemaExtra>(left, node.op, right, node.location);
+      new BinaryExprNode<NodeInfo>(left, node.op, right, node.location);
 
   binary->extra.resolved_type = lookupType(&node).token_type;
 
@@ -70,39 +70,39 @@ void TreeTransformer::visit(BinaryExprNode<ParseExtra> &node) {
 }
 
 // Stub implementations for remaining visitors
-void TreeTransformer::visit(ASTNode<ParseExtra> &node) {
-  ASTVisitor<ParseExtra>::visit(node);
+void TreeTransformer::visit(ASTNode<NodeInfo> &node) {
+  ASTVisitor<NodeInfo>::visit(node);
 }
 
-void TreeTransformer::visit(UnaryExprNode<ParseExtra> &node) {
+void TreeTransformer::visit(UnaryExprNode<NodeInfo> &node) {
   node.operand->accept(*this);
-  ExprNode<SemaExtra> *operand = expr_stack.top();
+  ExprNode<NodeInfo> *operand = expr_stack.top();
   expr_stack.pop();
 
-  auto *unary = new UnaryExprNode<SemaExtra>(node.op, operand, node.location);
+  auto *unary = new UnaryExprNode<NodeInfo>(node.op, operand, node.location);
   unary->extra.resolved_type = lookupType(&node).token_type;
 
   expr_stack.push(unary);
 }
 
-void TreeTransformer::visit(IdentifierExprNode<ParseExtra> &node) {
+void TreeTransformer::visit(IdentifierExprNode<NodeInfo> &node) {
   LOG_DEBUG("[Tree] visited ident");
-  auto *id = new IdentifierExprNode<SemaExtra>(node.identifier, node.location);
+  auto *id = new IdentifierExprNode<NodeInfo>(node.identifier, node.location);
   id->extra.resolved_type = lookupType(&node).token_type;
   expr_stack.push(id);
   LOG_DEBUG("[Tree] finished ident");
 }
 
-void TreeTransformer::visit(AssignmentExprNode<ParseExtra> &node) {
+void TreeTransformer::visit(AssignmentExprNode<NodeInfo> &node) {
   node.left->accept(*this);
-  ExprNode<SemaExtra> *left_raw = expr_stack.top();
+  ExprNode<NodeInfo> *left_raw = expr_stack.top();
   expr_stack.pop();
 
   node.right->accept(*this);
-  ExprNode<SemaExtra> *right_raw = expr_stack.top();
+  ExprNode<NodeInfo> *right_raw = expr_stack.top();
   expr_stack.pop();
 
-  auto *assign = new AssignmentExprNode<SemaExtra>(left_raw, node.op, right_raw,
+  auto *assign = new AssignmentExprNode<NodeInfo>(left_raw, node.op, right_raw,
                                                    node.location);
   assign->extra.resolved_type = lookupType(&node).token_type;
 
@@ -110,20 +110,20 @@ void TreeTransformer::visit(AssignmentExprNode<ParseExtra> &node) {
   LOG_DEBUG("[Tree] finished assignment");
 }
 
-void TreeTransformer::visit(MethodCallNode<ParseExtra> &) {
+void TreeTransformer::visit(MethodCallNode<NodeInfo> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(ArgumentNode<ParseExtra> &) {
+void TreeTransformer::visit(ArgumentNode<NodeInfo> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(ParamNode<ParseExtra> &) {
+void TreeTransformer::visit(ParamNode<NodeInfo> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(BlockNode<ParseExtra> &node) {
-  uptr_vector<StmtNode<SemaExtra>> stmts;
+void TreeTransformer::visit(BlockNode<NodeInfo> &node) {
+  uptr_vector<StmtNode<NodeInfo>> stmts;
 
   for (auto &stmt : node.statements) {
     stmt->accept(*this);
@@ -131,20 +131,20 @@ void TreeTransformer::visit(BlockNode<ParseExtra> &node) {
     stmt_stack.pop();
   }
 
-  auto *block = new BlockNode<SemaExtra>(std::move(stmts), node.location);
+  auto *block = new BlockNode<NodeInfo>(std::move(stmts), node.location);
   stmt_stack.push(block);
 }
 
-void TreeTransformer::visit(IfStmtNode<ParseExtra> &node) {
+void TreeTransformer::visit(IfStmtNode<NodeInfo> &node) {
   node.condition->accept(*this);
-  ExprNode<SemaExtra> *cond = expr_stack.top();
+  ExprNode<NodeInfo> *cond = expr_stack.top();
   expr_stack.pop();
 
   node.statement->accept(*this);
-  StmtNode<SemaExtra> *stmt = stmt_stack.top();
+  StmtNode<NodeInfo> *stmt = stmt_stack.top();
   stmt_stack.pop();
 
-  StmtNode<SemaExtra> *else_stmt = nullptr;
+  StmtNode<NodeInfo> *else_stmt = nullptr;
   if (node.else_stmt) {
     node.else_stmt->accept(*this);
     else_stmt = stmt_stack.top();
@@ -152,68 +152,70 @@ void TreeTransformer::visit(IfStmtNode<ParseExtra> &node) {
   }
 
   auto *if_stmt =
-      new IfStmtNode<SemaExtra>(cond, stmt, else_stmt, node.location);
+      new IfStmtNode<NodeInfo>(cond, stmt, else_stmt, node.location);
   stmt_stack.push(if_stmt);
 }
 
-void TreeTransformer::visit(WhileStmtNode<ParseExtra> &node) {
+void TreeTransformer::visit(WhileStmtNode<NodeInfo> &node) {
   node.condition->accept(*this);
-  ExprNode<SemaExtra> *cond = expr_stack.top();
+  ExprNode<NodeInfo> *cond = expr_stack.top();
   expr_stack.pop();
 
   node.statement->accept(*this);
-  StmtNode<SemaExtra> *stmt = stmt_stack.top();
+  StmtNode<NodeInfo> *stmt = stmt_stack.top();
   stmt_stack.pop();
 
-  auto *while_stmt = new WhileStmtNode<SemaExtra>(cond, stmt, node.location);
+  auto *while_stmt = new WhileStmtNode<NodeInfo>(cond, stmt, node.location);
   stmt_stack.push(while_stmt);
 }
 
-void TreeTransformer::visit(ReturnStmtNode<ParseExtra> &node) {
+void TreeTransformer::visit(ReturnStmtNode<NodeInfo> &node) {
   node.ret->accept(*this);
-  ExprNode<SemaExtra> *ret = expr_stack.top();
+  ExprNode<NodeInfo> *ret = expr_stack.top();
   expr_stack.pop();
 
-  auto *return_stmt = new ReturnStmtNode<SemaExtra>(ret, node.location);
+  auto *return_stmt = new ReturnStmtNode<NodeInfo>(ret, node.location);
   stmt_stack.push(return_stmt);
 }
 
-void TreeTransformer::visit(ClassNode<ParseExtra> &) {
+void TreeTransformer::visit(ClassNode<NodeInfo> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(FieldDeclNode<ParseExtra> &) {
+void TreeTransformer::visit(FieldDeclNode<NodeInfo> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(MethodDeclNode<ParseExtra> &node) {
+void TreeTransformer::visit(MethodDeclNode<NodeInfo> &node) {
   // Stub: not implemented yet
-  uptr_vector<ParamNode<SemaExtra>> param_list;
+  uptr_vector<ParamNode<NodeInfo>> param_list;
   for (auto &param : node.param_list) {
     param->accept(*this);
-    param_list.emplace_back(stmt_stack.top());
+    param_list.emplace_back(
+        dynamic_cast<ParamNode<NodeInfo> *>(stmt_stack.top()));
     stmt_stack.pop();
   }
   node.body->accept(*this);
-  StmtNode<SemaExtra> *body = stmt_stack.top();
+  auto body_raw = dynamic_cast<BlockNode<NodeInfo> *>(stmt_stack.top());
   stmt_stack.pop();
+  auto body = uptr<BlockNode<NodeInfo>>(body_raw);
 
-  auto *methoddecl_stmt = new MethodDeclNode<SemaExtra>(
+  auto *methoddecl_stmt = new MethodDeclNode<NodeInfo>(
       node.access_modifier, node.is_static, node.type, node.identifier,
-      param_list, body, node.location);
+      std::move(param_list), std::move(body), node.location);
   stmt_stack.push(methoddecl_stmt);
 }
 
-void TreeTransformer::visit(ConstructorDeclNode<ParseExtra> &) {
+void TreeTransformer::visit(ConstructorDeclNode<NodeInfo> &) {
   // Stub: not implemented yet
 }
 
-void TreeTransformer::visit(ExprStmtNode<ParseExtra> &node) {
+void TreeTransformer::visit(ExprStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[Tree] Visited exprstmt");
   node.expr->accept(*this);
-  ExprNode<SemaExtra> *expr = expr_stack.top();
+  ExprNode<NodeInfo> *expr = expr_stack.top();
   expr_stack.pop();
 
-  auto *expr_stmt = new ExprStmtNode<SemaExtra>(expr, node.location);
+  auto *expr_stmt = new ExprStmtNode<NodeInfo>(expr, node.location);
   stmt_stack.push(expr_stmt);
 }

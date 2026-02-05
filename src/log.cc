@@ -288,11 +288,11 @@ void print_ast_templated(ASTNode<Extra>* root, std::string indent, bool isFirst,
 }
 
 // Wrapper functions for backwards compatibility
-void Log::print_ast(ASTNode<ParseExtra>* root) {
+void Log::print_ast(ASTNode<NodeInfo>* root) {
   print_ast_templated(root, "", true, false);
 }
 
-void Log::print_ast(ASTNode<ParseExtra>* root, std::string indent, bool isFirst,
+void Log::print_ast(ASTNode<NodeInfo>* root, std::string indent, bool isFirst,
                     bool isLast) {
   print_ast_templated(root, indent, isFirst, isLast);
 }
@@ -446,8 +446,8 @@ template <typename Extra>
 const std::string SimpleASTPrinter<Extra>::PROGRAM_COLOR = "\033[1;35m";
 
 // New simplified reflection-based print function
-void Log::print_ast_reflection(ASTNode<ParseExtra>* root) {
-  SimpleASTPrinter<ParseExtra> printer;
+void Log::print_ast_reflection(ASTNode<NodeInfo>* root) {
+  SimpleASTPrinter<NodeInfo> printer;
   printer.print(root);
 }
 

@@ -7,10 +7,10 @@
 #include "log.hh"
 #include "token.hh"
 
-ProgramNode<ParseExtra>* Parser::parseProgram() {
+ProgramNode<NodeInfo>* Parser::parseProgram() {
   LOG_PARSER_ENTER("Program");
   // Create a new program node with empty children
-  ProgramNode<ParseExtra>* program = new ProgramNode<ParseExtra>();
+  ProgramNode<NodeInfo>* program = new ProgramNode<NodeInfo>();
 
   current.print();
   while (advance().getType() != TokenType::TOKEN_EOF) {
@@ -25,7 +25,7 @@ ProgramNode<ParseExtra>* Parser::parseProgram() {
   return program;
 }
 
-StmtNode<ParseExtra>* Parser::parseStatement() {
+StmtNode<NodeInfo>* Parser::parseStatement() {
   LOG_PARSER_ENTER("Statement");
   current.print();
   switch (current.getType()) {
@@ -53,7 +53,7 @@ StmtNode<ParseExtra>* Parser::parseStatement() {
   }
 }
 
-StmtNode<ParseExtra>* Parser::parseClass() {
+StmtNode<NodeInfo>* Parser::parseClass() {
   // <class_decl> ::= "class" <identifier> "{" { <class_member> } "}"
   if (ret_advance().getType() != TokenType::KW_CLASS)
     LOG_PARSER_ERROR("Expected class keyword, this shouldn't happen", current);
@@ -64,12 +64,12 @@ StmtNode<ParseExtra>* Parser::parseClass() {
   if (current.getType() != TokenType::TOKEN_LBRACE)
     LOG_PARSER_ERROR("Expected class to have body", current);
 
-  uptr_vector<ClassMemberNode<ParseExtra>> members;
+  uptr_vector<ClassMemberNode<NodeInfo>> members;
 
   advance();  // advance past opening brace
   while (current.getType() != TokenType::TOKEN_RBRACE) {
     current.print();
-    ClassMemberNode<ParseExtra>* member = Parser::parseClassMember();
+    ClassMemberNode<NodeInfo>* member = Parser::parseClassMember();
     if (!member) LOG_PARSER_ERROR("Expected class member", current);
 
     members.emplace_back(member);
@@ -82,11 +82,11 @@ StmtNode<ParseExtra>* Parser::parseClass() {
   LOG_DEBUG("FINISHED CLASS");
   current.print();
 
-  return new ClassNode<ParseExtra>(identifier, std::move(members),
+  return new ClassNode<NodeInfo>(identifier, std::move(members),
                                    lexer.getLocation());
 }
 
-ClassMemberNode<ParseExtra>* Parser::parseClassMember() {
+ClassMemberNode<NodeInfo>* Parser::parseClassMember() {
   LOG_PARSER_ENTER("Class Member");
   std::optional<Token> access_modifier;
   if (current.getType() == TokenType::KW_ACCESS_MODIFIER)
@@ -109,10 +109,10 @@ ClassMemberNode<ParseExtra>* Parser::parseClassMember() {
   return nullptr;
 }
 
-ClassMemberNode<ParseExtra>* Parser::parseConstructorDecl() {
+ClassMemberNode<NodeInfo>* Parser::parseConstructorDecl() {
   Token identifier = ret_advance();
 
-  uptr_vector<ParamNode<ParseExtra>> param_list;
+  uptr_vector<ParamNode<NodeInfo>> param_list;
   while (advance().getType() != TokenType::TOKEN_RPAREN) {
     if (current.getType() == TokenType::TOKEN_COMMA) continue;
     if (current.getType() != TokenType::TOKEN_DATA_TYPE)
@@ -122,19 +122,19 @@ ClassMemberNode<ParseExtra>* Parser::parseConstructorDecl() {
       LOG_PARSER_ERROR("Expected identifier for parameter", current);
     Token param_identifier = current;
     param_list.emplace_back(
-        new ParamNode<ParseExtra>(type, param_identifier, lexer.getLocation()));
+        new ParamNode<NodeInfo>(type, param_identifier, lexer.getLocation()));
   }
   advance();  // skip closing parenthesis
-  BlockNode<ParseExtra>* body =
-      dynamic_cast<BlockNode<ParseExtra>*>(Parser::parseBlock());
+  BlockNode<NodeInfo>* body =
+      dynamic_cast<BlockNode<NodeInfo>*>(Parser::parseBlock());
   if (!body) LOG_PARSER_ERROR("Expected body", current);
 
-  return new ConstructorDeclNode<ParseExtra>(
+  return new ConstructorDeclNode<NodeInfo>(
       identifier, std::move(param_list),
-      std::unique_ptr<BlockNode<ParseExtra>>(body), lexer.getLocation());
+      std::unique_ptr<BlockNode<NodeInfo>>(body), lexer.getLocation());
 }
 
-ClassMemberNode<ParseExtra>* Parser::parseMethodDecl(
+ClassMemberNode<NodeInfo>* Parser::parseMethodDecl(
     std::optional<Token> access_modifier) {
   LOG_PARSER_ENTER("Method Decl");
   Token type = ret_advance();
@@ -148,7 +148,7 @@ ClassMemberNode<ParseExtra>* Parser::parseMethodDecl(
   if (current.getType() != TokenType::TOKEN_LPAREN)
     LOG_PARSER_ERROR("Expected parameter list", current);
 
-  uptr_vector<ParamNode<ParseExtra>> param_list;
+  uptr_vector<ParamNode<NodeInfo>> param_list;
   LOG_DEBUG("OUTSIDE");
   current.print();
   while (advance().getType() != TokenType::TOKEN_RPAREN) {
@@ -162,12 +162,12 @@ ClassMemberNode<ParseExtra>* Parser::parseMethodDecl(
       LOG_PARSER_ERROR("Expected identifier for parameter", current);
     Token identifier = current;
     param_list.emplace_back(
-        new ParamNode<ParseExtra>(type, identifier, lexer.getLocation()));
+        new ParamNode<NodeInfo>(type, identifier, lexer.getLocation()));
   }
   current.print();
   advance();  // skip closing parenthesis
-  BlockNode<ParseExtra>* body =
-      dynamic_cast<BlockNode<ParseExtra>*>(Parser::parseBlock());
+  BlockNode<NodeInfo>* body =
+      dynamic_cast<BlockNode<NodeInfo>*>(Parser::parseBlock());
 
   if (!body) LOG_PARSER_ERROR("Expected function body", current);
 
@@ -175,12 +175,12 @@ ClassMemberNode<ParseExtra>* Parser::parseMethodDecl(
     access_modifier =
         Token(TokenType::KW_ACCESS_MODIFIER, "public", lexer.getLocation());
 
-  return new MethodDeclNode<ParseExtra>(
+  return new MethodDeclNode<NodeInfo>(
       access_modifier.value(), false, type, identifier, std::move(param_list),
-      std::unique_ptr<BlockNode<ParseExtra>>(body), lexer.getLocation());
+      std::unique_ptr<BlockNode<NodeInfo>>(body), lexer.getLocation());
 }
 
-ClassMemberNode<ParseExtra>* Parser::parseFieldDecl(
+ClassMemberNode<NodeInfo>* Parser::parseFieldDecl(
     std::optional<Token> access_modifier) {
   // <field_decl> ::= <access_modifier> [ "static" ] <type> <identifier> ";"
   Token type = ret_advance();
@@ -199,11 +199,11 @@ ClassMemberNode<ParseExtra>* Parser::parseFieldDecl(
     access_modifier =
         Token(TokenType::KW_ACCESS_MODIFIER, "public", lexer.getLocation());
 
-  return new FieldDeclNode<ParseExtra>(access_modifier.value(), false, type,
+  return new FieldDeclNode<NodeInfo>(access_modifier.value(), false, type,
                                        identifier, lexer.getLocation());
 }
 
-StmtNode<ParseExtra>* Parser::parseBlock() {
+StmtNode<NodeInfo>* Parser::parseBlock() {
   // <block> ::= "{" { <statement> } "}"
 
   LOG_PARSER_ENTER("Block");
@@ -221,10 +221,10 @@ StmtNode<ParseExtra>* Parser::parseBlock() {
 
   advance();
 
-  return new BlockNode<ParseExtra>(std::move(statements), lexer.getLocation());
+  return new BlockNode<NodeInfo>(std::move(statements), lexer.getLocation());
 }
 
-StmtNode<ParseExtra>* Parser::parseIfStmt() {
+StmtNode<NodeInfo>* Parser::parseIfStmt() {
   // <if_stmt> ::= "if" "(" <expression> ")" <statement> [ "else" <statement> ]
 
   if (current.getType() == TokenType::KW_ELSE) {
@@ -241,18 +241,18 @@ StmtNode<ParseExtra>* Parser::parseIfStmt() {
 
   // [ "else" <statement> ]
 
-  StmtNode<ParseExtra>* else_statement = nullptr;
+  StmtNode<NodeInfo>* else_statement = nullptr;
 
   if (peek(1).getType() == TokenType::KW_ELSE) {
     advance();
     else_statement = Parser::parseIfStmt();
   }
 
-  return new IfStmtNode<ParseExtra>(condition, statement, else_statement,
+  return new IfStmtNode<NodeInfo>(condition, statement, else_statement,
                                     lexer.getLocation());
 }
 
-StmtNode<ParseExtra>* Parser::parseVarDecl() {
+StmtNode<NodeInfo>* Parser::parseVarDecl() {
   LOG_PARSER_ENTER("VarDecl");
   // current must be the keyword
   Token type_token = ret_advance();
@@ -271,11 +271,11 @@ StmtNode<ParseExtra>* Parser::parseVarDecl() {
   // current must either be an equals, in which case we parseExpr, or a semi
   // colon, in which case we consume and move on
   if (current.getType() == TokenType::TOKEN_SEMICOLON) {
-    return new VarDeclNode<ParseExtra>(type_token, identifier, nullptr,
+    return new VarDeclNode<NodeInfo>(type_token, identifier, nullptr,
                                        lexer.getLocation());
   } else if (current.getType() == TokenType::TOKEN_EQUALS) {
     advance();  // skip equals
-    return new VarDeclNode<ParseExtra>(type_token, identifier,
+    return new VarDeclNode<NodeInfo>(type_token, identifier,
                                        parseBinaryExpr(), lexer.getLocation());
   } else {
     LOG_PARSER_ERROR("Expected semi-colon or initializer", current);
@@ -284,7 +284,7 @@ StmtNode<ParseExtra>* Parser::parseVarDecl() {
   return nullptr;
 }
 
-StmtNode<ParseExtra>* Parser::parseWhileStmt() {
+StmtNode<NodeInfo>* Parser::parseWhileStmt() {
   // <while_stmt> ::= "while" "(" <expression> ")" <statement>
 
   // advance();
@@ -295,29 +295,29 @@ StmtNode<ParseExtra>* Parser::parseWhileStmt() {
 
   _StmtNode* statement = Parser::parseStatement();
 
-  return new WhileStmtNode<ParseExtra>(condition, statement,
+  return new WhileStmtNode<NodeInfo>(condition, statement,
                                        lexer.getLocation());
 }
 
-StmtNode<ParseExtra>* Parser::parseReturnStmt() {
+StmtNode<NodeInfo>* Parser::parseReturnStmt() {
   // <return_stmt> ::= "return" <expression> ";"
   advance();
   _ExprNode* expression = Parser::parseBinaryExpr();
-  return new ReturnStmtNode<ParseExtra>(expression, lexer.getLocation());
+  return new ReturnStmtNode<NodeInfo>(expression, lexer.getLocation());
 }
 
-StmtNode<ParseExtra>* Parser::parseExprStmt() {
-  ExprStmtNode<ParseExtra>* expr;
+StmtNode<NodeInfo>* Parser::parseExprStmt() {
+  ExprStmtNode<NodeInfo>* expr;
   if (current.getType() == TokenType::TOKEN_ID &&
       peek(1).getType() == TokenType::TOKEN_LPAREN)
-    expr = new ExprStmtNode<ParseExtra>(parseMethodCall(), lexer.getLocation());
+    expr = new ExprStmtNode<NodeInfo>(parseMethodCall(), lexer.getLocation());
   else {
-    expr = new ExprStmtNode<ParseExtra>(parseBinaryExpr(), lexer.getLocation());
+    expr = new ExprStmtNode<NodeInfo>(parseBinaryExpr(), lexer.getLocation());
   }
   return expr;
 }
 
-ExprNode<ParseExtra>* Parser::parseExpr() {
+ExprNode<NodeInfo>* Parser::parseExpr() {
   using Tk = TokenType;
   switch (current.getType()) {
     case Tk::TOKEN_LPAREN: {
@@ -339,9 +339,9 @@ ExprNode<ParseExtra>* Parser::parseExpr() {
   return nullptr;
 }
 
-ExprNode<ParseExtra>* Parser::parseBinaryExpr() { return parseBinaryExpr(0); }
+ExprNode<NodeInfo>* Parser::parseBinaryExpr() { return parseBinaryExpr(0); }
 
-ExprNode<ParseExtra>* Parser::parseBinaryExpr(int parent_precedence) {
+ExprNode<NodeInfo>* Parser::parseBinaryExpr(int parent_precedence) {
   _ExprNode* left;
   int unary_precedence = getUnaryPrecedence(current.getType());
   if (unary_precedence != -1 && unary_precedence > parent_precedence) {
@@ -358,10 +358,10 @@ ExprNode<ParseExtra>* Parser::parseBinaryExpr(int parent_precedence) {
     _ExprNode* right = parseBinaryExpr(precedence);
 
     if (op_token.getType() == TokenType::TOKEN_EQUALS) {
-      left = new AssignmentExprNode<ParseExtra>(left, op_token, right,
+      left = new AssignmentExprNode<NodeInfo>(left, op_token, right,
                                                 lexer.getLocation());
     } else {
-      left = new BinaryExprNode<ParseExtra>(left, op_token, right,
+      left = new BinaryExprNode<NodeInfo>(left, op_token, right,
                                             lexer.getLocation());
     }
   }
@@ -369,23 +369,23 @@ ExprNode<ParseExtra>* Parser::parseBinaryExpr(int parent_precedence) {
   return left;
 }
 
-ExprNode<ParseExtra>* Parser::parseUnaryExpr() {
+ExprNode<NodeInfo>* Parser::parseUnaryExpr() {
   Token unary_op = current;
   int unary_prec = getUnaryPrecedence(unary_op.getType());
   advance();
   _ExprNode* operand = parseBinaryExpr(unary_prec);
 
-  return new UnaryExprNode<ParseExtra>(unary_op, operand, lexer.getLocation());
+  return new UnaryExprNode<NodeInfo>(unary_op, operand, lexer.getLocation());
 }
 
-ExprNode<ParseExtra>* Parser::parseLiteralExpr() {
+ExprNode<NodeInfo>* Parser::parseLiteralExpr() {
   _ExprNode* node =
-      new LiteralExprNode<ParseExtra>(current, lexer.getLocation());
+      new LiteralExprNode<NodeInfo>(current, lexer.getLocation());
   advance();
   return node;
 }
 
-ExprNode<ParseExtra>* Parser::parseIdentifierExpr() {
+ExprNode<NodeInfo>* Parser::parseIdentifierExpr() {
   // Check if this is a function call (identifier followed by parenthesis)
   if (peek(1).getType() == TokenType::TOKEN_LPAREN) {
     return parseMethodCall();
@@ -393,12 +393,12 @@ ExprNode<ParseExtra>* Parser::parseIdentifierExpr() {
 
   // Simple identifier
   _ExprNode* node =
-      new IdentifierExprNode<ParseExtra>(current, lexer.getLocation());
+      new IdentifierExprNode<NodeInfo>(current, lexer.getLocation());
   advance();
   return node;
 }
 
-ExprNode<ParseExtra>* Parser::parseMethodCall() {
+ExprNode<NodeInfo>* Parser::parseMethodCall() {
   LOG_PARSER_ENTER("Method Call");
   // <method_call> ::= <expression> "." <identifier> "(" [ <argument_list> ] ")"
   // <function_call> ::= <identifier> "(" [ <argument_list> ] ")"
@@ -421,7 +421,7 @@ ExprNode<ParseExtra>* Parser::parseMethodCall() {
   if (current.getType() != TokenType::TOKEN_LPAREN)
     LOG_PARSER_ERROR("Expected opening parenthesis", current);
 
-  uptr_vector<ArgumentNode<ParseExtra>> arg_list;
+  uptr_vector<ArgumentNode<NodeInfo>> arg_list;
   LOG_DEBUG("OUTSIDE CALL");
   current.print();
   advance();  // advance past opening parenthesis
@@ -439,8 +439,8 @@ ExprNode<ParseExtra>* Parser::parseMethodCall() {
 
     _ExprNode* arg_expr = Parser::parseExpr();
 
-    arg_list.emplace_back(new ArgumentNode<ParseExtra>(
-        std::unique_ptr<ExprNode<ParseExtra>>(arg_expr), lexer.getLocation()));
+    arg_list.emplace_back(new ArgumentNode<NodeInfo>(
+        std::unique_ptr<ExprNode<NodeInfo>>(arg_expr), lexer.getLocation()));
 
     // After parsing an expression, we should either see a comma or closing
     // parenthesis
@@ -455,11 +455,11 @@ ExprNode<ParseExtra>* Parser::parseMethodCall() {
   advance();
 
   if (expr) {
-    return new MethodCallNode<ParseExtra>(
-        std::unique_ptr<ExprNode<ParseExtra>>(expr), identifier,
+    return new MethodCallNode<NodeInfo>(
+        std::unique_ptr<ExprNode<NodeInfo>>(expr), identifier,
         std::move(arg_list), lexer.getLocation());
   } else {
-    return new MethodCallNode<ParseExtra>(
+    return new MethodCallNode<NodeInfo>(
         nullptr, identifier, std::move(arg_list), lexer.getLocation());
   }
 }

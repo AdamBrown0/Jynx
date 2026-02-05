@@ -5,7 +5,7 @@
 #include "ast.hh"
 #include "log.hh"
 
-std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
+std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   LOG_DEBUG("[GEN] Resetting areas");
   // reset
   text_section.str("");
@@ -28,7 +28,7 @@ std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
   enter_scope();
 
   LOG_DEBUG("[GEN] Accepting nodes");
-  auto &root_noconst = const_cast<ProgramNode<SemaExtra> &>(root);
+  auto &root_noconst = const_cast<ProgramNode<NodeInfo> &>(root);
   root_noconst.accept(*this);
 
   // Exit main function scope
@@ -71,14 +71,14 @@ std::string CodeGenerator::generate(const ProgramNode<SemaExtra> &root) {
   return out.str();
 }
 
-void CodeGenerator::visit(ProgramNode<SemaExtra> &node) {
+void CodeGenerator::visit(ProgramNode<NodeInfo> &node) {
   LOG_DEBUG("Code generator: Visiting ProgramNode with {} children",
             node.children.size());
   // nop
   // this is handled in the programnode struct
 }
 
-void CodeGenerator::visit(VarDeclNode<SemaExtra> &node) {
+void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
   std::string name = node.identifier.getValue();
   // If this is a string variable, allocate two slots and store descriptor.
   bool isStringDecl = (node.extra.resolved_type == TokenType::TOKEN_STRING) ||
@@ -114,7 +114,7 @@ void CodeGenerator::visit(VarDeclNode<SemaExtra> &node) {
   }
 }
 
-void CodeGenerator::visit(BinaryExprNode<SemaExtra> &node) {
+void CodeGenerator::visit(BinaryExprNode<NodeInfo> &node) {
   node.left->accept(*this);
   node.right->accept(*this);
 
@@ -134,7 +134,7 @@ void CodeGenerator::visit(BinaryExprNode<SemaExtra> &node) {
   freeRegister(right);
 }
 
-void CodeGenerator::visit(LiteralExprNode<SemaExtra> &node) {
+void CodeGenerator::visit(LiteralExprNode<NodeInfo> &node) {
   if (node.literal_token.getType() == TokenType::TOKEN_INT) {
     std::string r = allocateRegister(true);
     if (r.empty()) r = "rax";
@@ -153,7 +153,7 @@ void CodeGenerator::visit(LiteralExprNode<SemaExtra> &node) {
   }
 }
 
-void CodeGenerator::visit(IdentifierExprNode<SemaExtra> &node) {
+void CodeGenerator::visit(IdentifierExprNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited ident");
 
   std::string name = node.identifier.getValue();
@@ -169,14 +169,14 @@ void CodeGenerator::visit(IdentifierExprNode<SemaExtra> &node) {
   }
 }
 
-void CodeGenerator::visit(IfStmtNode<SemaExtra> &node) {
+void CodeGenerator::visit(IfStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited ifstmt");
 
   std::string false_label = generateUniqueLabel("if_false");
   std::string end_label = generateUniqueLabel("if_end");
 
   if (auto *cond =
-          dynamic_cast<BinaryExprNode<SemaExtra> *>(node.condition.get())) {
+          dynamic_cast<BinaryExprNode<NodeInfo> *>(node.condition.get())) {
     node.condition->accept(*this);
 
     switch (cond->op.getType()) {
@@ -217,7 +217,7 @@ void CodeGenerator::visit(IfStmtNode<SemaExtra> &node) {
   }
 }
 
-void CodeGenerator::visit(WhileStmtNode<SemaExtra> &node) {
+void CodeGenerator::visit(WhileStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited whilestmt");
 
   std::string start_label = generateUniqueLabel("loop_start");
@@ -225,7 +225,7 @@ void CodeGenerator::visit(WhileStmtNode<SemaExtra> &node) {
 
   emitLabel(start_label);
   if (auto *cond =
-          dynamic_cast<BinaryExprNode<SemaExtra> *>(node.condition.get())) {
+          dynamic_cast<BinaryExprNode<NodeInfo> *>(node.condition.get())) {
     node.condition->accept(*this);
 
     switch (cond->op.getType()) {
@@ -255,7 +255,7 @@ void CodeGenerator::visit(WhileStmtNode<SemaExtra> &node) {
   emitLabel(end_label);
 }
 
-void CodeGenerator::visit(BlockNode<SemaExtra> &node) {
+void CodeGenerator::visit(BlockNode<NodeInfo> &node) {
   enter_scope();
   for (auto &stmt : node.statements) {
     stmt->accept(*this);
@@ -263,7 +263,7 @@ void CodeGenerator::visit(BlockNode<SemaExtra> &node) {
   exit_scope();
 }
 
-void CodeGenerator::visit(AssignmentExprNode<SemaExtra> &node) {
+void CodeGenerator::visit(AssignmentExprNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited assignmentExpr");
 
   node.right->accept(*this);
@@ -271,7 +271,7 @@ void CodeGenerator::visit(AssignmentExprNode<SemaExtra> &node) {
   eval_stack.pop_back();
 
   if (auto *identifier =
-          dynamic_cast<IdentifierExprNode<SemaExtra> *>(node.left.get())) {
+          dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.left.get())) {
     std::string var_name = identifier->identifier.getValue();
     if (isStringVariable(var_name)) {
       // RAX/RDX already hold the RHS string if rhs_marker == "$str"
@@ -294,11 +294,11 @@ void CodeGenerator::visit(AssignmentExprNode<SemaExtra> &node) {
   }
 }
 
-void CodeGenerator::visit(ASTNode<SemaExtra> &node) {
-  ASTVisitor<SemaExtra>::visit(node);
+void CodeGenerator::visit(ASTNode<NodeInfo> &node) {
+  ASTVisitor<NodeInfo>::visit(node);
 }
 
-void CodeGenerator::visit(UnaryExprNode<SemaExtra> &node) {
+void CodeGenerator::visit(UnaryExprNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited unary expr");
 
   node.operand->accept(*this);
@@ -311,19 +311,19 @@ void CodeGenerator::visit(UnaryExprNode<SemaExtra> &node) {
   }
 }
 
-void CodeGenerator::visit(MethodCallNode<SemaExtra> &node) {
+void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
   // Stub: not implemented yet
 }
 
-void CodeGenerator::visit(ArgumentNode<SemaExtra> &node) {
+void CodeGenerator::visit(ArgumentNode<NodeInfo> &node) {
   // Stub: not implemented yet
 }
 
-void CodeGenerator::visit(ParamNode<SemaExtra> &node) {
+void CodeGenerator::visit(ParamNode<NodeInfo> &node) {
   // Stub: not implemented yet
 }
 
-void CodeGenerator::visit(ReturnStmtNode<SemaExtra> &node) {
+void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited returnstmt");
   node.ret->accept(*this);
   std::string marker = eval_stack.back();
@@ -340,22 +340,22 @@ void CodeGenerator::visit(ReturnStmtNode<SemaExtra> &node) {
   emitReturn();
 }
 
-void CodeGenerator::visit(ClassNode<SemaExtra> &node) {
+void CodeGenerator::visit(ClassNode<NodeInfo> &node) {
   // Stub: not implemented yet
 }
 
-void CodeGenerator::visit(FieldDeclNode<SemaExtra> &node) {
+void CodeGenerator::visit(FieldDeclNode<NodeInfo> &node) {
   // Stub: not implemented yet
 }
 
-void CodeGenerator::visit(MethodDeclNode<SemaExtra> &node) {
+void CodeGenerator::visit(MethodDeclNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Generating method: {}", node.identifier.getValue());
 }
 
-void CodeGenerator::visit(ConstructorDeclNode<SemaExtra> &node) {
+void CodeGenerator::visit(ConstructorDeclNode<NodeInfo> &node) {
   // Stub: not implemented yet
 }
-void CodeGenerator::visit(ExprStmtNode<SemaExtra> &node) {
+void CodeGenerator::visit(ExprStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited exprstmt");
   if (node.expr) {
     node.expr->accept(*this);

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "log.hh"
+#include "symbol.hh"
 #include "token.hh"
 
 template <typename T>
@@ -393,17 +394,9 @@ struct ConstructorDeclNode : ClassMemberNode<Extra> {
   }
 };
 
-/// ============
-/// Extras
-/// ============
-struct ParseExtra {
-  // nothing
-};
-
-struct SemaExtra {
+struct NodeInfo {
+  Symbol* sym;
   TokenType resolved_type = TokenType::TOKEN_UNKNOWN;
 };
-
-// other extras
 
 #endif  // AST_H_

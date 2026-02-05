@@ -29,7 +29,7 @@ int main(const int argc, char** argv) {
 
   Parser parser(lexer);
 
-  ProgramNode<ParseExtra>* ast = parser.parseProgram();
+  ProgramNode<NodeInfo>* ast = parser.parseProgram();
   if (ast != nullptr) {
     Log::print_ast_reflection(ast);
   } else {
@@ -37,7 +37,7 @@ int main(const int argc, char** argv) {
   }
 
   Sema sema;
-  ProgramNode<SemaExtra>* sema_tree = sema.analyze(*ast);
+  ProgramNode<NodeInfo>* sema_tree = sema.analyze(*ast);
 
   CodeGenerator gen;
   std::string code = gen.generate(*sema_tree);

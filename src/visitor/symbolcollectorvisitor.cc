@@ -3,7 +3,7 @@
 #include "log.hh"
 #include "visitor/symbolcollector.hh"
 
-void SymbolCollectorVisitor::visit(VarDeclNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(VarDeclNode<NodeInfo> &node) {
   Symbol var_symbol;
   var_symbol.name = node.identifier.getValue();
   var_symbol.type = node.type_token.getType();
@@ -16,7 +16,7 @@ void SymbolCollectorVisitor::visit(VarDeclNode<ParseExtra> &node) {
   }
 }
 
-void SymbolCollectorVisitor::visit(MethodDeclNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(MethodDeclNode<NodeInfo> &node) {
   Symbol method_symbol;
   method_symbol.name = node.identifier.getValue();
   method_symbol.type = node.type.getType();
@@ -37,7 +37,7 @@ void SymbolCollectorVisitor::visit(MethodDeclNode<ParseExtra> &node) {
   add_symbol(method_symbol);
 }
 
-void SymbolCollectorVisitor::visit(ParamNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(ParamNode<NodeInfo> &node) {
   Symbol param_symbol;
   param_symbol.name = node.identifier.getValue();
   param_symbol.type = node.type.getType();
@@ -47,12 +47,12 @@ void SymbolCollectorVisitor::visit(ParamNode<ParseExtra> &node) {
   add_symbol(param_symbol);
 }
 
-void SymbolCollectorVisitor::visit(BinaryExprNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(BinaryExprNode<NodeInfo> &node) {
   if (node.left) node.left->accept(*this);
   if (node.right) node.right->accept(*this);
 }
 
-void SymbolCollectorVisitor::visit(ProgramNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(ProgramNode<NodeInfo> &node) {
   LOG_DEBUG("SymbolCollectorVisitor: Visiting ProgramNode with {} children",
             node.children.size());
   // for (auto& child : node.children) {
@@ -60,25 +60,25 @@ void SymbolCollectorVisitor::visit(ProgramNode<ParseExtra> &node) {
   // }
 }
 
-void SymbolCollectorVisitor::visit(BlockNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(BlockNode<NodeInfo> &node) {
   push_scope();
   for (auto &stmt : node.statements) stmt->accept(*this);
   pop_scope();
 }
 
-void SymbolCollectorVisitor::visit(ExprStmtNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(ExprStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[Sym] ExprStmtNode");
   node.expr->accept(*this);
 }
 
-void SymbolCollectorVisitor::visit(AssignmentExprNode<ParseExtra> &node) {
+void SymbolCollectorVisitor::visit(AssignmentExprNode<NodeInfo> &node) {
   LOG_DEBUG("[Sym] AssignmentExprNode");
   if (node.left) node.left->accept(*this);
   if (node.right) node.right->accept(*this);
 
   if (node.op.getType() == TokenType::TOKEN_EQUALS) {
     if (auto *identifier =
-            dynamic_cast<IdentifierExprNode<ParseExtra> *>(node.left.get())) {
+            dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.left.get())) {
       if (check_symbol(identifier->identifier.getValue())) {
         LOG_DEBUG("[Sym] Found");
       } else {

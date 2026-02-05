@@ -4,7 +4,7 @@
 #include "token.hh"
 #include "visitor/typechecker.hh"
 
-void TypeCheckerVisitor::visit(BinaryExprNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(BinaryExprNode<NodeInfo>& node) {
   if (node.left) node.left->accept(*this);
   if (node.right) node.right->accept(*this);
 
@@ -28,7 +28,7 @@ void TypeCheckerVisitor::visit(BinaryExprNode<ParseExtra>& node) {
   set_expr_type(&node, result_type);
 }
 
-void TypeCheckerVisitor::visit(IdentifierExprNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
   std::string name = node.identifier.getValue();
   Symbol* symbol = lookup_symbol(name);
 
@@ -46,7 +46,7 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<ParseExtra>& node) {
   }
 }
 
-void TypeCheckerVisitor::visit(ProgramNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(ProgramNode<NodeInfo>& node) {
   LOG_DEBUG("TypeCheckerVisitor: Visiting ProgramNode with {} children",
             node.children.size());
   // for (auto& child : node.children) {
@@ -54,7 +54,7 @@ void TypeCheckerVisitor::visit(ProgramNode<ParseExtra>& node) {
   // }
 }
 
-void TypeCheckerVisitor::visit(VarDeclNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
   std::string declared_type = node.type_token.getValue();
 
   if (node.initializer) {
@@ -69,28 +69,28 @@ void TypeCheckerVisitor::visit(VarDeclNode<ParseExtra>& node) {
   }
 }
 
-void TypeCheckerVisitor::visit(MethodDeclNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(MethodDeclNode<NodeInfo>& node) {
   std::string declared_type = node.type.getValue();
   // oh i need a way to see what type its actually returning
 }
 
-void TypeCheckerVisitor::visit(LiteralExprNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(LiteralExprNode<NodeInfo>& node) {
   TokenType literal_type = node.literal_token.getType();
   std::string type_name = get_type_name_from_token(literal_type);
   set_expr_type(&node, literal_type, type_name);
 }
 
-void TypeCheckerVisitor::visit(ExprStmtNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(ExprStmtNode<NodeInfo>& node) {
   if (node.expr) node.expr->accept(*this);
 }
 
-void TypeCheckerVisitor::visit(AssignmentExprNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(AssignmentExprNode<NodeInfo>& node) {
   if (node.left) node.left->accept(*this);
   if (node.right) node.right->accept(*this);
 
   if (node.op.getType() == TokenType::TOKEN_EQUALS) {
     if (auto* identifier =
-            dynamic_cast<LiteralExprNode<ParseExtra>*>(node.left.get())) {
+            dynamic_cast<LiteralExprNode<NodeInfo>*>(node.left.get())) {
       if (lookup_symbol(identifier->literal_token.getValue())->type ==
           get_expr_type(node.right.get()).token_type) {
         LOG_DEBUG("[Type] Correct");
@@ -101,7 +101,7 @@ void TypeCheckerVisitor::visit(AssignmentExprNode<ParseExtra>& node) {
   }
 }
 
-void TypeCheckerVisitor::visit(UnaryExprNode<ParseExtra>& node) {
+void TypeCheckerVisitor::visit(UnaryExprNode<NodeInfo>& node) {
   node.operand->accept(*this);
   TokenType operand_type = get_expr_type(node.operand.get()).token_type;
 

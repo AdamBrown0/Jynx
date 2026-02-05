@@ -12,7 +12,7 @@ class Parser {
  public:
   explicit Parser(Lexer& lexer) : lexer(lexer), current(Token()) {}
 
-  ProgramNode<ParseExtra>* parseProgram();
+  ProgramNode<NodeInfo>* parseProgram();
 
  private:
   /// @internal
@@ -92,9 +92,9 @@ class Parser {
   }
 
   /// @cond INTERNAL
-  using _StmtNode = StmtNode<ParseExtra>;
-  using _ExprNode = ExprNode<ParseExtra>;
-  using _ASTNode = ASTNode<ParseExtra>;
+  using _StmtNode = StmtNode<NodeInfo>;
+  using _ExprNode = ExprNode<NodeInfo>;
+  using _ASTNode = ASTNode<NodeInfo>;
   /// @endcond
 
   // statements
@@ -109,10 +109,10 @@ class Parser {
 
   // class related
   _StmtNode* parseClass();
-  ClassMemberNode<ParseExtra>* parseClassMember();
-  ClassMemberNode<ParseExtra>* parseFieldDecl(std::optional<Token>);
-  ClassMemberNode<ParseExtra>* parseMethodDecl(std::optional<Token>);
-  ClassMemberNode<ParseExtra>* parseConstructorDecl();
+  ClassMemberNode<NodeInfo>* parseClassMember();
+  ClassMemberNode<NodeInfo>* parseFieldDecl(std::optional<Token>);
+  ClassMemberNode<NodeInfo>* parseMethodDecl(std::optional<Token>);
+  ClassMemberNode<NodeInfo>* parseConstructorDecl();
 
   // expressions
   _ExprNode* parseExpr();

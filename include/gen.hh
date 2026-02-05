@@ -17,33 +17,33 @@ typedef struct Scope {
   std::unordered_map<std::string, std::pair<int, int>> string_var_slots;
 } Scope;
 
-class CodeGenerator : public ASTVisitor<SemaExtra> {
+class CodeGenerator : public ASTVisitor<NodeInfo> {
  public:
   CodeGenerator() { setupRegisters(); }
   virtual ~CodeGenerator() = default;
 
-  std::string generate(const ProgramNode<SemaExtra> &root);
+  std::string generate(const ProgramNode<NodeInfo> &root);
 
-  void visit(ASTNode<SemaExtra> &node) override;
-  void visit(BinaryExprNode<SemaExtra> &node) override;
-  void visit(UnaryExprNode<SemaExtra> &node) override;
-  void visit(LiteralExprNode<SemaExtra> &node) override;
-  void visit(IdentifierExprNode<SemaExtra> &node) override;
-  void visit(AssignmentExprNode<SemaExtra> &node) override;
-  void visit(MethodCallNode<SemaExtra> &node) override;
-  void visit(ArgumentNode<SemaExtra> &node) override;
-  void visit(ParamNode<SemaExtra> &node) override;
-  void visit(ProgramNode<SemaExtra> &node) override;
-  void visit(BlockNode<SemaExtra> &node) override;
-  void visit(VarDeclNode<SemaExtra> &node) override;
-  void visit(IfStmtNode<SemaExtra> &node) override;
-  void visit(WhileStmtNode<SemaExtra> &node) override;
-  void visit(ReturnStmtNode<SemaExtra> &node) override;
-  void visit(ClassNode<SemaExtra> &node) override;
-  void visit(FieldDeclNode<SemaExtra> &node) override;
-  void visit(MethodDeclNode<SemaExtra> &node) override;
-  void visit(ConstructorDeclNode<SemaExtra> &node) override;
-  void visit(ExprStmtNode<SemaExtra> &node) override;
+  void visit(ASTNode<NodeInfo> &node) override;
+  void visit(BinaryExprNode<NodeInfo> &node) override;
+  void visit(UnaryExprNode<NodeInfo> &node) override;
+  void visit(LiteralExprNode<NodeInfo> &node) override;
+  void visit(IdentifierExprNode<NodeInfo> &node) override;
+  void visit(AssignmentExprNode<NodeInfo> &node) override;
+  void visit(MethodCallNode<NodeInfo> &node) override;
+  void visit(ArgumentNode<NodeInfo> &node) override;
+  void visit(ParamNode<NodeInfo> &node) override;
+  void visit(ProgramNode<NodeInfo> &node) override;
+  void visit(BlockNode<NodeInfo> &node) override;
+  void visit(VarDeclNode<NodeInfo> &node) override;
+  void visit(IfStmtNode<NodeInfo> &node) override;
+  void visit(WhileStmtNode<NodeInfo> &node) override;
+  void visit(ReturnStmtNode<NodeInfo> &node) override;
+  void visit(ClassNode<NodeInfo> &node) override;
+  void visit(FieldDeclNode<NodeInfo> &node) override;
+  void visit(MethodDeclNode<NodeInfo> &node) override;
+  void visit(ConstructorDeclNode<NodeInfo> &node) override;
+  void visit(ExprStmtNode<NodeInfo> &node) override;
 
  private:
   void emit(const std::string &instruction) {

@@ -8,4 +8,4 @@ if (true) {
     string inside = "we inside else";
 }
 
-string outside = "outside if";
+// string outside = "outside if";
