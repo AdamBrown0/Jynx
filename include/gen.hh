@@ -19,6 +19,10 @@ typedef struct Scope {
 
 class CodeGenerator : public ASTVisitor<NodeInfo> {
  public:
+  using ASTVisitor<NodeInfo>::enter;
+  using ASTVisitor<NodeInfo>::exit;
+  using ASTVisitor<NodeInfo>::before_else;
+
   CodeGenerator() { setupRegisters(); }
   virtual ~CodeGenerator() = default;
 
@@ -45,7 +49,29 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   void visit(ConstructorDeclNode<NodeInfo> &node) override;
   void visit(ExprStmtNode<NodeInfo> &node) override;
 
+  void enter(BlockNode<NodeInfo> &node) override;
+  void exit(BlockNode<NodeInfo> &node) override;
+  void enter(IfStmtNode<NodeInfo> &node) override;
+  void before_else(IfStmtNode<NodeInfo> &node) override;
+  void exit(IfStmtNode<NodeInfo> &node) override;
+  void enter(WhileStmtNode<NodeInfo> &node) override;
+  void exit(WhileStmtNode<NodeInfo> &node) override;
+
  private:
+  struct IfContext {
+    std::string false_label;
+    std::string end_label;
+    bool has_else;
+  };
+
+  struct WhileContext {
+    std::string start_label;
+    std::string end_label;
+  };
+
+  std::vector<IfContext> if_stack;
+  std::vector<WhileContext> while_stack;
+
   void emit(const std::string &instruction) {
     text_section << "    " << instruction << "\n";
   }

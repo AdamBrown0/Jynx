@@ -1,11 +1,8 @@
 #include "sema.hh"
 
-#include <cstdlib>
-
 #include "ast.hh"
 #include "log.hh"
 #include "visitor/symbolcollector.hh"
-#include "visitor/treetransformer.hh"
 #include "visitor/typechecker.hh"
 
 ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
@@ -16,6 +13,7 @@ ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
   if (symbol_collector.has_errors()) {
     LOG_ERROR("Symbol collector has failed with {} errors",
               symbol_collector.error_count());
+    return nullptr;
   }
 
   LOG_DEBUG("Type/decl checking");
@@ -25,10 +23,8 @@ ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
   if (type_checker.has_errors()) {
     LOG_ERROR("Type checker has failed with {} errors",
               type_checker.error_count());
-    exit(1);
+    return nullptr;
   }
 
-  LOG_DEBUG("Transforming tree");
-  TreeTransformer tree_transformer(type_checker.get_expr_types());
-  return tree_transformer.transform(root);
+  return &root;
 }

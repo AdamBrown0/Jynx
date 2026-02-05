@@ -19,12 +19,6 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
     global_symbols = symbols;
   }
 
-  const std::unordered_map<ASTNode<NodeInfo> *, TypeInfo> get_expr_types()
-      const {
-    return expr_types;
-  }
-
-  void visit(ASTNode<NodeInfo> &node) override;
   void visit(BinaryExprNode<NodeInfo> &node) override;
   void visit(UnaryExprNode<NodeInfo> &node) override;
   void visit(LiteralExprNode<NodeInfo> &node) override;
@@ -46,24 +40,6 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
   void visit(ExprStmtNode<NodeInfo> &node) override;
 
  private:
-  std::unordered_map<ASTNode<NodeInfo> *, TypeInfo> expr_types;
-
-  TypeInfo get_expr_type(ASTNode<NodeInfo> *node) {
-    if (!node) return {TokenType::TOKEN_UNKNOWN, ""};
-    auto it = expr_types.find(node);
-    return (it != expr_types.end()) ? it->second
-                                    : TypeInfo{TokenType::TOKEN_UNKNOWN, ""};
-  }
-
-  void set_expr_type(ASTNode<NodeInfo> *node, TokenType type,
-                     const std::string &type_name = "") {
-    if (node) expr_types[node] = {type, type_name};
-  }
-
-  void set_expr_type(ASTNode<NodeInfo> *node, TypeInfo type_info) {
-    if (node) expr_types[node] = type_info;
-  }
-
   bool types_compatible(const std::string &declared_type_name,
                         const TypeInfo &expr_type_info) {
     TokenType declared_builtin = resolve_type(declared_type_name);

@@ -1,19 +1,20 @@
+#include "visitor/typechecker.hh"
+
 #include "ast.hh"
 #include "ast_utils.hh"
 #include "log.hh"
 #include "token.hh"
-#include "visitor/typechecker.hh"
 
 void TypeCheckerVisitor::visit(BinaryExprNode<NodeInfo>& node) {
-  if (node.left) node.left->accept(*this);
-  if (node.right) node.right->accept(*this);
-
-  TypeInfo left_type = get_expr_type(node.left.get());
-  TypeInfo right_type = get_expr_type(node.right.get());
+  TypeInfo left_type{node.left->extra.resolved_type,
+                     node.left->extra.type_name};
+  TypeInfo right_type{node.right->extra.resolved_type,
+                      node.right->extra.type_name};
 
   if (left_type.token_type == TokenType::TOKEN_UNKNOWN ||
       right_type.token_type == TokenType::TOKEN_UNKNOWN) {
-    set_expr_type(&node, TokenType::TOKEN_UNKNOWN);
+    report_error("BinaryExprNode left/right had unknown token type",
+                 node.location);
     return;
   }
 
@@ -25,7 +26,9 @@ void TypeCheckerVisitor::visit(BinaryExprNode<NodeInfo>& node) {
     report_error(error, node.location);
   }
 
-  set_expr_type(&node, result_type);
+  // set_expr_type(&node, result_type);
+  node.extra.resolved_type = result_type.token_type;
+  node.extra.type_name = result_type.type_name;
 }
 
 void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
@@ -34,32 +37,37 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
 
   if (!symbol) {
     report_error("Undeclared identifier '" + name + "'", node.location);
-    set_expr_type(&node, TokenType::TOKEN_UNKNOWN);
+    // set_expr_type(&node, TokenType::TOKEN_UNKNOWN);
     return;
   }
 
   if (symbol->is_class) {
-    set_expr_type(&node, TokenType::TOKEN_DATA_TYPE, symbol->name);
+    // set_expr_type(&node, TokenType::TOKEN_DATA_TYPE, symbol->name);
+    node.extra.resolved_type = TokenType::TOKEN_DATA_TYPE;
+    node.extra.type_name = symbol->name;
   } else {
     std::string type_name = get_type_name_from_token(symbol->type);
-    set_expr_type(&node, symbol->type, type_name);
+    // set_expr_type(&node, symbol->type, type_name);
+    node.extra.resolved_type = symbol->type;
+    node.extra.type_name = type_name;
   }
 }
 
 void TypeCheckerVisitor::visit(ProgramNode<NodeInfo>& node) {
   LOG_DEBUG("TypeCheckerVisitor: Visiting ProgramNode with {} children",
             node.children.size());
-  // for (auto& child : node.children) {
-  //   child->accept(*this);
-  // }
+  (void)node;
 }
 
 void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
   std::string declared_type = node.type_token.getValue();
 
+  node.extra.resolved_type = node.type_token.getType();
+  node.extra.type_name = node.type_token.getValue();
+
   if (node.initializer) {
-    node.initializer->accept(*this);
-    TypeInfo initializer_type = get_expr_type(node.initializer.get());
+    TypeInfo initializer_type{node.initializer->extra.resolved_type,
+                              node.initializer->extra.type_name};
 
     if (!types_compatible(declared_type, initializer_type)) {
       report_error("Tried to assign type '" + initializer_type.type_name +
@@ -77,23 +85,21 @@ void TypeCheckerVisitor::visit(MethodDeclNode<NodeInfo>& node) {
 void TypeCheckerVisitor::visit(LiteralExprNode<NodeInfo>& node) {
   TokenType literal_type = node.literal_token.getType();
   std::string type_name = get_type_name_from_token(literal_type);
-  set_expr_type(&node, literal_type, type_name);
+  // set_expr_type(&node, literal_type, type_name);
+  node.extra.resolved_type = literal_type;
+  node.extra.type_name = type_name;
 }
 
-void TypeCheckerVisitor::visit(ExprStmtNode<NodeInfo>& node) {
-  if (node.expr) node.expr->accept(*this);
-}
+void TypeCheckerVisitor::visit(ExprStmtNode<NodeInfo>& node) { (void)node; }
 
 void TypeCheckerVisitor::visit(AssignmentExprNode<NodeInfo>& node) {
-  if (node.left) node.left->accept(*this);
-  if (node.right) node.right->accept(*this);
-
   if (node.op.getType() == TokenType::TOKEN_EQUALS) {
     if (auto* identifier =
             dynamic_cast<LiteralExprNode<NodeInfo>*>(node.left.get())) {
       if (lookup_symbol(identifier->literal_token.getValue())->type ==
-          get_expr_type(node.right.get()).token_type) {
-        LOG_DEBUG("[Type] Correct");
+          node.right->extra.resolved_type) {
+        node.extra.resolved_type = node.right->extra.resolved_type;
+        node.extra.type_name = node.right->extra.type_name;
       } else {
         report_error("Tried to assign mismatching type", node.location);
       }
@@ -102,15 +108,15 @@ void TypeCheckerVisitor::visit(AssignmentExprNode<NodeInfo>& node) {
 }
 
 void TypeCheckerVisitor::visit(UnaryExprNode<NodeInfo>& node) {
-  node.operand->accept(*this);
-  TokenType operand_type = get_expr_type(node.operand.get()).token_type;
+  TokenType operand_type = node.operand->extra.resolved_type;
 
   switch (node.op.getType()) {
     case TokenType::TOKEN_MINUS: {
       if (operand_type != TokenType::TOKEN_INT) {
         report_error("Unary '-' requires numeric type", node.location);
       }
-      set_expr_type(&node, operand_type);
+      // set_expr_type(&node, operand_type);
+      node.extra.resolved_type = operand_type;
       break;
     }
     default:

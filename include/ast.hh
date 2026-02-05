@@ -8,6 +8,7 @@
 #include "log.hh"
 #include "symbol.hh"
 #include "token.hh"
+#include "visitor/visitor.hh"
 
 template <typename T>
 using uptr = std::unique_ptr<T>;
@@ -39,10 +40,7 @@ struct ASTNode {
   ASTNode(SourceLocation loc) : location(loc), extra() {}
   virtual ~ASTNode() = default;
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
-    visitor.visit(*this);
-  }
+  virtual void accept(ASTVisitor<Extra>& visitor) { visitor.visit(*this); }
 };
 
 /// ============
@@ -52,10 +50,7 @@ template <typename Extra>
 struct ExprNode : ASTNode<Extra> {
   ExprNode(SourceLocation loc) : ASTNode<Extra>(loc) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
-    visitor.visit(*this);
-  }
+  void accept(ASTVisitor<Extra>& visitor) override { visitor.visit(*this); }
 };
 
 template <typename Extra>
@@ -68,9 +63,12 @@ struct BinaryExprNode : ExprNode<Extra> {
                  SourceLocation loc)
       : ExprNode<Extra>(loc), left(left), op(op), right(right) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (left) left->accept(visitor);
+    if (right) right->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -82,9 +80,11 @@ struct UnaryExprNode : ExprNode<Extra> {
   UnaryExprNode(Token op, ExprNode<Extra>* operand, SourceLocation loc)
       : ExprNode<Extra>(loc), op(op), operand(operand) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (operand) operand->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -95,9 +95,10 @@ struct LiteralExprNode : ExprNode<Extra> {
   LiteralExprNode(Token token, SourceLocation loc)
       : ExprNode<Extra>(loc), literal_token(token) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -108,9 +109,10 @@ struct IdentifierExprNode : ExprNode<Extra> {
   IdentifierExprNode(Token identifier, SourceLocation loc)
       : ExprNode<Extra>(loc), identifier(identifier) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -124,9 +126,12 @@ struct AssignmentExprNode : ExprNode<Extra> {
                      SourceLocation loc)
       : ExprNode<Extra>(loc), left(left), op(op), right(right) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (left) left->accept(visitor);
+    if (right) right->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -144,9 +149,14 @@ struct MethodCallNode : ExprNode<Extra> {
         identifier(identifier),
         arg_list(std::move(arg_list)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (expr) expr->accept(visitor);
+    for (auto& arg : arg_list) {
+      if (arg) arg->accept(visitor);
+    }
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -160,9 +170,11 @@ struct ArgumentNode : ASTNode<Extra> {
   ArgumentNode(uptr<ExprNode<Extra>> expr, SourceLocation loc)
       : ASTNode<Extra>(loc), expr(std::move(expr)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (expr) expr->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -175,9 +187,10 @@ struct ParamNode : ASTNode<Extra> {
   ParamNode(Token type, Token identifier, SourceLocation loc)
       : ASTNode<Extra>(loc), type(type), identifier(identifier) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -188,10 +201,7 @@ template <typename Extra>
 struct StmtNode : ASTNode<Extra> {
   StmtNode(SourceLocation loc) : ASTNode<Extra>(loc) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
-    visitor.visit(*this);
-  }
+  void accept(ASTVisitor<Extra>& visitor) override { visitor.visit(*this); }
 };
 
 template <typename Extra>
@@ -202,13 +212,13 @@ struct ProgramNode : StmtNode<Extra> {
   ProgramNode(uptr_vector<StmtNode<Extra>>&& children)
       : StmtNode<Extra>(SourceLocation()), children(std::move(children)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
-    visitor.visit(*this);
-
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
     for (const auto& child : children) {
-      child->accept(visitor);
+      if (child) child->accept(visitor);
     }
+    visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -219,9 +229,13 @@ struct BlockNode : StmtNode<Extra> {
   BlockNode(uptr_vector<StmtNode<Extra>>&& statements, SourceLocation loc)
       : StmtNode<Extra>(loc), statements(std::move(statements)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    for (auto& stmt : statements) {
+      if (stmt) stmt->accept(visitor);
+    }
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -238,10 +252,11 @@ struct VarDeclNode : StmtNode<Extra> {
         identifier(identifier),
         initializer(initializer) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
-    LOG_DEBUG("VarDecl accepted");
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (initializer) initializer->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -258,9 +273,16 @@ struct IfStmtNode : StmtNode<Extra> {
         statement(std::move(statement)),
         else_stmt(std::move(else_stmt)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (condition) condition->accept(visitor);
     visitor.visit(*this);
+    if (statement) statement->accept(visitor);
+    if (else_stmt) {
+      visitor.before_else(*this);
+      else_stmt->accept(visitor);
+    }
+    visitor.exit(*this);
   }
 };
 
@@ -274,6 +296,14 @@ struct WhileStmtNode : StmtNode<Extra> {
       : StmtNode<Extra>(loc),
         condition(std::move(condition)),
         statement(std::move(statement)) {}
+
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (condition) condition->accept(visitor);
+    visitor.visit(*this);
+    if (statement) statement->accept(visitor);
+    visitor.exit(*this);
+  }
 };
 
 template <typename Extra>
@@ -283,9 +313,11 @@ struct ReturnStmtNode : StmtNode<Extra> {
   ReturnStmtNode(ExprNode<Extra>* ret, SourceLocation loc)
       : StmtNode<Extra>(loc), ret(std::move(ret)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (ret) ret->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -296,9 +328,11 @@ struct ExprStmtNode : StmtNode<Extra> {
   ExprStmtNode(ExprNode<Extra>* expr, SourceLocation loc)
       : StmtNode<Extra>(loc), expr(expr) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (expr) expr->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -321,9 +355,13 @@ struct ClassNode : StmtNode<Extra> {
         identifier(identifier),
         members(std::move(members)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    for (auto& member : members) {
+      if (member) member->accept(visitor);
+    }
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -342,9 +380,10 @@ struct FieldDeclNode : ClassMemberNode<Extra> {
         type(type),
         identifier(identifier) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -368,9 +407,14 @@ struct MethodDeclNode : ClassMemberNode<Extra> {
         param_list(std::move(param_list)),
         body(std::move(body)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    for (auto& param : param_list) {
+      if (param) param->accept(visitor);
+    }
+    if (body) body->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
@@ -388,15 +432,21 @@ struct ConstructorDeclNode : ClassMemberNode<Extra> {
         param_list(std::move(param_list)),
         body(std::move(body)) {}
 
-  template <typename Visitor>
-  void accept(Visitor& visitor) {
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    for (auto& param : param_list) {
+      if (param) param->accept(visitor);
+    }
+    if (body) body->accept(visitor);
     visitor.visit(*this);
+    visitor.exit(*this);
   }
 };
 
 struct NodeInfo {
   Symbol* sym;
   TokenType resolved_type = TokenType::TOKEN_UNKNOWN;
+  std::string type_name;
 };
 
 #endif  // AST_H_

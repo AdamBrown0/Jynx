@@ -2,6 +2,7 @@
 #define SEMA_H_
 
 #include "ast.hh"
+#include "diagnostics.hh"
 #include "visitor/symbolcollector.hh"
 #include "visitor/typechecker.hh"
 

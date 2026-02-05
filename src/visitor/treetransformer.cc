@@ -1,5 +1,6 @@
 #include "visitor/treetransformer.hh"
 
+#include <algorithm>
 #include <memory>
 
 #include "ast.hh"
@@ -17,11 +18,11 @@ ProgramNode<NodeInfo> *TreeTransformer::transform(
 void TreeTransformer::visit(ProgramNode<NodeInfo> &node) {
   uptr_vector<StmtNode<NodeInfo>> children;
 
-  for (auto &child : node.children) {
-    child->accept(*this);
+  for (size_t i = 0; i < node.children.size(); ++i) {
     children.emplace_back(stmt_stack.top());
     stmt_stack.pop();
   }
+  std::reverse(children.begin(), children.end());
 
   auto *program = new ProgramNode<NodeInfo>(std::move(children));
   stmt_stack.push(program);
@@ -31,7 +32,6 @@ void TreeTransformer::visit(VarDeclNode<NodeInfo> &node) {
   ExprNode<NodeInfo> *init = nullptr;
 
   if (node.initializer) {
-    node.initializer->accept(*this);
     init = expr_stack.top();
     expr_stack.pop();
   }
@@ -53,12 +53,9 @@ void TreeTransformer::visit(LiteralExprNode<NodeInfo> &node) {
 }
 
 void TreeTransformer::visit(BinaryExprNode<NodeInfo> &node) {
-  node.left->accept(*this);
-  ExprNode<NodeInfo> *left = expr_stack.top();
-  expr_stack.pop();
-
-  node.right->accept(*this);
   ExprNode<NodeInfo> *right = expr_stack.top();
+  expr_stack.pop();
+  ExprNode<NodeInfo> *left = expr_stack.top();
   expr_stack.pop();
 
   auto *binary =
@@ -75,7 +72,6 @@ void TreeTransformer::visit(ASTNode<NodeInfo> &node) {
 }
 
 void TreeTransformer::visit(UnaryExprNode<NodeInfo> &node) {
-  node.operand->accept(*this);
   ExprNode<NodeInfo> *operand = expr_stack.top();
   expr_stack.pop();
 
@@ -94,12 +90,9 @@ void TreeTransformer::visit(IdentifierExprNode<NodeInfo> &node) {
 }
 
 void TreeTransformer::visit(AssignmentExprNode<NodeInfo> &node) {
-  node.left->accept(*this);
-  ExprNode<NodeInfo> *left_raw = expr_stack.top();
-  expr_stack.pop();
-
-  node.right->accept(*this);
   ExprNode<NodeInfo> *right_raw = expr_stack.top();
+  expr_stack.pop();
+  ExprNode<NodeInfo> *left_raw = expr_stack.top();
   expr_stack.pop();
 
   auto *assign = new AssignmentExprNode<NodeInfo>(left_raw, node.op, right_raw,
@@ -125,52 +118,25 @@ void TreeTransformer::visit(ParamNode<NodeInfo> &) {
 void TreeTransformer::visit(BlockNode<NodeInfo> &node) {
   uptr_vector<StmtNode<NodeInfo>> stmts;
 
-  for (auto &stmt : node.statements) {
-    stmt->accept(*this);
+  for (size_t i = 0; i < node.statements.size(); ++i) {
     stmts.emplace_back(stmt_stack.top());
     stmt_stack.pop();
   }
+  std::reverse(stmts.begin(), stmts.end());
 
   auto *block = new BlockNode<NodeInfo>(std::move(stmts), node.location);
   stmt_stack.push(block);
 }
 
 void TreeTransformer::visit(IfStmtNode<NodeInfo> &node) {
-  node.condition->accept(*this);
-  ExprNode<NodeInfo> *cond = expr_stack.top();
-  expr_stack.pop();
-
-  node.statement->accept(*this);
-  StmtNode<NodeInfo> *stmt = stmt_stack.top();
-  stmt_stack.pop();
-
-  StmtNode<NodeInfo> *else_stmt = nullptr;
-  if (node.else_stmt) {
-    node.else_stmt->accept(*this);
-    else_stmt = stmt_stack.top();
-    stmt_stack.pop();
-  }
-
-  auto *if_stmt =
-      new IfStmtNode<NodeInfo>(cond, stmt, else_stmt, node.location);
-  stmt_stack.push(if_stmt);
+  (void)node;
 }
 
 void TreeTransformer::visit(WhileStmtNode<NodeInfo> &node) {
-  node.condition->accept(*this);
-  ExprNode<NodeInfo> *cond = expr_stack.top();
-  expr_stack.pop();
-
-  node.statement->accept(*this);
-  StmtNode<NodeInfo> *stmt = stmt_stack.top();
-  stmt_stack.pop();
-
-  auto *while_stmt = new WhileStmtNode<NodeInfo>(cond, stmt, node.location);
-  stmt_stack.push(while_stmt);
+  (void)node;
 }
 
 void TreeTransformer::visit(ReturnStmtNode<NodeInfo> &node) {
-  node.ret->accept(*this);
   ExprNode<NodeInfo> *ret = expr_stack.top();
   expr_stack.pop();
 
@@ -189,13 +155,13 @@ void TreeTransformer::visit(FieldDeclNode<NodeInfo> &) {
 void TreeTransformer::visit(MethodDeclNode<NodeInfo> &node) {
   // Stub: not implemented yet
   uptr_vector<ParamNode<NodeInfo>> param_list;
-  for (auto &param : node.param_list) {
-    param->accept(*this);
+  for (size_t i = 0; i < node.param_list.size(); ++i) {
     param_list.emplace_back(
         dynamic_cast<ParamNode<NodeInfo> *>(stmt_stack.top()));
     stmt_stack.pop();
   }
-  node.body->accept(*this);
+  std::reverse(param_list.begin(), param_list.end());
+
   auto body_raw = dynamic_cast<BlockNode<NodeInfo> *>(stmt_stack.top());
   stmt_stack.pop();
   auto body = uptr<BlockNode<NodeInfo>>(body_raw);
@@ -212,10 +178,38 @@ void TreeTransformer::visit(ConstructorDeclNode<NodeInfo> &) {
 
 void TreeTransformer::visit(ExprStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[Tree] Visited exprstmt");
-  node.expr->accept(*this);
   ExprNode<NodeInfo> *expr = expr_stack.top();
   expr_stack.pop();
 
   auto *expr_stmt = new ExprStmtNode<NodeInfo>(expr, node.location);
   stmt_stack.push(expr_stmt);
+}
+
+void TreeTransformer::exit(IfStmtNode<NodeInfo> &node) {
+  StmtNode<NodeInfo> *else_stmt = nullptr;
+  if (node.else_stmt) {
+    else_stmt = stmt_stack.top();
+    stmt_stack.pop();
+  }
+
+  StmtNode<NodeInfo> *stmt = stmt_stack.top();
+  stmt_stack.pop();
+
+  ExprNode<NodeInfo> *cond = expr_stack.top();
+  expr_stack.pop();
+
+  auto *if_stmt =
+      new IfStmtNode<NodeInfo>(cond, stmt, else_stmt, node.location);
+  stmt_stack.push(if_stmt);
+}
+
+void TreeTransformer::exit(WhileStmtNode<NodeInfo> &node) {
+  StmtNode<NodeInfo> *stmt = stmt_stack.top();
+  stmt_stack.pop();
+
+  ExprNode<NodeInfo> *cond = expr_stack.top();
+  expr_stack.pop();
+
+  auto *while_stmt = new WhileStmtNode<NodeInfo>(cond, stmt, node.location);
+  stmt_stack.push(while_stmt);
 }

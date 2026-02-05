@@ -32,9 +32,6 @@ void SymbolCollectorVisitor::visit(ConstructorDeclNode<NodeInfo>& node) {}
 // ============================================================================
 // TypeCheckerVisitor stub implementations
 // ============================================================================
-void TypeCheckerVisitor::visit(ASTNode<NodeInfo>& node) {
-  ASTVisitor<NodeInfo>::visit(node);
-}
 // void TypeCheckerVisitor::visit(BinaryExprNode<NodeInfo>& node) {}
 // void TypeCheckerVisitor::visit(UnaryExprNode<NodeInfo>& node) {}
 // void TypeCheckerVisitor::visit(LiteralExprNode<NodeInfo>& node) {}

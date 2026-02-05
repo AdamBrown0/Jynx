@@ -86,7 +86,6 @@ void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
   if (isStringDecl) {
     ensureStringVarSlots(name);
     if (node.initializer) {
-      node.initializer->accept(*this);  // expect string in RAX/RDX
       storeCurrentStringToVar(name);
       // Var decl does not leave a value on eval stack; pop any marker if
       // present.
@@ -103,7 +102,6 @@ void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
     std::string loc =
         allocateVariableInCurrentScope(node.identifier.getValue());
     if (node.initializer) {
-      node.initializer->accept(*this);
       std::string r = eval_stack.back();
       eval_stack.pop_back();
       emitMove(loc, r);
@@ -115,9 +113,6 @@ void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
 }
 
 void CodeGenerator::visit(BinaryExprNode<NodeInfo> &node) {
-  node.left->accept(*this);
-  node.right->accept(*this);
-
   std::string right = eval_stack.back();
   eval_stack.pop_back();
   std::string left = eval_stack.back();
@@ -171,104 +166,81 @@ void CodeGenerator::visit(IdentifierExprNode<NodeInfo> &node) {
 
 void CodeGenerator::visit(IfStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited ifstmt");
-
-  std::string false_label = generateUniqueLabel("if_false");
-  std::string end_label = generateUniqueLabel("if_end");
-
+  if (if_stack.empty()) return;
+  const auto &ctx = if_stack.back();
   if (auto *cond =
           dynamic_cast<BinaryExprNode<NodeInfo> *>(node.condition.get())) {
-    node.condition->accept(*this);
-
     switch (cond->op.getType()) {
       case TokenType::TOKEN_DEQ:
-        emitConditionalJump("ne", false_label);
+        emitConditionalJump("ne", ctx.false_label);
         break;
       case TokenType::TOKEN_NEQ:
-        emitConditionalJump("e", false_label);
+        emitConditionalJump("e", ctx.false_label);
         break;
       case TokenType::TOKEN_GEQ:
-        emitConditionalJump("l", false_label);
+        emitConditionalJump("l", ctx.false_label);
         break;
       case TokenType::TOKEN_GT:
-        emitConditionalJump("le", false_label);
+        emitConditionalJump("le", ctx.false_label);
         break;
       case TokenType::TOKEN_LEQ:
-        emitConditionalJump("g", false_label);
+        emitConditionalJump("g", ctx.false_label);
         break;
       case TokenType::TOKEN_LT:
-        emitConditionalJump("ge", false_label);
+        emitConditionalJump("ge", ctx.false_label);
         break;
       default:
         LOG_ERROR("[GEN] Expected conditional operator, found {}",
                   cond->op.to_string());
     }
-  }
-
-  node.statement->accept(*this);
-
-  if (node.else_stmt) {
-    emitJump(end_label);
-  }
-
-  emitLabel(false_label);
-  if (node.else_stmt) {
-    node.else_stmt->accept(*this);
-    emitLabel(end_label);
   }
 }
 
 void CodeGenerator::visit(WhileStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited whilestmt");
-
-  std::string start_label = generateUniqueLabel("loop_start");
-  std::string end_label = generateUniqueLabel("loop_end");
-
-  emitLabel(start_label);
+  if (while_stack.empty()) return;
+  const auto &ctx = while_stack.back();
   if (auto *cond =
           dynamic_cast<BinaryExprNode<NodeInfo> *>(node.condition.get())) {
-    node.condition->accept(*this);
-
     switch (cond->op.getType()) {
       case TokenType::TOKEN_DEQ:
-        emitConditionalJump("ne", end_label);
+        emitConditionalJump("ne", ctx.end_label);
         break;
       case TokenType::TOKEN_GEQ:
-        emitConditionalJump("l", end_label);
+        emitConditionalJump("l", ctx.end_label);
         break;
       case TokenType::TOKEN_GT:
-        emitConditionalJump("le", end_label);
+        emitConditionalJump("le", ctx.end_label);
         break;
       case TokenType::TOKEN_LEQ:
-        emitConditionalJump("g", end_label);
+        emitConditionalJump("g", ctx.end_label);
         break;
       case TokenType::TOKEN_LT:
-        emitConditionalJump("ge", end_label);
+        emitConditionalJump("ge", ctx.end_label);
         break;
       default:
         LOG_ERROR("[GEN] Expected conditional operator, found {}",
                   cond->op.to_string());
     }
   }
-
-  node.statement->accept(*this);
-  emitJump(start_label);
-  emitLabel(end_label);
 }
 
 void CodeGenerator::visit(BlockNode<NodeInfo> &node) {
-  enter_scope();
-  for (auto &stmt : node.statements) {
-    stmt->accept(*this);
-  }
-  exit_scope();
+  (void)node;
 }
 
 void CodeGenerator::visit(AssignmentExprNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited assignmentExpr");
-
-  node.right->accept(*this);
   std::string rhs_marker = eval_stack.back();
   eval_stack.pop_back();
+
+  if (!eval_stack.empty()) {
+    std::string left_marker = eval_stack.back();
+    eval_stack.pop_back();
+    if (left_marker != "$str") {
+      freeRegister(left_marker);
+    }
+  }
 
   if (auto *identifier =
           dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.left.get())) {
@@ -300,8 +272,6 @@ void CodeGenerator::visit(ASTNode<NodeInfo> &node) {
 
 void CodeGenerator::visit(UnaryExprNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited unary expr");
-
-  node.operand->accept(*this);
   std::string operand = eval_stack.back();
   eval_stack.pop_back();
 
@@ -325,7 +295,6 @@ void CodeGenerator::visit(ParamNode<NodeInfo> &node) {
 
 void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited returnstmt");
-  node.ret->accept(*this);
   std::string marker = eval_stack.back();
   eval_stack.pop_back();
 
@@ -357,12 +326,55 @@ void CodeGenerator::visit(ConstructorDeclNode<NodeInfo> &node) {
 }
 void CodeGenerator::visit(ExprStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited exprstmt");
-  if (node.expr) {
-    node.expr->accept(*this);
-    // If the top of eval stack denotes a string, print it (demo)
-    if (!eval_stack.empty() && eval_stack.back() == "$str") {
-      emitWriteCurrentString();
-      eval_stack.pop_back();
-    }
+  (void)node;
+  if (!eval_stack.empty() && eval_stack.back() == "$str") {
+    emitWriteCurrentString();
+    eval_stack.pop_back();
   }
+}
+
+void CodeGenerator::enter(BlockNode<NodeInfo> &) { enter_scope(); }
+
+void CodeGenerator::exit(BlockNode<NodeInfo> &) { exit_scope(); }
+
+void CodeGenerator::enter(IfStmtNode<NodeInfo> &node) {
+  IfContext ctx;
+  ctx.false_label = generateUniqueLabel("if_false");
+  ctx.end_label = generateUniqueLabel("if_end");
+  ctx.has_else = (node.else_stmt != nullptr);
+  if_stack.push_back(ctx);
+}
+
+void CodeGenerator::before_else(IfStmtNode<NodeInfo> &) {
+  if (if_stack.empty()) return;
+  const auto &ctx = if_stack.back();
+  emitJump(ctx.end_label);
+  emitLabel(ctx.false_label);
+}
+
+void CodeGenerator::exit(IfStmtNode<NodeInfo> &) {
+  if (if_stack.empty()) return;
+  const auto &ctx = if_stack.back();
+  if (ctx.has_else) {
+    emitLabel(ctx.end_label);
+  } else {
+    emitLabel(ctx.false_label);
+  }
+  if_stack.pop_back();
+}
+
+void CodeGenerator::enter(WhileStmtNode<NodeInfo> &) {
+  WhileContext ctx;
+  ctx.start_label = generateUniqueLabel("loop_start");
+  ctx.end_label = generateUniqueLabel("loop_end");
+  while_stack.push_back(ctx);
+  emitLabel(ctx.start_label);
+}
+
+void CodeGenerator::exit(WhileStmtNode<NodeInfo> &) {
+  if (while_stack.empty()) return;
+  const auto &ctx = while_stack.back();
+  emitJump(ctx.start_label);
+  emitLabel(ctx.end_label);
+  while_stack.pop_back();
 }

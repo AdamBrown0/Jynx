@@ -3,8 +3,51 @@
 
 #include <unordered_map>
 
-#include "ast.hh"
+#include "diagnostics.hh"
 #include "log.hh"
+#include "symbol.hh"
+#include "token.hh"
+
+template <typename Extra>
+struct ASTNode;
+template <typename Extra>
+struct BinaryExprNode;
+template <typename Extra>
+struct UnaryExprNode;
+template <typename Extra>
+struct LiteralExprNode;
+template <typename Extra>
+struct IdentifierExprNode;
+template <typename Extra>
+struct AssignmentExprNode;
+template <typename Extra>
+struct MethodCallNode;
+template <typename Extra>
+struct ArgumentNode;
+template <typename Extra>
+struct ParamNode;
+template <typename Extra>
+struct ProgramNode;
+template <typename Extra>
+struct BlockNode;
+template <typename Extra>
+struct VarDeclNode;
+template <typename Extra>
+struct IfStmtNode;
+template <typename Extra>
+struct WhileStmtNode;
+template <typename Extra>
+struct ReturnStmtNode;
+template <typename Extra>
+struct ClassNode;
+template <typename Extra>
+struct FieldDeclNode;
+template <typename Extra>
+struct MethodDeclNode;
+template <typename Extra>
+struct ConstructorDeclNode;
+template <typename Extra>
+struct ExprStmtNode;
 
 template <typename Extra>
 class ASTVisitor {
@@ -16,56 +59,49 @@ class ASTVisitor {
   const std::vector<std::string> &get_errors() const { return errors; }
   size_t error_count() const { return errors.size(); }
 
-  virtual void visit(ASTNode<Extra> &node) {
-    // Try to dispatch to concrete types
-    if (auto *varDecl = dynamic_cast<VarDeclNode<Extra> *>(&node)) {
-      visit(*varDecl);
-    } else if (auto *program = dynamic_cast<ProgramNode<Extra> *>(&node)) {
-      visit(*program);
-    } else if (auto *binary = dynamic_cast<BinaryExprNode<Extra> *>(&node)) {
-      visit(*binary);
-    } else if (auto *block = dynamic_cast<BlockNode<Extra> *>(&node)) {
-      visit(*block);
-    } else if (auto *literal = dynamic_cast<LiteralExprNode<Extra> *>(&node)) {
-      visit(*literal);
-    } else if (auto *identifier =
-                   dynamic_cast<IdentifierExprNode<Extra> *>(&node)) {
-      visit(*identifier);
-    } else if (auto *unary = dynamic_cast<UnaryExprNode<Extra> *>(&node)) {
-      visit(*unary);
-    } else if (auto *expr_stmt = dynamic_cast<ExprStmtNode<Extra> *>(&node)) {
-      visit(*expr_stmt);
-    } else if (auto *assignment =
-                   dynamic_cast<AssignmentExprNode<Extra> *>(&node)) {
-      visit(*assignment);
-    } else if (auto *methodCall =
-                   dynamic_cast<MethodCallNode<Extra> *>(&node)) {
-      visit(*methodCall);
-    } else if (auto *argument = dynamic_cast<ArgumentNode<Extra> *>(&node)) {
-      visit(*argument);
-    } else if (auto *param = dynamic_cast<ParamNode<Extra> *>(&node)) {
-      visit(*param);
-    } else if (auto *ifStmt = dynamic_cast<IfStmtNode<Extra> *>(&node)) {
-      visit(*ifStmt);
-    } else if (auto *whileStmt = dynamic_cast<WhileStmtNode<Extra> *>(&node)) {
-      visit(*whileStmt);
-    } else if (auto *returnStmt =
-                   dynamic_cast<ReturnStmtNode<Extra> *>(&node)) {
-      visit(*returnStmt);
-    } else if (auto *classNode = dynamic_cast<ClassNode<Extra> *>(&node)) {
-      visit(*classNode);
-    } else if (auto *fieldDecl = dynamic_cast<FieldDeclNode<Extra> *>(&node)) {
-      visit(*fieldDecl);
-    } else if (auto *methodDecl =
-                   dynamic_cast<MethodDeclNode<Extra> *>(&node)) {
-      visit(*methodDecl);
-    } else if (auto *ctorDecl =
-                   dynamic_cast<ConstructorDeclNode<Extra> *>(&node)) {
-      visit(*ctorDecl);
-    } else {
-      LOG_DEBUG("No specific dispatch found for type: {}", typeid(node).name());
-    }
-  };
+  virtual void enter(BinaryExprNode<Extra> &) {}
+  virtual void enter(UnaryExprNode<Extra> &) {}
+  virtual void enter(LiteralExprNode<Extra> &) {}
+  virtual void enter(IdentifierExprNode<Extra> &) {}
+  virtual void enter(AssignmentExprNode<Extra> &) {}
+  virtual void enter(MethodCallNode<Extra> &) {}
+  virtual void enter(ArgumentNode<Extra> &) {}
+  virtual void enter(ParamNode<Extra> &) {}
+  virtual void enter(ProgramNode<Extra> &) {}
+  virtual void enter(BlockNode<Extra> &) {}
+  virtual void enter(VarDeclNode<Extra> &) {}
+  virtual void enter(IfStmtNode<Extra> &) {}
+  virtual void enter(WhileStmtNode<Extra> &) {}
+  virtual void enter(ReturnStmtNode<Extra> &) {}
+  virtual void enter(ClassNode<Extra> &) {}
+  virtual void enter(FieldDeclNode<Extra> &) {}
+  virtual void enter(MethodDeclNode<Extra> &) {}
+  virtual void enter(ConstructorDeclNode<Extra> &) {}
+  virtual void enter(ExprStmtNode<Extra> &) {}
+
+  virtual void before_else(IfStmtNode<Extra> &) {}
+
+  virtual void exit(BinaryExprNode<Extra> &) {}
+  virtual void exit(UnaryExprNode<Extra> &) {}
+  virtual void exit(LiteralExprNode<Extra> &) {}
+  virtual void exit(IdentifierExprNode<Extra> &) {}
+  virtual void exit(AssignmentExprNode<Extra> &) {}
+  virtual void exit(MethodCallNode<Extra> &) {}
+  virtual void exit(ArgumentNode<Extra> &) {}
+  virtual void exit(ParamNode<Extra> &) {}
+  virtual void exit(ProgramNode<Extra> &) {}
+  virtual void exit(BlockNode<Extra> &) {}
+  virtual void exit(VarDeclNode<Extra> &) {}
+  virtual void exit(IfStmtNode<Extra> &) {}
+  virtual void exit(WhileStmtNode<Extra> &) {}
+  virtual void exit(ReturnStmtNode<Extra> &) {}
+  virtual void exit(ClassNode<Extra> &) {}
+  virtual void exit(FieldDeclNode<Extra> &) {}
+  virtual void exit(MethodDeclNode<Extra> &) {}
+  virtual void exit(ConstructorDeclNode<Extra> &) {}
+  virtual void exit(ExprStmtNode<Extra> &) {}
+
+  virtual void visit(ASTNode<Extra> &) {}
   virtual void visit(BinaryExprNode<Extra> &node) = 0;
   virtual void visit(UnaryExprNode<Extra> &node) = 0;
   virtual void visit(LiteralExprNode<Extra> &node) = 0;
@@ -150,11 +186,13 @@ class ASTVisitor {
   void report_error(const std::string &message, SourceLocation loc) {
     errors.push_back(message);
     Log::Compiler::semantic_error(message, loc.line, loc.col);
+    Diagnostics::instance().report_error(message);
   }
 
   void report_error(const std::string &message, int line, int col) {
     errors.push_back(message);
     Log::Compiler::semantic_error(message, line, col);
+    Diagnostics::instance().report_error(message);
   }
 };
 

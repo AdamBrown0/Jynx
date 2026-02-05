@@ -8,8 +8,12 @@
 #include "visitor/visitor.hh"
 #include "visitor/typechecker.hh"
 
-class TreeTransformer : ASTVisitor<NodeInfo> {
+class TreeTransformer : public ASTVisitor<NodeInfo> {
  public:
+  using ASTVisitor<NodeInfo>::enter;
+  using ASTVisitor<NodeInfo>::exit;
+  using ASTVisitor<NodeInfo>::before_else;
+
   TreeTransformer(
       const std::unordered_map<ASTNode<NodeInfo> *, TypeInfo> &expr_types)
       : expr_types(expr_types) {}  // Copy the map
@@ -36,6 +40,9 @@ class TreeTransformer : ASTVisitor<NodeInfo> {
   void visit(MethodDeclNode<NodeInfo> &node) override;
   void visit(ConstructorDeclNode<NodeInfo> &node) override;
   void visit(ExprStmtNode<NodeInfo> &node) override;
+
+  void exit(IfStmtNode<NodeInfo> &node) override;
+  void exit(WhileStmtNode<NodeInfo> &node) override;
 
  private:
   std::unordered_map<ASTNode<NodeInfo> *, TypeInfo>

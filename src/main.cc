@@ -15,6 +15,7 @@ void print_usage(char** argv) {
 }
 
 int main(const int argc, char** argv) {
+  Diagnostics::instance().clear();
   if (argc != 2) print_usage(argv);
 
   std::string filepath = argv[1];
@@ -39,6 +40,12 @@ int main(const int argc, char** argv) {
   Sema sema;
   ProgramNode<NodeInfo>* sema_tree = sema.analyze(*ast);
 
+  if (!sema_tree) {
+    LOG_ERROR("Semantic analysis failed; skipping code generation");
+    delete ast;
+    return 1;
+  }
+
   CodeGenerator gen;
   std::string code = gen.generate(*sema_tree);
   LOG_INFO("\n{}", code);
@@ -48,5 +55,5 @@ int main(const int argc, char** argv) {
   out.close();
 
   delete ast;
-  delete sema_tree;
+  // delete sema_tree;
 }

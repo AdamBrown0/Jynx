@@ -6,9 +6,20 @@
 
 class SymbolCollectorVisitor : public ASTVisitor<NodeInfo> {
  public:
+  using ASTVisitor<NodeInfo>::enter;
+  using ASTVisitor<NodeInfo>::exit;
+  using ASTVisitor<NodeInfo>::before_else;
+
   std::unordered_map<std::string, Symbol> get_global_symbols() {
     return global_symbols;
   }
+
+  void enter(BlockNode<NodeInfo> &node) override;
+  void exit(BlockNode<NodeInfo> &node) override;
+  void enter(MethodDeclNode<NodeInfo> &node) override;
+  void exit(MethodDeclNode<NodeInfo> &node) override;
+  void enter(ConstructorDeclNode<NodeInfo> &node) override;
+  void exit(ConstructorDeclNode<NodeInfo> &node) override;
 
   void visit(ASTNode<NodeInfo> &node) override;
   void visit(BinaryExprNode<NodeInfo> &node) override;

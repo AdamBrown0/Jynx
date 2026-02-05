@@ -10,31 +10,10 @@ void SymbolCollectorVisitor::visit(VarDeclNode<NodeInfo> &node) {
   var_symbol.decl_loc = node.location;
 
   add_symbol(var_symbol);
-
-  if (node.initializer) {
-    node.initializer->accept(*this);
-  }
 }
 
 void SymbolCollectorVisitor::visit(MethodDeclNode<NodeInfo> &node) {
-  Symbol method_symbol;
-  method_symbol.name = node.identifier.getValue();
-  method_symbol.type = node.type.getType();
-  method_symbol.decl_loc = node.location;
-  method_symbol.access_modifier = node.access_modifier.getValue();
-  method_symbol.is_method = true;
-
-  // params
-  if (!node.param_list.empty()) {
-    for (auto &param : node.param_list) {
-      param->accept(*this);
-      method_symbol.param_types.emplace_back(param.get()->type.getType());
-      method_symbol.param_names.emplace_back(
-          param.get()->identifier.getValue());
-    }
-  }
-
-  add_symbol(method_symbol);
+  (void)node;
 }
 
 void SymbolCollectorVisitor::visit(ParamNode<NodeInfo> &node) {
@@ -48,34 +27,26 @@ void SymbolCollectorVisitor::visit(ParamNode<NodeInfo> &node) {
 }
 
 void SymbolCollectorVisitor::visit(BinaryExprNode<NodeInfo> &node) {
-  if (node.left) node.left->accept(*this);
-  if (node.right) node.right->accept(*this);
+  (void)node;
 }
 
 void SymbolCollectorVisitor::visit(ProgramNode<NodeInfo> &node) {
   LOG_DEBUG("SymbolCollectorVisitor: Visiting ProgramNode with {} children",
             node.children.size());
-  // for (auto& child : node.children) {
-  //   child->accept(*this);
-  // }
+  (void)node;
 }
 
 void SymbolCollectorVisitor::visit(BlockNode<NodeInfo> &node) {
-  push_scope();
-  for (auto &stmt : node.statements) stmt->accept(*this);
-  pop_scope();
+  (void)node;
 }
 
 void SymbolCollectorVisitor::visit(ExprStmtNode<NodeInfo> &node) {
   LOG_DEBUG("[Sym] ExprStmtNode");
-  node.expr->accept(*this);
+  (void)node;
 }
 
 void SymbolCollectorVisitor::visit(AssignmentExprNode<NodeInfo> &node) {
   LOG_DEBUG("[Sym] AssignmentExprNode");
-  if (node.left) node.left->accept(*this);
-  if (node.right) node.right->accept(*this);
-
   if (node.op.getType() == TokenType::TOKEN_EQUALS) {
     if (auto *identifier =
             dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.left.get())) {
@@ -89,4 +60,44 @@ void SymbolCollectorVisitor::visit(AssignmentExprNode<NodeInfo> &node) {
       report_error("Expected identifier to assign to", node.location);
     }
   }
+}
+
+void SymbolCollectorVisitor::enter(BlockNode<NodeInfo> &) { push_scope(); }
+
+void SymbolCollectorVisitor::exit(BlockNode<NodeInfo> &) { pop_scope(); }
+
+void SymbolCollectorVisitor::enter(MethodDeclNode<NodeInfo> &node) {
+  Symbol method_symbol;
+  method_symbol.name = node.identifier.getValue();
+  method_symbol.type = node.type.getType();
+  method_symbol.decl_loc = node.location;
+  method_symbol.access_modifier = node.access_modifier.getValue();
+  method_symbol.is_method = true;
+
+  if (!node.param_list.empty()) {
+    for (auto &param : node.param_list) {
+      method_symbol.param_types.emplace_back(param.get()->type.getType());
+      method_symbol.param_names.emplace_back(
+          param.get()->identifier.getValue());
+    }
+  }
+
+  add_symbol(method_symbol);
+  enter_method(node.identifier.getValue(), node.type.getType());
+  push_scope();
+}
+
+void SymbolCollectorVisitor::exit(MethodDeclNode<NodeInfo> &) {
+  pop_scope();
+  exit_method();
+}
+
+void SymbolCollectorVisitor::enter(ConstructorDeclNode<NodeInfo> &node) {
+  enter_method(node.identifier.getValue(), TokenType::TOKEN_UNKNOWN);
+  push_scope();
+}
+
+void SymbolCollectorVisitor::exit(ConstructorDeclNode<NodeInfo> &) {
+  pop_scope();
+  exit_method();
 }

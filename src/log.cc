@@ -1,4 +1,5 @@
 #include "log.hh"
+#include "diagnostics.hh"
 
 #include <cstdlib>
 #include <ctime>
@@ -129,7 +130,7 @@ void lexer_error(const std::string& message, SourceLocation loc) {
   std::stringstream ss;
   ss << "Lexer error at " << loc.to_string() << ": " << message;
   Logger::error(ss.str());
-  exit(1);  // token not found
+  Diagnostics::instance().report_error(ss.str());
 }
 
 void parser_enter(const std::string& rule) {
@@ -164,7 +165,7 @@ void parser_error(const std::string& message, const Token& token) {
      << ": " << message << " (found: '" << token.getValue()
      << "', type: " << token_type_to_string(token.getType()) << ")";
   Logger::error(ss.str());
-  exit(1);  // syntax error
+  Diagnostics::instance().report_error(ss.str());
 }
 
 void semantic_error(const std::string& message, int line, int col) {
