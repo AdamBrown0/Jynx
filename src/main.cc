@@ -55,5 +55,4 @@ int main(const int argc, char** argv) {
   out.close();
 
   delete ast;
-  // delete sema_tree;
 }

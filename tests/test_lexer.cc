@@ -6,13 +6,6 @@
 #include "../include/lexer.hh"
 #include "token.hh"
 
-// Helper function to create a lexer from a string
-Lexer create_lexer(const std::string& input) {
-    auto stream = std::make_unique<std::istringstream>(input);
-    return Lexer(*stream);
-}
-
-// Helper function to get all tokens from input
 std::vector<Token> tokenize_input(const std::string& input) {
     std::istringstream stream(input);
     Lexer lexer(stream);
@@ -74,7 +67,7 @@ TEST_CASE("Lexer tokenizes keywords correctly", "[lexer][keywords]") {
     SECTION("class keyword") {
         auto tokens = tokenize_input("class");
         REQUIRE(tokens.size() == 1);
-        REQUIRE(tokens[0].getType() == TokenType::TOKEN_DATA_TYPE);
+        REQUIRE(tokens[0].getType() == TokenType::KW_CLASS);
         REQUIRE(tokens[0].getValue() == "class");
     }
 }
@@ -291,7 +284,7 @@ TEST_CASE("Lexer handles complex expressions", "[lexer][complex]") {
     SECTION("Class definition start") {
         auto tokens = tokenize_input("class MyClass {");
         REQUIRE(tokens.size() == 3);
-        REQUIRE(tokens[0].getType() == TokenType::TOKEN_DATA_TYPE);
+        REQUIRE(tokens[0].getType() == TokenType::KW_CLASS);
         REQUIRE(tokens[0].getValue() == "class");
         REQUIRE(tokens[1].getType() == TokenType::TOKEN_ID);
         REQUIRE(tokens[1].getValue() == "MyClass");

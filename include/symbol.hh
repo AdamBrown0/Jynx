@@ -9,6 +9,7 @@
 struct Symbol {
   std::string name;
   TokenType type;
+  std::string type_name;
   SourceLocation decl_loc;
 
   std::string access_modifier = "private";

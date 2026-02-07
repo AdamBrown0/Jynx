@@ -51,4 +51,48 @@ test_lexer_exe = executable(
 
 test('lexer', test_lexer_exe, timeout: 5, suite:'lexer')
 
+# Parser
+test_parser_exe = executable(
+  'test_parser',
+  'tests/test_parser.cc',
+  link_with: core_lib,
+  include_directories: incdir,
+  dependencies: [catch2_dep],
+)
+
+test('parser', test_parser_exe, timeout: 5, suite:'parser')
+
+# Sema
+test_sema_exe = executable(
+  'test_sema',
+  'tests/test_sema.cc',
+  link_with: core_lib,
+  include_directories: incdir,
+  dependencies: [catch2_dep],
+)
+
+test('sema', test_sema_exe, timeout: 5, suite:'sema')
+
+# TypeChecker
+test_typechecker_exe = executable(
+  'test_typechecker',
+  'tests/test_typechecker.cc',
+  link_with: core_lib,
+  include_directories: incdir,
+  dependencies: [catch2_dep],
+)
+
+test('typechecker', test_typechecker_exe, timeout: 5, suite:'typechecker')
+
+# Codegen
+test_codegen_exe = executable(
+  'test_codegen',
+  'tests/test_codegen.cc',
+  link_with: core_lib,
+  include_directories: incdir,
+  dependencies: [catch2_dep],
+)
+
+test('codegen', test_codegen_exe, timeout: 5, suite:'codegen')
+
 # ...

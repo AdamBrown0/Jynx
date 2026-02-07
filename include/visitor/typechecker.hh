@@ -62,7 +62,24 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
         // only doing int and int for now, could add string and other
         return {TokenType::TOKEN_UNKNOWN, ""};
 
-        // comparison stuff
+      // comparison operators: <, >, <=, >=, ==, !=
+      case TokenType::TOKEN_LT:
+      case TokenType::TOKEN_GT:
+      case TokenType::TOKEN_LEQ:
+      case TokenType::TOKEN_GEQ:
+        if (left.token_type == TokenType::TOKEN_INT &&
+            right.token_type == TokenType::TOKEN_INT) {
+          return {TokenType::TOKEN_INT, "int"};
+        }
+        return {TokenType::TOKEN_UNKNOWN, ""};
+      case TokenType::TOKEN_DEQ:
+      case TokenType::TOKEN_NEQ:
+        if (left.token_type == right.token_type &&
+            (left.token_type == TokenType::TOKEN_INT ||
+             left.token_type == TokenType::TOKEN_STRING)) {
+          return {TokenType::TOKEN_INT, "int"};
+        }
+        return {TokenType::TOKEN_UNKNOWN, ""};
 
       default:
         return {TokenType::TOKEN_UNKNOWN, ""};

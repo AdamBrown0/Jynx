@@ -46,17 +46,27 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
     node.extra.resolved_type = TokenType::TOKEN_DATA_TYPE;
     node.extra.type_name = symbol->name;
   } else {
-    std::string type_name = get_type_name_from_token(symbol->type);
-    // set_expr_type(&node, symbol->type, type_name);
-    node.extra.resolved_type = symbol->type;
-    node.extra.type_name = type_name;
+    if (symbol->type == TokenType::TOKEN_DATA_TYPE) {
+      TokenType resolved = resolve_type(symbol->type_name);
+      node.extra.resolved_type = resolved;
+      if (resolved == TokenType::TOKEN_DATA_TYPE) {
+        node.extra.type_name = symbol->type_name;
+      } else {
+        node.extra.type_name = get_type_name_from_token(resolved);
+      }
+    } else {
+      std::string type_name = get_type_name_from_token(symbol->type);
+      // set_expr_type(&node, symbol->type, type_name);
+      node.extra.resolved_type = symbol->type;
+      node.extra.type_name = type_name;
+    }
   }
 }
 
 void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
   std::string declared_type = node.type_token.getValue();
 
-  node.extra.resolved_type = node.type_token.getType();
+  node.extra.resolved_type = resolve_type(node.type_token.getValue());
   node.extra.type_name = node.type_token.getValue();
 
   if (node.initializer) {
@@ -90,8 +100,27 @@ void TypeCheckerVisitor::visit(AssignmentExprNode<NodeInfo>& node) {
   if (node.op.getType() == TokenType::TOKEN_EQUALS) {
     if (auto* identifier =
             dynamic_cast<IdentifierExprNode<NodeInfo>*>(node.left.get())) {
-      if (lookup_symbol(identifier->identifier.getValue())->type ==
-          node.right->extra.resolved_type) {
+      Symbol* symbol = lookup_symbol(identifier->identifier.getValue());
+      if (!symbol) {
+        report_error("Undeclared identifier '" +
+                         identifier->identifier.getValue() + "'",
+                     node.location);
+        return;
+      }
+
+      TokenType left_type = symbol->type;
+      if (left_type == TokenType::TOKEN_DATA_TYPE) {
+        left_type = resolve_type(symbol->type_name);
+        if (left_type == TokenType::TOKEN_DATA_TYPE) {
+          if (symbol->type_name == node.right->extra.type_name) {
+            node.extra.resolved_type = node.right->extra.resolved_type;
+            node.extra.type_name = node.right->extra.type_name;
+            return;
+          }
+        }
+      }
+
+      if (left_type == node.right->extra.resolved_type) {
         node.extra.resolved_type = node.right->extra.resolved_type;
         node.extra.type_name = node.right->extra.type_name;
       } else {

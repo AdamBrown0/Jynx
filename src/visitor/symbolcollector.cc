@@ -7,6 +7,7 @@ void SymbolCollectorVisitor::visit(VarDeclNode<NodeInfo> &node) {
   Symbol var_symbol;
   var_symbol.name = node.identifier.getValue();
   var_symbol.type = node.type_token.getType();
+  var_symbol.type_name = node.type_token.getValue();
   var_symbol.decl_loc = node.location;
 
   add_symbol(var_symbol);
@@ -20,6 +21,7 @@ void SymbolCollectorVisitor::visit(ParamNode<NodeInfo> &node) {
   Symbol param_symbol;
   param_symbol.name = node.identifier.getValue();
   param_symbol.type = node.type.getType();
+  param_symbol.type_name = node.type.getValue();
   param_symbol.is_param = true;
   param_symbol.decl_loc = node.location;
 
@@ -38,6 +40,7 @@ void SymbolCollectorVisitor::enter(MethodDeclNode<NodeInfo> &node) {
   Symbol method_symbol;
   method_symbol.name = node.identifier.getValue();
   method_symbol.type = node.type.getType();
+  method_symbol.type_name = node.type.getValue();
   method_symbol.decl_loc = node.location;
   method_symbol.access_modifier = node.access_modifier.getValue();
   method_symbol.is_method = true;

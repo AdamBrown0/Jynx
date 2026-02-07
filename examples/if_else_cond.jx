@@ -5,3 +5,5 @@ if ( cond < 7 ) {
 } else {
   cond = 1;
 }
+
+return cond;
