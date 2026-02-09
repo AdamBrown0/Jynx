@@ -20,6 +20,7 @@ core_lib = static_library(
   'src/gen.cc',
   'src/visitor/typechecker.cc',
   'src/visitor/symbolcollector.cc',
+  'src/visitor/nameresolver.cc',
   ],
   include_directories: incdir,
 )

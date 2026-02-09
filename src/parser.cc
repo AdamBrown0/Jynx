@@ -17,8 +17,9 @@ ProgramNode<NodeInfo>* Parser::parseProgram() {
   while (current.getType() != TokenType::TOKEN_EOF) {
     LOG_DEBUG("PARSING PROGRAM");
     current.print();
-    _StmtNode* statement = Parser::parseStatement();
-    if (!statement) LOG_PARSER_ERROR("Not implemented", current);
+    std::optional<Token> access_modifier;
+    _StmtNode* statement = Parser::parseMethodDecl(access_modifier);
+    if (!statement) LOG_PARSER_ERROR("Method declaration required", current);
 
     program->children.emplace_back(statement);
   }
@@ -71,7 +72,7 @@ StmtNode<NodeInfo>* Parser::parseClass() {
   while (current.getType() != TokenType::TOKEN_RBRACE) {
     current.print();
     ClassMemberNode<NodeInfo>* member = Parser::parseClassMember();
-    if (!member) LOG_PARSER_ERROR("Expected class member", current);
+    // if (!member) LOG_PARSER_ERROR("Expected class member", current);
 
     members.emplace_back(member);
   }
@@ -84,7 +85,7 @@ StmtNode<NodeInfo>* Parser::parseClass() {
   current.print();
 
   return new ClassNode<NodeInfo>(identifier, std::move(members),
-                                   lexer.getLocation());
+                                 lexer.getLocation());
 }
 
 ClassMemberNode<NodeInfo>* Parser::parseClassMember() {
@@ -100,13 +101,23 @@ ClassMemberNode<NodeInfo>* Parser::parseClassMember() {
       return Parser::parseMethodDecl(access_modifier);
     else
       return Parser::parseFieldDecl(access_modifier);
-  } else if (current.getType() == TokenType::TOKEN_ID) {
+  } else if (current.getType() == TokenType::KW_CONSTRUCTOR) {
     if (peek(1).getType() == TokenType::TOKEN_LPAREN) {
       return Parser::parseConstructorDecl();
     }
   }
 
   LOG_PARSER_ERROR("Expected class member", current);
+
+  while (current.getType() != TokenType::TOKEN_SEMICOLON &&
+         current.getType() != TokenType::TOKEN_RBRACE &&
+         current.getType() != TokenType::TOKEN_EOF)
+    advance();
+
+  if (current.getType() == TokenType::TOKEN_SEMICOLON ||
+      current.getType() == TokenType::TOKEN_RBRACE)
+    advance();
+
   return nullptr;
 }
 
@@ -150,11 +161,7 @@ ClassMemberNode<NodeInfo>* Parser::parseMethodDecl(
     LOG_PARSER_ERROR("Expected parameter list", current);
 
   uptr_vector<ParamNode<NodeInfo>> param_list;
-  LOG_DEBUG("OUTSIDE");
-  current.print();
   while (advance().getType() != TokenType::TOKEN_RPAREN) {
-    LOG_DEBUG("INSIDE");
-    current.print();
     if (current.getType() == TokenType::TOKEN_COMMA) continue;
     if (current.getType() != TokenType::TOKEN_DATA_TYPE)
       LOG_PARSER_ERROR("Expected data type for parameter", current);
@@ -165,7 +172,6 @@ ClassMemberNode<NodeInfo>* Parser::parseMethodDecl(
     param_list.emplace_back(
         new ParamNode<NodeInfo>(type, identifier, lexer.getLocation()));
   }
-  current.print();
   advance();  // skip closing parenthesis
   BlockNode<NodeInfo>* body =
       dynamic_cast<BlockNode<NodeInfo>*>(Parser::parseBlock());
@@ -201,13 +207,17 @@ ClassMemberNode<NodeInfo>* Parser::parseFieldDecl(
         Token(TokenType::KW_ACCESS_MODIFIER, "public", lexer.getLocation());
 
   return new FieldDeclNode<NodeInfo>(access_modifier.value(), false, type,
-                                       identifier, lexer.getLocation());
+                                     identifier, lexer.getLocation());
 }
 
 StmtNode<NodeInfo>* Parser::parseBlock() {
   // <block> ::= "{" { <statement> } "}"
 
   LOG_PARSER_ENTER("Block");
+
+  SourceLocation block_loc;
+  block_loc.line = current.getLine();
+  block_loc.col = current.getCol();
 
   if (current.getType() != TokenType::TOKEN_LBRACE) {
     LOG_PARSER_ERROR("Expected opening brace '{'", current);
@@ -226,11 +236,15 @@ StmtNode<NodeInfo>* Parser::parseBlock() {
 
   advance();  // consume '}'
 
-  return new BlockNode<NodeInfo>(std::move(statements), lexer.getLocation());
+  return new BlockNode<NodeInfo>(std::move(statements), block_loc);
 }
 
 StmtNode<NodeInfo>* Parser::parseIfStmt() {
   // <if_stmt> ::= "if" "(" <expression> ")" <statement> [ "else" <statement> ]
+  SourceLocation if_loc;
+  if_loc.line = current.getLine();
+  if_loc.col = current.getCol();
+
   if (advance().getType() != TokenType::TOKEN_LPAREN)
     LOG_PARSER_ERROR("Expected opening parenthesis", current);
 
@@ -238,7 +252,7 @@ StmtNode<NodeInfo>* Parser::parseIfStmt() {
 
   LOG_DEBUG("PARSING IFSTMT STMT, current");
   current.print();
-  _StmtNode *statement = Parser::parseStatement();
+  _StmtNode* statement = Parser::parseStatement();
   LOG_DEBUG("AFTER STMT");
   current.print();
 
@@ -251,8 +265,7 @@ StmtNode<NodeInfo>* Parser::parseIfStmt() {
     else_statement = Parser::parseStatement();
   }
 
-  return new IfStmtNode<NodeInfo>(condition, statement, else_statement,
-                                  lexer.getLocation());
+  return new IfStmtNode<NodeInfo>(condition, statement, else_statement, if_loc);
 }
 
 StmtNode<NodeInfo>* Parser::parseVarDecl() {
@@ -261,6 +274,9 @@ StmtNode<NodeInfo>* Parser::parseVarDecl() {
   Token type_token = ret_advance();
   if (type_token.getType() != TokenType::TOKEN_DATA_TYPE)
     LOG_PARSER_ERROR("Expected data type", type_token);
+  SourceLocation decl_loc;
+  decl_loc.line = type_token.getLine();
+  decl_loc.col = type_token.getCol();
 
   // check if function decl
   // if (peek(1).getType() == TokenType::TOKEN_LPAREN)
@@ -275,16 +291,14 @@ StmtNode<NodeInfo>* Parser::parseVarDecl() {
   // colon, in which case we consume and move on
   if (current.getType() == TokenType::TOKEN_SEMICOLON) {
     advance();  // consume semicolon
-    return new VarDeclNode<NodeInfo>(type_token, identifier, nullptr,
-                                       lexer.getLocation());
+    return new VarDeclNode<NodeInfo>(type_token, identifier, nullptr, decl_loc);
   } else if (current.getType() == TokenType::TOKEN_EQUALS) {
     advance();  // skip equals
     _ExprNode* init = parseBinaryExpr();
     if (current.getType() != TokenType::TOKEN_SEMICOLON)
       LOG_PARSER_ERROR("Expected semicolon after declaration", current);
     advance();  // consume semicolon
-    return new VarDeclNode<NodeInfo>(type_token, identifier, init,
-                                       lexer.getLocation());
+    return new VarDeclNode<NodeInfo>(type_token, identifier, init, decl_loc);
   } else {
     LOG_PARSER_ERROR("Expected semi-colon or initializer", current);
   }
@@ -295,7 +309,10 @@ StmtNode<NodeInfo>* Parser::parseVarDecl() {
 StmtNode<NodeInfo>* Parser::parseWhileStmt() {
   // <while_stmt> ::= "while" "(" <expression> ")" <statement>
 
-  // advance();
+  SourceLocation while_loc;
+  while_loc.line = current.getLine();
+  while_loc.col = current.getCol();
+
   if (advance().getType() != TokenType::TOKEN_LPAREN)
     LOG_PARSER_ERROR("Expected opening parenthesis", current);
 
@@ -303,27 +320,34 @@ StmtNode<NodeInfo>* Parser::parseWhileStmt() {
 
   _StmtNode* statement = Parser::parseStatement();
 
-  return new WhileStmtNode<NodeInfo>(condition, statement,
-                                       lexer.getLocation());
+  return new WhileStmtNode<NodeInfo>(condition, statement, while_loc);
 }
 
 StmtNode<NodeInfo>* Parser::parseReturnStmt() {
   // <return_stmt> ::= "return" <expression> ";"
+  SourceLocation return_loc;
+  return_loc.line = current.getLine();
+  return_loc.col = current.getCol();
+
   advance();
   _ExprNode* expression = Parser::parseBinaryExpr();
   if (current.getType() != TokenType::TOKEN_SEMICOLON)
     LOG_PARSER_ERROR("Expected semicolon after return", current);
   advance();
-  return new ReturnStmtNode<NodeInfo>(expression, lexer.getLocation());
+  return new ReturnStmtNode<NodeInfo>(expression, return_loc);
 }
 
 StmtNode<NodeInfo>* Parser::parseExprStmt() {
+  SourceLocation expr_loc;
+  expr_loc.line = current.getLine();
+  expr_loc.col = current.getCol();
+
   ExprStmtNode<NodeInfo>* expr;
   if (current.getType() == TokenType::TOKEN_ID &&
       peek(1).getType() == TokenType::TOKEN_LPAREN)
-    expr = new ExprStmtNode<NodeInfo>(parseMethodCall(), lexer.getLocation());
+    expr = new ExprStmtNode<NodeInfo>(parseMethodCall(), expr_loc);
   else {
-    expr = new ExprStmtNode<NodeInfo>(parseBinaryExpr(), lexer.getLocation());
+    expr = new ExprStmtNode<NodeInfo>(parseBinaryExpr(), expr_loc);
   }
   if (current.getType() != TokenType::TOKEN_SEMICOLON)
     LOG_PARSER_ERROR("Expected semicolon after expression", current);
@@ -369,14 +393,19 @@ ExprNode<NodeInfo>* Parser::parseBinaryExpr(int parent_precedence) {
          precedence > parent_precedence) {
     Token op_token = ret_advance();
 
+    SourceLocation expr_loc;
+    if (left) {
+      expr_loc = left->location;
+    } else {
+      expr_loc = lexer.getLocation();
+    }
+
     _ExprNode* right = parseBinaryExpr(precedence);
 
     if (op_token.getType() == TokenType::TOKEN_EQUALS) {
-      left = new AssignmentExprNode<NodeInfo>(left, op_token, right,
-                                              lexer.getLocation());
+      left = new AssignmentExprNode<NodeInfo>(left, op_token, right, expr_loc);
     } else {
-      left = new BinaryExprNode<NodeInfo>(left, op_token, right,
-                                            lexer.getLocation());
+      left = new BinaryExprNode<NodeInfo>(left, op_token, right, expr_loc);
     }
   }
 
@@ -386,15 +415,23 @@ ExprNode<NodeInfo>* Parser::parseBinaryExpr(int parent_precedence) {
 ExprNode<NodeInfo>* Parser::parseUnaryExpr() {
   Token unary_op = current;
   int unary_prec = getUnaryPrecedence(unary_op.getType());
+
+  SourceLocation expr_loc;
+  expr_loc.line = unary_op.getLine();
+  expr_loc.col = unary_op.getCol();
+
   advance();
   _ExprNode* operand = parseBinaryExpr(unary_prec);
 
-  return new UnaryExprNode<NodeInfo>(unary_op, operand, lexer.getLocation());
+  return new UnaryExprNode<NodeInfo>(unary_op, operand, expr_loc);
 }
 
 ExprNode<NodeInfo>* Parser::parseLiteralExpr() {
-  _ExprNode* node =
-      new LiteralExprNode<NodeInfo>(current, lexer.getLocation());
+  SourceLocation expr_loc;
+  expr_loc.line = current.getLine();
+  expr_loc.col = current.getCol();
+
+  _ExprNode* node = new LiteralExprNode<NodeInfo>(current, expr_loc);
   advance();
   return node;
 }
@@ -406,8 +443,11 @@ ExprNode<NodeInfo>* Parser::parseIdentifierExpr() {
   }
 
   // Simple identifier
-  _ExprNode* node =
-      new IdentifierExprNode<NodeInfo>(current, lexer.getLocation());
+  SourceLocation expr_loc;
+  expr_loc.line = current.getLine();
+  expr_loc.col = current.getCol();
+
+  _ExprNode* node = new IdentifierExprNode<NodeInfo>(current, expr_loc);
   advance();
   return node;
 }
@@ -419,14 +459,20 @@ ExprNode<NodeInfo>* Parser::parseMethodCall() {
 
   _ExprNode* expr = nullptr;
   Token identifier;
+  SourceLocation call_loc;
 
   if (current.getType() == TokenType::TOKEN_ID &&
       peek(1).getType() == TokenType::TOKEN_LPAREN) {
     LOG_DEBUG("IDENTIFIER");
     current.print();
     identifier = ret_advance();
+    call_loc.line = identifier.getLine();
+    call_loc.col = identifier.getCol();
   } else {
     expr = Parser::parseExpr();
+    if (expr) {
+      call_loc = expr->location;
+    }
     identifier = ret_advance();
     if (identifier.getType() != TokenType::TOKEN_ID)
       LOG_PARSER_ERROR("Expected method identifier", identifier);
@@ -453,8 +499,15 @@ ExprNode<NodeInfo>* Parser::parseMethodCall() {
 
     _ExprNode* arg_expr = Parser::parseExpr();
 
+    SourceLocation arg_loc;
+    if (arg_expr) {
+      arg_loc = arg_expr->location;
+    } else {
+      arg_loc = lexer.getLocation();
+    }
+
     arg_list.emplace_back(new ArgumentNode<NodeInfo>(
-        std::unique_ptr<ExprNode<NodeInfo>>(arg_expr), lexer.getLocation()));
+        std::unique_ptr<ExprNode<NodeInfo>>(arg_expr), arg_loc));
 
     // After parsing an expression, we should either see a comma or closing
     // parenthesis
@@ -471,9 +524,9 @@ ExprNode<NodeInfo>* Parser::parseMethodCall() {
   if (expr) {
     return new MethodCallNode<NodeInfo>(
         std::unique_ptr<ExprNode<NodeInfo>>(expr), identifier,
-        std::move(arg_list), lexer.getLocation());
+        std::move(arg_list), call_loc);
   } else {
-    return new MethodCallNode<NodeInfo>(
-        nullptr, identifier, std::move(arg_list), lexer.getLocation());
+    return new MethodCallNode<NodeInfo>(nullptr, identifier,
+                                        std::move(arg_list), call_loc);
   }
 }

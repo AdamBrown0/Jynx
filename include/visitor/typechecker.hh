@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "ast.hh"
+#include "methodtable.hh"
 #include "visitor.hh"
 
 typedef struct TypeInfo {
@@ -15,8 +16,10 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
  public:
   TypeCheckerVisitor() {}
 
-  TypeCheckerVisitor(const std::unordered_map<std::string, Symbol> &symbols) {
-    global_symbols = symbols;
+  TypeCheckerVisitor(std::unordered_map<std::string, Symbol> &symbols,
+                     MethodTable &methods) {
+    set_global_symbols(&symbols);
+    set_method_table(&methods);
   }
 
   void visit(BinaryExprNode<NodeInfo> &node) override;
@@ -26,9 +29,34 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
   void visit(AssignmentExprNode<NodeInfo> &node) override;
   void visit(VarDeclNode<NodeInfo> &node) override;
   void visit(MethodDeclNode<NodeInfo> &node) override;
+  void visit(MethodCallNode<NodeInfo> &node) override;
   void visit(ExprStmtNode<NodeInfo> &node) override;
+  void visit(ReturnStmtNode<NodeInfo> &node) override;
+
+  void enter(BlockNode<NodeInfo> &node) override;
+  void exit(BlockNode<NodeInfo> &node) override;
+  void enter(MethodDeclNode<NodeInfo> &node) override;
+  void exit(MethodDeclNode<NodeInfo> &node) override;
+  void enter(ConstructorDeclNode<NodeInfo> &node) override;
+  void exit(ConstructorDeclNode<NodeInfo> &node) override;
+  void enter(ProgramNode<NodeInfo> &node) override;
+  void exit(ProgramNode<NodeInfo> &node) override;
 
  private:
+  int current_stack_offset = 0;
+  int max_stack_offset = 0;
+  std::vector<int> scope_starts;
+
+  int align16(int n) { return (n + 15) & ~15; }
+
+  int slot_size_for(const VarDeclNode<NodeInfo> &node) {
+    // assuming int = 8, string = 16
+    if (node.extra.resolved_type == TokenType::TOKEN_STRING) return 16;
+    return 8;
+  }
+
+  void add_param_symbol(ParamNode<NodeInfo> &node);
+
   bool types_compatible(const std::string &declared_type_name,
                         const TypeInfo &expr_type_info) {
     TokenType declared_builtin = resolve_type(declared_type_name);

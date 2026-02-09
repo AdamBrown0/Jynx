@@ -1,5 +1,4 @@
 #include "log.hh"
-#include "diagnostics.hh"
 
 #include <cstdlib>
 #include <ctime>
@@ -9,11 +8,16 @@
 
 #include "ast.hh"
 #include "ast_utils.hh"
+#include "diagnostics.hh"
 
 using namespace Log;
 
+#ifndef JYNX_LOG_LEVEL
+#define JYNX_LOG_LEVEL Log::Level::WARN
+#endif
+
 // Static member definitions
-Log::Level Logger::current_level = Level::DEBUG;
+Log::Level Logger::current_level = JYNX_LOG_LEVEL;
 bool Logger::show_timestamps = true;
 bool Logger::show_colors = true;
 std::ostream* Logger::output_stream = &std::cout;
@@ -150,7 +154,7 @@ void parser_error(const std::string& message, const Token& token) {
   ss << "Parser error at line " << token.getLine() << ", col " << token.getCol()
      << ": " << message << " (found: '" << token.getValue()
      << "', type: " << token_type_to_string(token.getType()) << ")";
-  Logger::error(ss.str());
+  // Logger::error(ss.str());
   Diagnostics::instance().report_error(ss.str());
 }
 

@@ -24,6 +24,7 @@ class Lexer {
     keywords.insert("else", TokenType::KW_ELSE);
     keywords.insert("return", TokenType::KW_RETURN);
     keywords.insert("while", TokenType::KW_WHILE);
+    keywords.insert("constructor", TokenType::KW_CONSTRUCTOR);
   }
 
   /// Returns the next token from the source file

@@ -9,6 +9,7 @@
 
 #include "ast.hh"
 #include "log.hh"
+#include "methodtable.hh"
 #include "visitor/visitor.hh"
 
 typedef struct Scope {
@@ -23,7 +24,10 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   using ASTVisitor<NodeInfo>::exit;
   using ASTVisitor<NodeInfo>::before_else;
 
-  CodeGenerator() { setupRegisters(); }
+  explicit CodeGenerator(MethodTable &methods) {
+    set_method_table(&methods);
+    setupRegisters();
+  }
   virtual ~CodeGenerator() = default;
 
   std::string generate(const ProgramNode<NodeInfo> &root);
@@ -56,6 +60,8 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   void exit(IfStmtNode<NodeInfo> &node) override;
   void enter(WhileStmtNode<NodeInfo> &node) override;
   void exit(WhileStmtNode<NodeInfo> &node) override;
+  void enter(MethodDeclNode<NodeInfo> &node) override;
+  void exit(MethodDeclNode<NodeInfo> &node) override;
 
  private:
   struct IfContext {
@@ -156,17 +162,18 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
         return found->second;
       }
     }
-    
+
     // Variable doesn't exist, allocate in current (innermost) scope
     if (scope_stack.empty()) {
-      throw std::runtime_error("No scope available for string variable: " + name);
+      throw std::runtime_error("No scope available for string variable: " +
+                               name);
     }
-    
+
     current_stack_offset += 16;
     int lenOffset = current_stack_offset;      // [rbp-lenOffset]
     int ptrOffset = current_stack_offset - 8;  // [rbp-ptrOffset]
     emit("sub rsp, 16");
-    
+
     // Store in current scope
     scope_stack.back().string_var_slots[name] = {ptrOffset, lenOffset};
     return scope_stack.back().string_var_slots[name];
@@ -195,6 +202,15 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
 
   static inline std::string formatSlot(int offset) {
     return "[rbp-" + std::to_string(offset) + "]";
+  }
+
+  static inline std::string formatSlot(const VarDeclNode<NodeInfo> &node) {
+    return "[rbp-" + std::to_string(node.extra.stack_offset) + "]";
+  }
+
+  static inline std::string formatSlot(
+      const IdentifierExprNode<NodeInfo> &node) {
+    return "[rbp-" + std::to_string(node.extra.stack_offset) + "]";
   }
 
   static inline std::string formatStringLabel(std::string label) {
@@ -229,7 +245,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
         return;
       }
     }
-    
+
     // If not found, treat as empty string (or could throw error)
     loadStringLiteral("");
   }
@@ -243,11 +259,13 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
       }
     }
 
-    // Variable doesn't exist, allocate in current scope (like original behavior)
+    // Variable doesn't exist, allocate in current scope (like original
+    // behavior)
     if (scope_stack.empty()) {
-      throw std::runtime_error("No scope available for variable: " + var.getValue());
+      throw std::runtime_error("No scope available for variable: " +
+                               var.getValue());
     }
-    
+
     current_stack_offset += 8;  // 8-byte
     emit("sub rsp, 8");
     scope_stack.back().stack_offsets[var.getValue()] = current_stack_offset;
@@ -273,7 +291,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   }
 
   // Check if a variable is a string type by searching scopes
-  bool isStringVariable(const std::string& name) {
+  bool isStringVariable(const std::string &name) {
     for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
       if (it->string_var_slots.find(name) != it->string_var_slots.end()) {
         return true;
@@ -283,11 +301,11 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   }
 
   // Allocate a new scalar variable in current scope (for declarations)
-  std::string allocateVariableInCurrentScope(const std::string& name) {
+  std::string allocateVariableInCurrentScope(const std::string &name) {
     if (scope_stack.empty()) {
       throw std::runtime_error("No scope available for variable: " + name);
     }
-    
+
     current_stack_offset += 8;  // 8-byte
     emit("sub rsp, 8");
     scope_stack.back().stack_offsets[name] = current_stack_offset;
@@ -311,8 +329,9 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   std::vector<std::string> caller_saved_registers;
   std::vector<std::string> callee_saved_registers;
   // REMOVED: std::unordered_map<std::string, int> stack_offsets;
-  // REMOVED: std::unordered_map<std::string, std::pair<int, int>> string_var_slots;
-  // Literal pool: content -> label, plus ordered emission list
+  // REMOVED: std::unordered_map<std::string, std::pair<int, int>>
+  // string_var_slots; Literal pool: content -> label, plus ordered emission
+  // list
   std::unordered_map<std::string, std::string> literal_pool_labels;
   std::vector<std::pair<std::string, std::string>> literal_pool_emission;
   std::vector<std::string> eval_stack;

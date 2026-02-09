@@ -5,6 +5,80 @@
 #include "log.hh"
 #include "token.hh"
 
+void TypeCheckerVisitor::enter(BlockNode<NodeInfo>&) {
+  scope_starts.push_back(current_stack_offset);
+  push_scope();
+}
+
+void TypeCheckerVisitor::exit(BlockNode<NodeInfo>&) {
+  pop_scope();
+  current_stack_offset = scope_starts.back();
+  scope_starts.pop_back();
+}
+
+void TypeCheckerVisitor::enter(ProgramNode<NodeInfo>&) { push_scope(); }
+
+void TypeCheckerVisitor::exit(ProgramNode<NodeInfo>&) { pop_scope(); }
+
+void TypeCheckerVisitor::enter(MethodDeclNode<NodeInfo>& node) {
+  TokenType resolved = resolve_type(node.type.getValue());
+  enter_method(node.identifier.getValue(), resolved);
+
+  current_stack_offset = 0;
+  max_stack_offset = 0;
+  scope_starts.clear();
+  scope_starts.push_back(0);
+
+  push_scope();
+
+  for (auto& param : node.param_list) {
+    if (param) {
+      add_param_symbol(*param);
+    }
+  }
+}
+
+void TypeCheckerVisitor::exit(MethodDeclNode<NodeInfo>& node) {
+  pop_scope();
+  exit_method();
+
+  node.extra.frame_size = align16(max_stack_offset);
+}
+
+void TypeCheckerVisitor::enter(ConstructorDeclNode<NodeInfo>& node) {
+  enter_method(node.identifier.getValue(), TokenType::TOKEN_UNKNOWN);
+  push_scope();
+
+  for (auto& param : node.param_list) {
+    if (param) {
+      add_param_symbol(*param);
+    }
+  }
+}
+
+void TypeCheckerVisitor::exit(ConstructorDeclNode<NodeInfo>&) {
+  pop_scope();
+  exit_method();
+}
+
+void TypeCheckerVisitor::add_param_symbol(ParamNode<NodeInfo>& node) {
+  if (check_symbol(node.identifier.getValue())) {
+    report_error(
+        "Redeclaration of parameter '" + node.identifier.getValue() + "'",
+        node.location);
+    return;
+  }
+
+  Symbol param_symbol;
+  param_symbol.name = node.identifier.getValue();
+  param_symbol.type = node.type.getType();
+  param_symbol.type_name = node.type.getValue();
+  param_symbol.is_param = true;
+  param_symbol.decl_loc = node.location;
+
+  add_symbol(param_symbol);
+}
+
 void TypeCheckerVisitor::visit(BinaryExprNode<NodeInfo>& node) {
   TypeInfo left_type{node.left->extra.resolved_type,
                      node.left->extra.type_name};
@@ -61,9 +135,38 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
       node.extra.type_name = type_name;
     }
   }
+
+  if (symbol->has_stack_slot) {
+    node.extra.stack_offset = symbol->stack_offset;
+    node.extra.has_stack_slot = true;
+  }
 }
 
 void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
+  if (!scope_stack.empty()) {
+    if (check_symbol(node.identifier.getValue())) {
+      report_error(
+          "Redeclaration of variable '" + node.identifier.getValue() + "'",
+          node.location);
+    } else {
+      int size = slot_size_for(node);
+      current_stack_offset += size;
+      max_stack_offset = std::max(max_stack_offset, current_stack_offset);
+
+      Symbol var_symbol;
+      var_symbol.name = node.identifier.getValue();
+      var_symbol.type = node.type_token.getType();
+      var_symbol.type_name = node.type_token.getValue();
+      var_symbol.decl_loc = node.location;
+      var_symbol.has_stack_slot = true;
+      var_symbol.stack_offset = current_stack_offset;
+      add_symbol(var_symbol);
+
+      node.extra.stack_offset = current_stack_offset;
+      node.extra.has_stack_slot = true;
+    }
+  }
+
   std::string declared_type = node.type_token.getValue();
 
   node.extra.resolved_type = resolve_type(node.type_token.getValue());
@@ -86,6 +189,26 @@ void TypeCheckerVisitor::visit(MethodDeclNode<NodeInfo>& node) {
   // oh i need a way to see what type its actually returning
 }
 
+void TypeCheckerVisitor::visit(MethodCallNode<NodeInfo>& node) {
+  if (!node.extra.sym) {
+    report_error("Unresolved method call", node.location);
+    return;
+  }
+
+  if (node.extra.sym->type == TokenType::TOKEN_DATA_TYPE) {
+    TokenType resolved = resolve_type(node.extra.sym->type_name);
+    node.extra.resolved_type = resolved;
+    if (resolved == TokenType::TOKEN_DATA_TYPE) {
+      node.extra.type_name = node.extra.sym->type_name;
+    } else {
+      node.extra.type_name = get_type_name_from_token(resolved);
+    }
+  } else {
+    node.extra.resolved_type = node.extra.sym->type;
+    node.extra.type_name = get_type_name_from_token(node.extra.sym->type);
+  }
+}
+
 void TypeCheckerVisitor::visit(LiteralExprNode<NodeInfo>& node) {
   TokenType literal_type = node.literal_token.getType();
   std::string type_name = get_type_name_from_token(literal_type);
@@ -102,9 +225,9 @@ void TypeCheckerVisitor::visit(AssignmentExprNode<NodeInfo>& node) {
             dynamic_cast<IdentifierExprNode<NodeInfo>*>(node.left.get())) {
       Symbol* symbol = lookup_symbol(identifier->identifier.getValue());
       if (!symbol) {
-        report_error("Undeclared identifier '" +
-                         identifier->identifier.getValue() + "'",
-                     node.location);
+        report_error(
+            "Undeclared identifier '" + identifier->identifier.getValue() + "'",
+            node.location);
         return;
       }
 
@@ -144,5 +267,14 @@ void TypeCheckerVisitor::visit(UnaryExprNode<NodeInfo>& node) {
     }
     default:
       report_error("Unknown unary operator", node.location);
+  }
+}
+
+void TypeCheckerVisitor::visit(ReturnStmtNode<NodeInfo>& node) {
+  if (node.ret) node.ret->accept(*this);
+
+  if (current_method_ret_type != node.ret->extra.resolved_type) {
+    report_error("Return type does not match method type", node.location);
+    return;
   }
 }

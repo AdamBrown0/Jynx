@@ -2,16 +2,19 @@
 #define SYMBOLCOLLECTOR_H_
 
 #include "ast.hh"
+#include "methodtable.hh"
 #include "visitor.hh"
 
 class SymbolCollectorVisitor : public ASTVisitor<NodeInfo> {
  public:
-  using ASTVisitor<NodeInfo>::enter;
-  using ASTVisitor<NodeInfo>::exit;
-  using ASTVisitor<NodeInfo>::before_else;
+  SymbolCollectorVisitor(std::unordered_map<std::string, Symbol> &symbols,
+                         MethodTable &methods) {
+    set_global_symbols(&symbols);
+    set_method_table(&methods);
+  }
 
-  std::unordered_map<std::string, Symbol> get_global_symbols() {
-    return global_symbols;
+  std::unordered_map<std::string, Symbol> &get_global_symbols() {
+    return *global_symbols;
   }
 
   void enter(BlockNode<NodeInfo> &node) override;

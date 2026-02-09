@@ -2,16 +2,16 @@
 #define SEMA_H_
 
 #include "ast.hh"
-#include "diagnostics.hh"
-#include "visitor/symbolcollector.hh"
-#include "visitor/typechecker.hh"
+#include "methodtable.hh"
 
 class Sema {
  public:
   Sema() {}
   ProgramNode<NodeInfo>* analyze(ProgramNode<NodeInfo>&);
+    MethodTable &get_method_table() { return methods; }
 
  private:
+    MethodTable methods;
 };
 
 #endif  // SEMA_H_

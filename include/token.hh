@@ -40,6 +40,7 @@
   X(KW_RETURN)          \
   X(KW_WHILE)           \
   X(KW_CLASS)           \
+  X(KW_CONSTRUCTOR)     \
   X(KW_ACCESS_MODIFIER) \
   X(TOKEN_UNKNOWN)      \
   X(TOKEN_EOF)

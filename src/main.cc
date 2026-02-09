@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 
+#include "diagnostics.hh"
 #include "gen.hh"
 #include "lexer.hh"
 #include "log.hh"
@@ -37,6 +38,12 @@ int main(const int argc, char** argv) {
     LOG_ERROR("Parser returned null - no AST generated");
   }
 
+  if (Diagnostics::instance().has_errors()) {
+    for (auto err : Diagnostics::instance().get_errors()) LOG_ERROR(err);
+    delete ast;
+    return 1;
+  }
+
   Sema sema;
   ProgramNode<NodeInfo>* sema_tree = sema.analyze(*ast);
 
@@ -46,7 +53,7 @@ int main(const int argc, char** argv) {
     return 1;
   }
 
-  CodeGenerator gen;
+  CodeGenerator gen(sema.get_method_table());
   std::string code = gen.generate(*sema_tree);
   LOG_INFO("\n{}", code);
 

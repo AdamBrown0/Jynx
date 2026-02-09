@@ -12,12 +12,12 @@ class MyClass {
     public int myInt;
     private string myString;
 
-    MyClass() {
+    constructor() {
 	myInt = 69;
 	myString = "Hello World";
     }
 
-    MyClass(int i, string s) {
+    constructor(int i, string s) {
 	myInt = i;
 	myString = s;
     }
@@ -59,6 +59,7 @@ class MyClass {
 class Main {
 	int main(int argc, string argv) {
 		MyClass mc = new MyClass();
+		// could also be MyClass mc();
 		mc.foo();
 		println(mc.bar(69419));
 		int i = 100;

@@ -11,6 +11,8 @@ struct Symbol {
   TokenType type;
   std::string type_name;
   SourceLocation decl_loc;
+  int stack_offset;
+  bool has_stack_slot = false;
 
   std::string access_modifier = "private";
   bool is_static = false;

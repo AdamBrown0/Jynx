@@ -447,6 +447,10 @@ struct NodeInfo {
   Symbol* sym;
   TokenType resolved_type = TokenType::TOKEN_UNKNOWN;
   std::string type_name;
+
+  int stack_offset = 0;  // for vardecl/ident
+  int frame_size = 0;    // for methoddecl/program
+  bool has_stack_slot = false;
 };
 
 #endif  // AST_H_

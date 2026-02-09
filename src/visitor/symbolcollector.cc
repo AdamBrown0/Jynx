@@ -1,7 +1,8 @@
+#include "visitor/symbolcollector.hh"
+
 #include "ast.hh"
 #include "ast_utils.hh"
 #include "log.hh"
-#include "visitor/symbolcollector.hh"
 
 void SymbolCollectorVisitor::visit(VarDeclNode<NodeInfo> &node) {
   Symbol var_symbol;
@@ -28,9 +29,23 @@ void SymbolCollectorVisitor::visit(ParamNode<NodeInfo> &node) {
   add_symbol(param_symbol);
 }
 
-void SymbolCollectorVisitor::visit(ClassNode<NodeInfo> &node) { (void)node; }
-void SymbolCollectorVisitor::visit(FieldDeclNode<NodeInfo> &node) { (void)node; }
-void SymbolCollectorVisitor::visit(ConstructorDeclNode<NodeInfo> &node) { (void)node; }
+void SymbolCollectorVisitor::visit(ClassNode<NodeInfo> &node) {
+  Symbol class_sym;
+  class_sym.name = node.identifier.getValue();
+  class_sym.type = TokenType::KW_CLASS;
+  class_sym.type_name = node.identifier.getValue();
+  class_sym.decl_loc = node.location;
+  class_sym.is_class = true;
+
+  add_symbol(class_sym);
+}
+
+void SymbolCollectorVisitor::visit(FieldDeclNode<NodeInfo> &node) {
+  (void)node;
+}
+void SymbolCollectorVisitor::visit(ConstructorDeclNode<NodeInfo> &node) {
+  (void)node;
+}
 
 void SymbolCollectorVisitor::enter(BlockNode<NodeInfo> &) { push_scope(); }
 
@@ -44,6 +59,8 @@ void SymbolCollectorVisitor::enter(MethodDeclNode<NodeInfo> &node) {
   method_symbol.decl_loc = node.location;
   method_symbol.access_modifier = node.access_modifier.getValue();
   method_symbol.is_method = true;
+  method_symbol.owner_class =
+      current_class.empty() ? "<global>" : current_class;
 
   if (!node.param_list.empty()) {
     for (auto &param : node.param_list) {
@@ -53,7 +70,9 @@ void SymbolCollectorVisitor::enter(MethodDeclNode<NodeInfo> &node) {
     }
   }
 
-  add_symbol(method_symbol);
+  if (method_symbols) {
+    method_symbols->add_method(method_symbol);
+  }
   enter_method(node.identifier.getValue(), node.type.getType());
   push_scope();
 }

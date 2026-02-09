@@ -20,10 +20,6 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   text_section << ".intel_syntax noprefix\n";
   text_section << ".section .text\n";
   text_section << ".global _start\n";
-  emitLabel("_jynx_main");
-  emit("push rbp");
-  emit("mov rbp, rsp\n");
-
   // Enter main function scope
   enter_scope();
 
@@ -51,7 +47,7 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
 
   // generate entrypoint
   emitLabel("\n_start");
-  emitCall("_jynx_main");
+  emitCall("main");
   emitMove("rdi", "rax");
   emitMove("rax", "60");
   emit("syscall");
@@ -99,8 +95,7 @@ void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
       emit("mov QWORD PTR " + formatSlot(lenOff) + ", 0");
     }
   } else {
-    std::string loc =
-        allocateVariableInCurrentScope(node.identifier.getValue());
+    std::string loc = formatSlot(node);
     if (node.initializer) {
       std::string r = eval_stack.back();
       eval_stack.pop_back();
@@ -156,7 +151,7 @@ void CodeGenerator::visit(IdentifierExprNode<NodeInfo> &node) {
     loadStringFromVar(name);  // RAX/RDX
     eval_stack.push_back("$str");
   } else {
-    std::string var_location = getVariableLocation(node.identifier);
+    std::string var_location = formatSlot(node);
     std::string r = allocateRegister(true);
     if (r.empty()) r = "rax";
     emitMove(r, var_location);
@@ -225,9 +220,7 @@ void CodeGenerator::visit(WhileStmtNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(BlockNode<NodeInfo> &node) {
-  (void)node;
-}
+void CodeGenerator::visit(BlockNode<NodeInfo> &node) { (void)node; }
 
 void CodeGenerator::visit(AssignmentExprNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Visited assignmentExpr");
@@ -256,7 +249,7 @@ void CodeGenerator::visit(AssignmentExprNode<NodeInfo> &node) {
       // For assignment expression value, leave string in RAX/RDX but don't push
       // marker to avoid accidental emission.
     } else {
-      std::string var_location = getVariableLocation(identifier->identifier);
+      std::string var_location = formatSlot(*identifier);
       // rhs_marker contains a register name
       emitMove(var_location, rhs_marker);
       eval_stack.push_back(rhs_marker);
@@ -282,7 +275,18 @@ void CodeGenerator::visit(UnaryExprNode<NodeInfo> &node) {
 }
 
 void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
-  // Stub: not implemented yet
+  LOG_DEBUG("[GEN] Visited MethodCall");
+
+  if (node.expr) node.expr->accept(*this);
+
+  std::string owner = node.extra.sym->owner_class.empty()
+                          ? "<global>"
+                          : node.extra.sym->owner_class;
+  emitCall(method_symbols
+               ->find_overload(owner, node.extra.sym->name,
+                               node.extra.sym->param_types)
+               ->name);
+  eval_stack.push_back("rax");
 }
 
 void CodeGenerator::visit(ArgumentNode<NodeInfo> &node) {
@@ -298,12 +302,7 @@ void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
   std::string marker = eval_stack.back();
   eval_stack.pop_back();
 
-  if (marker == "$str") {
-    // RAX/RDX already contain the string descriptor by convention
-    // Quick: print on return for demo
-    emitWriteCurrentString();
-  } else {
-    // Scalar return: move to rax
+  if (marker != "$str") {
     emitMove("rax", marker);
   }
   emitReturn();
@@ -319,6 +318,7 @@ void CodeGenerator::visit(FieldDeclNode<NodeInfo> &node) {
 
 void CodeGenerator::visit(MethodDeclNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Generating method: {}", node.identifier.getValue());
+  (void)node;
 }
 
 void CodeGenerator::visit(ConstructorDeclNode<NodeInfo> &node) {
@@ -378,3 +378,13 @@ void CodeGenerator::exit(WhileStmtNode<NodeInfo> &) {
   emitLabel(ctx.end_label);
   while_stack.pop_back();
 }
+
+void CodeGenerator::enter(MethodDeclNode<NodeInfo> &node) {
+  LOG_DEBUG("[GEN] Generating method: {}", node.identifier.getValue());
+  emitLabel(node.identifier.getValue());
+  emit("push rbp");
+  emitMove("rbp", "rsp");
+  emit("sub rsp, " + std::to_string(node.extra.frame_size));
+}
+
+void CodeGenerator::exit(MethodDeclNode<NodeInfo> &) {}

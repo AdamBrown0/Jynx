@@ -1,3 +1,3 @@
 class myClass {
-  myClass(int a) {}
+  constructor(int a) {}
 }

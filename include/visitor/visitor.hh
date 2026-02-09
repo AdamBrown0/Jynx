@@ -5,6 +5,7 @@
 
 #include "diagnostics.hh"
 #include "log.hh"
+#include "methodtable.hh"
 #include "symbol.hh"
 #include "token.hh"
 
@@ -122,9 +123,12 @@ class ASTVisitor {
   virtual void visit(ConstructorDeclNode<Extra> &) {}
   virtual void visit(ExprStmtNode<Extra> &) {}
 
+    void set_method_table(MethodTable *table) { method_symbols = table; }
+
  protected:
-  std::unordered_map<std::string, Symbol> global_symbols;
+  std::unordered_map<std::string, Symbol> *global_symbols = nullptr;
   std::vector<std::unordered_map<std::string, Symbol>> scope_stack;
+  MethodTable *method_symbols = nullptr;
   std::vector<std::string> errors;
 
   std::string current_class;
@@ -146,8 +150,10 @@ class ASTVisitor {
       }
     }
 
-    auto global_found = global_symbols.find(name);
-    if (global_found != global_symbols.end()) return &global_found->second;
+    if (global_symbols) {
+      auto global_found = global_symbols->find(name);
+      if (global_found != global_symbols->end()) return &global_found->second;
+    }
 
     return nullptr;
   }
@@ -155,8 +161,8 @@ class ASTVisitor {
   void add_symbol(const Symbol &symbol) {
     if (!scope_stack.empty()) {
       scope_stack.back()[symbol.name] = symbol;
-    } else {
-      global_symbols[symbol.name] = symbol;
+    } else if (global_symbols) {
+      (*global_symbols)[symbol.name] = symbol;
     }
   }
 
@@ -164,7 +170,12 @@ class ASTVisitor {
     if (!scope_stack.empty()) {
       return scope_stack.back().find(name) != scope_stack.back().end();
     }
-    return global_symbols.find(name) != global_symbols.end();
+    if (!global_symbols) return false;
+    return global_symbols->find(name) != global_symbols->end();
+  }
+
+  void set_global_symbols(std::unordered_map<std::string, Symbol> *symbols) {
+    global_symbols = symbols;
   }
 
   void enter_class(const std::string &class_name) {
