@@ -279,6 +279,32 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
 
   if (node.expr) node.expr->accept(*this);
 
+  const size_t arg_count = node.arg_list.size();
+  std::vector<std::string> arg_vals(arg_count);
+
+  for (size_t rev = 0; rev < arg_count; ++rev) {
+    size_t i = arg_count - 1 - rev;
+    arg_vals[i] = eval_stack.back();
+    eval_stack.pop_back();
+  }
+
+  std::vector<std::string> spilled;
+  spill_live_regs(spilled);
+
+  size_t reg_arg_count = std::min(arg_count, function_arg_registers.size());
+  for (size_t i = 0; i < reg_arg_count; ++i) {
+    if (arg_vals[i] == "$str") {
+      LOG_ERROR("[GEN] String args not supported");
+      return;
+    }
+    emit("push " + arg_vals[i]);
+  }
+
+  for (size_t rev = 0; rev < reg_arg_count; ++rev) {
+    size_t i = reg_arg_count - 1 - rev;
+    emit("pop " + function_arg_registers[i]);
+  }
+
   std::string owner = node.extra.sym->owner_class.empty()
                           ? "<global>"
                           : node.extra.sym->owner_class;
@@ -290,11 +316,11 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
 }
 
 void CodeGenerator::visit(ArgumentNode<NodeInfo> &node) {
-  // Stub: not implemented yet
+  LOG_DEBUG("[GEN] Visited ArgumentNode");
 }
 
 void CodeGenerator::visit(ParamNode<NodeInfo> &node) {
-  // Stub: not implemented yet
+  LOG_DEBUG("[GEN] Visited ParamNode");
 }
 
 void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {

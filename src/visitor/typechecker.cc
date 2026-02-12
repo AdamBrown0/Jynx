@@ -76,7 +76,17 @@ void TypeCheckerVisitor::add_param_symbol(ParamNode<NodeInfo>& node) {
   param_symbol.is_param = true;
   param_symbol.decl_loc = node.location;
 
+  current_stack_offset += 8;
+  max_stack_offset = std::max(max_stack_offset, current_stack_offset);
+  param_symbol.stack_offset = current_stack_offset;
+  param_symbol.has_stack_slot = true;
+
   add_symbol(param_symbol);
+
+  node.extra.has_stack_slot = true;
+  node.extra.stack_offset = current_stack_offset;
+  node.extra.resolved_type = param_symbol.type;
+  node.extra.type_name = param_symbol.type_name;
 }
 
 void TypeCheckerVisitor::visit(BinaryExprNode<NodeInfo>& node) {

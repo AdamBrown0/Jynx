@@ -1,10 +1,13 @@
 #ifndef GEN_H_
 #define GEN_H_
 
+#include <unistd.h>
+
 #include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include "ast.hh"
@@ -185,6 +188,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
       if (caller_saved_registers.empty()) return "";
       r = caller_saved_registers.back();
       caller_saved_registers.pop_back();
+      live_regs.emplace(r);
     } else {
       return "";
     }
@@ -192,12 +196,15 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   }
 
   void freeRegister(const std::string &reg) {
-    if (std::find(caller_saved_registers.begin(), caller_saved_registers.end(),
-                  reg) == caller_saved_registers.end()) {
+    if (contains(caller_saved_registers_abi, reg) &&
+        !contains(caller_saved_registers, reg)) {
       caller_saved_registers.push_back(reg);
-    } else {
+    } else if (!contains(callee_saved_registers, reg)) {
       callee_saved_registers.push_back(reg);
+    } else {
+      LOG_FATAL("[GEN] Unknown register freed");
     }
+    live_regs.erase(reg);
   }
 
   static inline std::string formatSlot(int offset) {
@@ -312,11 +319,38 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
     return formatSlot(current_stack_offset);
   }
 
+  inline static bool contains(const std::vector<std::string> &v,
+                              const std::string &item) {
+    return std::find(v.begin(), v.end(), item) != v.end();
+  }
+
+  bool isCallerSaved(const std::string &r) {
+    return contains(caller_saved_registers, r);
+  }
+
+  void spill_live_regs(std::vector<std::string> &spilled) {
+    for (const auto &reg : live_regs) {
+      if (reg == "rax" || !isCallerSaved(reg)) continue;
+      emit("push " + reg);
+      spilled.push_back(reg);
+    }
+  }
+
+  void restore_spilled(std::vector<std::string> &spilled) {
+    for (auto it = spilled.rbegin(); it != spilled.rend(); ++it)
+      emit("pop " + *it);
+  }
+
   void setupRegisters() {
+    caller_saved_registers_abi = {"rax", "rcx", "rdx", "rsi", "rdi",
+                                  "r8",  "r9",  "r10", "r11"};
+
     caller_saved_registers = {"rax", "rcx", "rdx", "rsi", "rdi",
                               "r8",  "r9",  "r10", "r11"};
 
     callee_saved_registers = {"rbx", "rbp", "r12", "r13", "r14", "r15"};
+
+    function_arg_registers = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
   }
 
   std::stringstream text_section;
@@ -325,13 +359,15 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   std::vector<Scope> scope_stack;
   int current_stack_offset = 0;
 
-  //   std::vector<std::string> available_registers;
+  std::vector<std::string> caller_saved_registers_abi;
+
   std::vector<std::string> caller_saved_registers;
   std::vector<std::string> callee_saved_registers;
-  // REMOVED: std::unordered_map<std::string, int> stack_offsets;
-  // REMOVED: std::unordered_map<std::string, std::pair<int, int>>
-  // string_var_slots; Literal pool: content -> label, plus ordered emission
-  // list
+  std::vector<std::string> function_arg_registers;
+
+  std::unordered_set<std::string> live_regs;
+  std::unordered_map<std::string, int> spill_slots;
+
   std::unordered_map<std::string, std::string> literal_pool_labels;
   std::vector<std::pair<std::string, std::string>> literal_pool_emission;
   std::vector<std::string> eval_stack;

@@ -1,3 +1,7 @@
 int my_func() {
 	return 10;
 }
+
+int main() {
+    return my_func();
+}
