@@ -1,2 +1,5 @@
-int bob = 5;
-return bob;
+int main() {
+  // string bob = "test";
+  int bob = 5;
+  return 5;
+}

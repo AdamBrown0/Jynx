@@ -1,9 +1,9 @@
-int test(int a, int b) {
+int add(int a, int b) {
     return a + b;
 }
 
 int main() {
     int a = 2;
     int b = 5;
-    return test(a, b);
+    return add(a, b);
 }

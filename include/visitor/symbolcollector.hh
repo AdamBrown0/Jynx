@@ -30,6 +30,9 @@ class SymbolCollectorVisitor : public ASTVisitor<NodeInfo> {
   void visit(FieldDeclNode<NodeInfo> &node) override;
   void visit(MethodDeclNode<NodeInfo> &node) override;
   void visit(ConstructorDeclNode<NodeInfo> &node) override;
+
+ private:
+  TokenType resolve_param_type(const std::string &name);
 };
 
 #endif  // SYMBOLCOLLECTOR_H_

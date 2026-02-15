@@ -158,12 +158,15 @@ class ASTVisitor {
     return nullptr;
   }
 
-  void add_symbol(const Symbol &symbol) {
+  Symbol* add_symbol(const Symbol &symbol) {
     if (!scope_stack.empty()) {
       scope_stack.back()[symbol.name] = symbol;
+      return &scope_stack.back()[symbol.name];
     } else if (global_symbols) {
       (*global_symbols)[symbol.name] = symbol;
+      return &(*global_symbols)[symbol.name];
     }
+    return nullptr;
   }
 
   bool check_symbol(const std::string &name) const {

@@ -32,6 +32,7 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
   void visit(MethodCallNode<NodeInfo> &node) override;
   void visit(ExprStmtNode<NodeInfo> &node) override;
   void visit(ReturnStmtNode<NodeInfo> &node) override;
+  void visit(ArgumentNode<NodeInfo> &node) override;
 
   void enter(BlockNode<NodeInfo> &node) override;
   void exit(BlockNode<NodeInfo> &node) override;

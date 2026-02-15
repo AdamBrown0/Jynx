@@ -4,6 +4,7 @@
 #include <functional>
 #include <unordered_map>
 
+#include "log.hh"
 #include "symbol.hh"
 
 struct MethodKey {

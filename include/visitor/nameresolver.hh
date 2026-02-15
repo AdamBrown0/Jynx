@@ -1,7 +1,6 @@
 #ifndef NAMERESOLVER_H_
 #define NAMERESOLVER_H_
 
-#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -31,6 +30,7 @@ class NameResolver : public ASTVisitor<NodeInfo> {
 
   void visit(VarDeclNode<NodeInfo> &node) override;
   void visit(ParamNode<NodeInfo> &node) override;
+  void visit(ArgumentNode<NodeInfo> &node) override;
   void visit(MethodDeclNode<NodeInfo> &node) override;
   void visit(IdentifierExprNode<NodeInfo> &node) override;
   void visit(ClassNode<NodeInfo> &node) override;
@@ -38,9 +38,8 @@ class NameResolver : public ASTVisitor<NodeInfo> {
   void visit(AssignmentExprNode<NodeInfo> &node) override;
 
  private:
-  Symbol *find_method_overload(const std::string &owner,
-                               const std::string &name,
-                               const std::vector<TokenType> &param_types);
+  const std::vector<Symbol> *find_method_overloads(const std::string &owner,
+                                                   const std::string &name);
 };
 
 #endif  // NAMERESOLVER_H_

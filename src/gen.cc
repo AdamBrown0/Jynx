@@ -1,6 +1,7 @@
 #include "gen.hh"
 
 #include <sstream>
+#include <string>
 
 #include "ast.hh"
 #include "log.hh"
@@ -126,10 +127,10 @@ void CodeGenerator::visit(BinaryExprNode<NodeInfo> &node) {
 
 void CodeGenerator::visit(LiteralExprNode<NodeInfo> &node) {
   if (node.literal_token.getType() == TokenType::TOKEN_INT) {
-    std::string r = allocateRegister(true);
-    if (r.empty()) r = "rax";
-    emitMove(r, node.literal_token.getValue());
-    eval_stack.push_back(r);
+    // std::string r = allocateRegister(true);
+    // if (r.empty()) r = "rax";
+    // emitMove(r, node.literal_token.getValue());
+    eval_stack.push_back(node.literal_token.getValue());
   } else if (node.literal_token.getType() == TokenType::TOKEN_STRING) {
     // Load string literal into RAX (ptr) and RDX (len)
     loadStringLiteral(node.literal_token.getValue());
@@ -279,31 +280,40 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
 
   if (node.expr) node.expr->accept(*this);
 
-  const size_t arg_count = node.arg_list.size();
-  std::vector<std::string> arg_vals(arg_count);
-
-  for (size_t rev = 0; rev < arg_count; ++rev) {
-    size_t i = arg_count - 1 - rev;
-    arg_vals[i] = eval_stack.back();
+  size_t arg_count = node.arg_list.size();
+  std::vector<std::string> arg_vals;
+  for (size_t i = 0; i < arg_count; ++i) {
+    arg_vals.push_back(eval_stack.back());
     eval_stack.pop_back();
   }
+  std::reverse(arg_vals.begin(), arg_vals.end());
 
   std::vector<std::string> spilled;
   spill_live_regs(spilled);
 
   size_t reg_arg_count = std::min(arg_count, function_arg_registers.size());
-  for (size_t i = 0; i < reg_arg_count; ++i) {
-    if (arg_vals[i] == "$str") {
-      LOG_ERROR("[GEN] String args not supported");
-      return;
-    }
-    emit("push " + arg_vals[i]);
+  size_t stack_arg_count =
+      arg_count > reg_arg_count ? arg_count - reg_arg_count : 0;
+
+  for (size_t i = 0; i < stack_arg_count; ++i) {
+    LOG_DEBUG("arg_vals.size {}, arg_vals.size() - i {}", arg_vals.size(),
+
+              arg_vals.size() - i);
+    emit("push " + arg_vals[arg_vals.size() - i - 1]);
   }
 
-  for (size_t rev = 0; rev < reg_arg_count; ++rev) {
-    size_t i = reg_arg_count - 1 - rev;
-    emit("pop " + function_arg_registers[i]);
+  size_t stack_bytes = stack_arg_count * 8;
+  // if ((stack_bytes % 16) != 0) {
+  //   emit("sub rsp, 8");  // align
+  //   stack_bytes += 8;
+  // }
+
+  for (size_t i = reg_arg_count; i-- > 0;) {
+    emitMove(function_arg_registers[i], arg_vals[i]);
+    freeRegister(arg_vals[i]);
   }
+
+  // uhh currently only static, if instance use rdi reg
 
   std::string owner = node.extra.sym->owner_class.empty()
                           ? "<global>"
@@ -312,6 +322,15 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
                ->find_overload(owner, node.extra.sym->name,
                                node.extra.sym->param_types)
                ->name);
+
+  if (stack_bytes > 0) emit("add rsp, " + std::to_string(stack_bytes));
+
+  for (auto reg : function_arg_registers) freeRegister(reg);
+
+  restore_spilled(spilled);
+
+  // free all registers args took
+
   eval_stack.push_back("rax");
 }
 
@@ -331,7 +350,6 @@ void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
   if (marker != "$str") {
     emitMove("rax", marker);
   }
-  emitReturn();
 }
 
 void CodeGenerator::visit(ClassNode<NodeInfo> &node) {
@@ -411,6 +429,27 @@ void CodeGenerator::enter(MethodDeclNode<NodeInfo> &node) {
   emit("push rbp");
   emitMove("rbp", "rsp");
   emit("sub rsp, " + std::to_string(node.extra.frame_size));
+
+  for (size_t i = 0;
+       i < node.param_list.size() && i < function_arg_registers.size(); ++i) {
+    std::string param_reg = function_arg_registers[i];
+    std::string local_slot = formatSlot(*node.param_list[i]);
+    emitMove(local_slot, param_reg);
+  }
+
+  for (size_t i = function_arg_registers.size(); i < node.param_list.size();
+       ++i) {
+    size_t stack_arg_index = i - function_arg_registers.size();
+    size_t offset = 16 + stack_arg_index * 8;
+    std::string local_slot = formatSlot(*node.param_list[i]);
+    std::string temp = allocateRegister(true);
+    emitMove(temp, "[rbp+" + std::to_string(offset) + "]");
+    emitMove(local_slot, temp);
+    freeRegister(temp);
+  }
 }
 
-void CodeGenerator::exit(MethodDeclNode<NodeInfo> &) {}
+void CodeGenerator::exit(MethodDeclNode<NodeInfo> &) {
+  // emit("pop rbp");
+  emitReturn();
+}

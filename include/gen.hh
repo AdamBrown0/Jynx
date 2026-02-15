@@ -189,6 +189,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
       r = caller_saved_registers.back();
       caller_saved_registers.pop_back();
       live_regs.emplace(r);
+      LOG_DEBUG("[gen] emplacing {}", r);
     } else {
       return "";
     }
@@ -205,6 +206,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
       LOG_FATAL("[GEN] Unknown register freed");
     }
     live_regs.erase(reg);
+    LOG_DEBUG("[gen] erasing {}", reg);
   }
 
   static inline std::string formatSlot(int offset) {
@@ -217,6 +219,10 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
 
   static inline std::string formatSlot(
       const IdentifierExprNode<NodeInfo> &node) {
+    return "[rbp-" + std::to_string(node.extra.stack_offset) + "]";
+  }
+
+  static inline std::string formatSlot(const ParamNode<NodeInfo> &node) {
     return "[rbp-" + std::to_string(node.extra.stack_offset) + "]";
   }
 
@@ -329,6 +335,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   }
 
   void spill_live_regs(std::vector<std::string> &spilled) {
+    LOG_DEBUG("[gen] live regs count {}", live_regs.size());
     for (const auto &reg : live_regs) {
       if (reg == "rax" || !isCallerSaved(reg)) continue;
       emit("push " + reg);

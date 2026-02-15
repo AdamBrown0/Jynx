@@ -1,14 +1,13 @@
 #include "visitor/nameresolver.hh"
 
 #include "ast.hh"
+#include "log.hh"
 
-Symbol *NameResolver::find_method_overload(
-    const std::string &owner, const std::string &name,
-    const std::vector<TokenType> &param_types) {
+const std::vector<Symbol> *NameResolver::find_method_overloads(
+    const std::string &owner, const std::string &name) {
   if (!method_symbols) return nullptr;
-  const Symbol *method =
-      method_symbols->find_overload(owner, name, param_types);
-  return const_cast<Symbol *>(method);
+
+  return method_symbols->find_all(owner, name);
 }
 
 void NameResolver::enter(BlockNode<NodeInfo> &) { push_scope(); }
@@ -109,14 +108,14 @@ void NameResolver::visit(MethodDeclNode<NodeInfo> &node) {
     return;
   }
 
-  Symbol *method = find_method_overload(owner, name, param_types);
-  if (!method) {
+  std::vector<Symbol> overloads = *find_method_overloads(owner, name);
+  if (overloads.empty()) {
     report_error("Missing method declaration for '" + name + "'",
                  node.location);
     return;
   }
 
-  node.extra.sym = method;
+  node.extra.overload_set = overloads;
 }
 
 void NameResolver::visit(IdentifierExprNode<NodeInfo> &node) {
@@ -131,7 +130,12 @@ void NameResolver::visit(IdentifierExprNode<NodeInfo> &node) {
 
 void NameResolver::visit(ClassNode<NodeInfo> &node) {}
 
+void NameResolver::visit(ArgumentNode<NodeInfo> &node) {
+  if (node.expr) node.expr->accept(*this);
+}
+
 void NameResolver::visit(MethodCallNode<NodeInfo> &node) {
+  LOG_DEBUG("[NAME] visiting method call");
   if (node.expr) node.expr->accept(*this);
 
   std::string owner;
@@ -165,44 +169,18 @@ void NameResolver::visit(MethodCallNode<NodeInfo> &node) {
     return;
   }
 
-  std::vector<TokenType> arg_types;
-  for (auto &arg : node.arg_list) {
-    if (!arg || !arg->expr) continue;
+  const std::vector<Symbol> overloads =
+      *find_method_overloads(owner, node.identifier.getValue());
 
-    if (arg->expr->extra.resolved_type != TokenType::TOKEN_UNKNOWN) {
-      arg_types.push_back(arg->expr->extra.resolved_type);
-      continue;
-    }
-
-    if (auto *arg_ident =
-            dynamic_cast<IdentifierExprNode<NodeInfo> *>(arg->expr.get())) {
-      Symbol *arg_sym = arg_ident->extra.sym;
-      if (arg_sym) {
-        arg_types.push_back(arg_sym->type);
-        continue;
-      }
-    }
-
-    arg_types.push_back(TokenType::TOKEN_UNKNOWN);
-  }
-
-  Symbol *method =
-      find_method_overload(owner, node.identifier.getValue(), arg_types);
-  if (!method) {
-    report_error(
-        "No matching overload for method '" + node.identifier.getValue() + "'",
-        node.location);
+  LOG_DEBUG("[NAME] method overloads size {}", overloads.size());
+  if (overloads.empty()) {
+    report_error("Method '" + node.identifier.getValue() + "' not found on '" +
+                     owner + "'",
+                 node.location);
     return;
   }
 
-  if (is_static && !method->is_static) {
-    report_error(
-        "Cannot call instance method '" + method->name + "' statically",
-        node.location);
-    return;
-  }
-
-  node.extra.sym = method;
+  node.extra.overload_set = overloads;
 }
 
 void NameResolver::visit(AssignmentExprNode<NodeInfo> &node) {}

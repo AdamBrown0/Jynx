@@ -153,6 +153,7 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
 }
 
 void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
+  LOG_DEBUG("TYPE CHEKCIN VARDECL");
   if (!scope_stack.empty()) {
     if (check_symbol(node.identifier.getValue())) {
       report_error(
@@ -183,6 +184,8 @@ void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
   node.extra.type_name = node.type_token.getValue();
 
   if (node.initializer) {
+    LOG_DEBUG("NODE INIT");
+    node.initializer->accept(*this);
     TypeInfo initializer_type{node.initializer->extra.resolved_type,
                               node.initializer->extra.type_name};
 
@@ -194,16 +197,80 @@ void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
   }
 }
 
+void TypeCheckerVisitor::visit(ArgumentNode<NodeInfo>& node) {
+  LOG_DEBUG("[TYPE] Arg node visit");
+  if (node.expr) {
+    node.expr->accept(*this);
+    node.extra.resolved_type = node.expr->extra.resolved_type;
+    node.extra.type_name = node.expr->extra.type_name;
+  } else {
+    node.extra.resolved_type = TokenType::TOKEN_UNKNOWN;
+  }
+}
+
 void TypeCheckerVisitor::visit(MethodDeclNode<NodeInfo>& node) {
   std::string declared_type = node.type.getValue();
   // oh i need a way to see what type its actually returning
 }
 
 void TypeCheckerVisitor::visit(MethodCallNode<NodeInfo>& node) {
-  if (!node.extra.sym) {
-    report_error("Unresolved method call", node.location);
+  LOG_DEBUG("[TYPE] Method call entering");
+
+  if (node.extra.overload_set.empty()) {
+    report_error("No overloads found for '" + node.identifier.getValue() + "'",
+                 node.location);
     return;
   }
+
+  // Collect argument types
+  std::vector<TokenType> arg_types;
+  std::vector<std::string> arg_type_names;
+  for (const auto& arg : node.arg_list) {
+    if (arg) {
+      arg_types.push_back(arg->extra.resolved_type);
+      arg_type_names.push_back(arg->extra.type_name);
+    }
+  }
+
+  LOG_DEBUG("OVERLOADS");
+  // Find the method overload that matches both parameter count and types
+  Symbol* matching_overload = nullptr;
+  for (auto& overload : node.extra.overload_set) {
+    if (overload.param_types.size() != arg_types.size()) continue;
+    bool types_match = true;
+    for (size_t i = 0; i < arg_types.size(); ++i) {
+      TokenType param_type = overload.param_types[i];
+      if (param_type == TokenType::TOKEN_DATA_TYPE) {
+        param_type = resolve_type(overload.param_type_names[i]);
+      }
+      TokenType arg_type = arg_types[i];
+      if (arg_type == TokenType::TOKEN_DATA_TYPE) {
+        arg_type = resolve_type(arg_type_names[i]);
+      }
+      if (param_type != arg_type) {
+        types_match = false;
+        break;
+      }
+    }
+    if (types_match) {
+      matching_overload = &overload;
+      break;
+    }
+  }
+
+  if (!matching_overload) {
+    std::string error_msg = "No matching overload found for '" +
+                            node.identifier.getValue() + "' with arguments (";
+    for (size_t i = 0; i < arg_types.size(); ++i) {
+      if (i > 0) error_msg += ", ";
+      error_msg += get_type_name_from_token(arg_types[i]);
+    }
+    error_msg += ")";
+    report_error(error_msg, node.location);
+    return;
+  }
+
+  node.extra.sym = matching_overload;
 
   if (node.extra.sym->type == TokenType::TOKEN_DATA_TYPE) {
     TokenType resolved = resolve_type(node.extra.sym->type_name);
@@ -217,6 +284,8 @@ void TypeCheckerVisitor::visit(MethodCallNode<NodeInfo>& node) {
     node.extra.resolved_type = node.extra.sym->type;
     node.extra.type_name = get_type_name_from_token(node.extra.sym->type);
   }
+
+  // Arguments are already typed from the initial traversal, no need to re-visit
 }
 
 void TypeCheckerVisitor::visit(LiteralExprNode<NodeInfo>& node) {

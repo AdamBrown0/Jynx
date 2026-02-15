@@ -451,6 +451,8 @@ struct NodeInfo {
   int stack_offset = 0;  // for vardecl/ident
   int frame_size = 0;    // for methoddecl/program
   bool has_stack_slot = false;
+
+  std::vector<Symbol> overload_set;
 };
 
 #endif  // AST_H_

@@ -21,6 +21,7 @@ struct Symbol {
 
   std::vector<TokenType> param_types;
   std::vector<std::string> param_names;
+  std::vector<std::string> param_type_names;
 
   bool is_param = false;
   bool is_method = false;

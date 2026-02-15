@@ -4,6 +4,15 @@
 #include "ast_utils.hh"
 #include "log.hh"
 
+TokenType SymbolCollectorVisitor::resolve_param_type(const std::string &name) {
+  if (name == "int") return TokenType::TOKEN_INT;
+  if (name == "string") return TokenType::TOKEN_STRING;
+  if (name == "bool") return TokenType::TOKEN_INT;  // assuming bool is int for now
+
+  // For user-defined types, we'd look up the class, but for now return DATA_TYPE
+  return TokenType::TOKEN_DATA_TYPE;
+}
+
 void SymbolCollectorVisitor::visit(VarDeclNode<NodeInfo> &node) {
   Symbol var_symbol;
   var_symbol.name = node.identifier.getValue();
@@ -64,9 +73,11 @@ void SymbolCollectorVisitor::enter(MethodDeclNode<NodeInfo> &node) {
 
   if (!node.param_list.empty()) {
     for (auto &param : node.param_list) {
-      method_symbol.param_types.emplace_back(param.get()->type.getType());
+      TokenType resolved_type = resolve_param_type(param.get()->type.getValue());
+      method_symbol.param_types.emplace_back(resolved_type);
       method_symbol.param_names.emplace_back(
           param.get()->identifier.getValue());
+      method_symbol.param_type_names.emplace_back(param.get()->type.getValue());
     }
   }
 
