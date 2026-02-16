@@ -1,0 +1,16 @@
+src/gen.cc:    if (token_type_to_bit_size(node.arg_list[i]->extra.sym->type) <= 32) {
+src/gen.cc:  std::string owner = node.extra.sym->owner_class.empty()
+src/gen.cc:                          : node.extra.sym->owner_class;
+src/gen.cc:      owner, node.extra.sym->name, node.extra.sym->param_types);
+src/gen.cc:  emitLabel(node.extra.sym->method_key);
+src/gen.cc:        token_type_to_bit_size(node.param_list[i]->extra.sym->type) <= 32
+src/gen.cc:        ptrType(token_type_to_bit_size(node.param_list[i]->extra.sym->type)) +
+src/visitor/nameresolver.cc:    if (base_sym->is_class) {
+src/visitor/nameresolver.cc:      owner = base_sym->name;
+src/visitor/nameresolver.cc:    } else if (base_sym->type == TokenType::TOKEN_DATA_TYPE) {
+src/visitor/nameresolver.cc:      owner = base_sym->type_name;
+src/visitor/typechecker.cc:  if (node.extra.sym->type == TokenType::TOKEN_DATA_TYPE) {
+src/visitor/typechecker.cc:    TokenType resolved = resolve_type(node.extra.sym->type_name);
+src/visitor/typechecker.cc:      node.extra.type_name = node.extra.sym->type_name;
+src/visitor/typechecker.cc:    node.extra.resolved_type = node.extra.sym->type;
+src/visitor/typechecker.cc:    node.extra.type_name = get_type_name_from_token(node.extra.sym->type);

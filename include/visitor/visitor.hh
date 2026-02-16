@@ -8,6 +8,7 @@
 #include "methodtable.hh"
 #include "symbol.hh"
 #include "token.hh"
+#include "trie.hh"
 
 template <typename Extra>
 struct ASTNode;
@@ -50,10 +51,17 @@ struct ConstructorDeclNode;
 template <typename Extra>
 struct ExprStmtNode;
 
+struct CompilerContext {
+  std::unordered_map<std::string, Symbol> symbol_table;
+  MethodTable method_table;
+  KeywordTrie keywords;
+};
+
 template <typename Extra>
 class ASTVisitor {
  public:
-  ASTVisitor() = default;
+  ASTVisitor() = delete;
+  explicit ASTVisitor(CompilerContext &ctx) : context(ctx) {}
   virtual ~ASTVisitor() = default;
 
   bool has_errors() const { return !errors.empty(); }
@@ -123,12 +131,10 @@ class ASTVisitor {
   virtual void visit(ConstructorDeclNode<Extra> &) {}
   virtual void visit(ExprStmtNode<Extra> &) {}
 
-    void set_method_table(MethodTable *table) { method_symbols = table; }
-
  protected:
-  std::unordered_map<std::string, Symbol> *global_symbols = nullptr;
+  CompilerContext &context;
+
   std::vector<std::unordered_map<std::string, Symbol>> scope_stack;
-  MethodTable *method_symbols = nullptr;
   std::vector<std::string> errors;
 
   std::string current_class;
@@ -150,21 +156,22 @@ class ASTVisitor {
       }
     }
 
-    if (global_symbols) {
-      auto global_found = global_symbols->find(name);
-      if (global_found != global_symbols->end()) return &global_found->second;
+    if (!context.symbol_table.empty()) {
+      auto global_found = context.symbol_table.find(name);
+      if (global_found != context.symbol_table.end())
+        return &global_found->second;
     }
 
     return nullptr;
   }
 
-  Symbol* add_symbol(const Symbol &symbol) {
+  Symbol *add_symbol(const Symbol &symbol) {
     if (!scope_stack.empty()) {
       scope_stack.back()[symbol.name] = symbol;
       return &scope_stack.back()[symbol.name];
-    } else if (global_symbols) {
-      (*global_symbols)[symbol.name] = symbol;
-      return &(*global_symbols)[symbol.name];
+    } else if (!context.symbol_table.empty()) {
+      context.symbol_table[symbol.name] = symbol;
+      return &context.symbol_table[symbol.name];
     }
     return nullptr;
   }
@@ -173,12 +180,8 @@ class ASTVisitor {
     if (!scope_stack.empty()) {
       return scope_stack.back().find(name) != scope_stack.back().end();
     }
-    if (!global_symbols) return false;
-    return global_symbols->find(name) != global_symbols->end();
-  }
-
-  void set_global_symbols(std::unordered_map<std::string, Symbol> *symbols) {
-    global_symbols = symbols;
+    if (context.symbol_table.empty()) return false;
+    return context.symbol_table.find(name) != context.symbol_table.end();
   }
 
   void enter_class(const std::string &class_name) {

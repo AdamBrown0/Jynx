@@ -1,0 +1,8 @@
+int main() {
+  if (str("test") == 0) return 1;
+  return 2;
+}
+
+int str(string in) {
+  return 0;
+}

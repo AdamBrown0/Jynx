@@ -25,6 +25,7 @@
   X(TOKEN_ARROW_RIGHT)  \
   X(TOKEN_INT)          \
   X(TOKEN_STRING)       \
+  X(TOKEN_CHAR)         \
   X(TOKEN_STATEMENT)    \
   X(TOKEN_SEMICOLON)    \
   X(TOKEN_PLUS)         \
@@ -61,6 +62,23 @@ inline const char* token_type_to_string(TokenType type) {
     default:
       return "UNKNOWN";
   }
+}
+
+inline bool token_implicit_cast(TokenType from, TokenType to) {
+  if (from == to) return true;
+  if (from == TokenType::TOKEN_CHAR && (to == TokenType::TOKEN_INT))
+    return true;
+  else if (from == TokenType::TOKEN_INT &&
+           (to == TokenType::TOKEN_CHAR || to == TokenType::TOKEN_STRING))
+    return true;
+
+  return false;
+}
+
+inline int token_type_to_bit_size(TokenType type) {
+  if (type == TokenType::TOKEN_INT) return 32;
+  if (type == TokenType::TOKEN_CHAR) return 8;
+  return 64;
 }
 
 class Token {

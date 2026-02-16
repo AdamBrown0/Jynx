@@ -1,10 +1,12 @@
 #include "gen.hh"
 
+#include <cassert>
 #include <sstream>
 #include <string>
 
 #include "ast.hh"
 #include "log.hh"
+#include "token.hh"
 
 std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   LOG_DEBUG("[GEN] Resetting areas");
@@ -48,8 +50,9 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
 
   // generate entrypoint
   emitLabel("\n_start");
-  emitCall("main");
-  emitMove("rdi", "rax");
+  emitCall("global_main_");
+  emit("movsx rdi, eax");
+  // emitMove("rdi", "eax");
   emitMove("rax", "60");
   emit("syscall");
   emit("\n");
@@ -96,7 +99,9 @@ void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
       emit("mov QWORD PTR " + formatSlot(lenOff) + ", 0");
     }
   } else {
-    std::string loc = formatSlot(node);
+    std::string loc =
+        ptrType(token_type_to_bit_size(node.extra.resolved_type)) + " " +
+        formatSlot(node);
     if (node.initializer) {
       std::string r = eval_stack.back();
       eval_stack.pop_back();
@@ -126,10 +131,7 @@ void CodeGenerator::visit(BinaryExprNode<NodeInfo> &node) {
 }
 
 void CodeGenerator::visit(LiteralExprNode<NodeInfo> &node) {
-  if (node.literal_token.getType() == TokenType::TOKEN_INT) {
-    // std::string r = allocateRegister(true);
-    // if (r.empty()) r = "rax";
-    // emitMove(r, node.literal_token.getValue());
+  if (token_implicit_cast(node.literal_token.getType(), TokenType::TOKEN_INT)) {
     eval_stack.push_back(node.literal_token.getValue());
   } else if (node.literal_token.getType() == TokenType::TOKEN_STRING) {
     // Load string literal into RAX (ptr) and RDX (len)
@@ -137,7 +139,7 @@ void CodeGenerator::visit(LiteralExprNode<NodeInfo> &node) {
     eval_stack.push_back("$str");
   } else {  // only support int for now
     LOG_WARN("[GEN] Unsupported type: {}", node.literal_token.to_string());
-    std::string r = allocateRegister(true);
+    std::string r = allocateRegister(true, false);
     if (r.empty()) r = "rax";
     emit("xor " + r + ", " + r);
     eval_stack.push_back(r);
@@ -152,10 +154,18 @@ void CodeGenerator::visit(IdentifierExprNode<NodeInfo> &node) {
     loadStringFromVar(name);  // RAX/RDX
     eval_stack.push_back("$str");
   } else {
-    std::string var_location = formatSlot(node);
-    std::string r = allocateRegister(true);
+    int bit_size = token_type_to_bit_size(node.extra.resolved_type);
+    std::string var_location = ptrType(bit_size) + " " + formatSlot(node);
+    std::string r = allocateRegister(true, bit_size <= 32);
     if (r.empty()) r = "rax";
-    emitMove(r, var_location);
+    if (bit_size <= 32 && !contains(function_arg_registers_abi32, r)) {
+      emit("movsx " + r + ", " + var_location);
+    }
+
+    else {
+      emitMove(r, var_location);
+      LOG_FATAL("IdentifierExprNode errored");
+    }
     eval_stack.push_back(r);
   }
 }
@@ -291,7 +301,8 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
   std::vector<std::string> spilled;
   spill_live_regs(spilled);
 
-  size_t reg_arg_count = std::min(arg_count, function_arg_registers.size());
+  size_t reg_arg_count =
+      std::min(arg_count, function_arg_registers_abi32.size());
   size_t stack_arg_count =
       arg_count > reg_arg_count ? arg_count - reg_arg_count : 0;
 
@@ -308,30 +319,47 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
   //   stack_bytes += 8;
   // }
 
+  std::vector<std::string> used_function_arg_regs;
+
   for (size_t i = reg_arg_count; i-- > 0;) {
-    emitMove(function_arg_registers[i], arg_vals[i]);
+    if (token_type_to_bit_size(node.arg_list[i]->extra.sym->type) <= 32) {
+      emitMove(function_arg_registers32[i], arg_vals[i]);
+      used_function_arg_regs.push_back(function_arg_registers32[i]);
+    } else {
+      emitMove(function_arg_registers64[i], arg_vals[i]);
+      used_function_arg_regs.push_back(function_arg_registers64[i]);
+    }
     freeRegister(arg_vals[i]);
   }
 
   // uhh currently only static, if instance use rdi reg
 
   std::string owner = node.extra.sym->owner_class.empty()
-                          ? "<global>"
+                          ? "global"
                           : node.extra.sym->owner_class;
-  emitCall(method_symbols
-               ->find_overload(owner, node.extra.sym->name,
-                               node.extra.sym->param_types)
-               ->name);
+
+  const Symbol *overload = context.method_table.find_overload(
+      owner, node.extra.sym->name, node.extra.sym->param_types);
+
+  emitCall(overload->method_key);
+
+  if (overload->type != TokenType::TOKEN_UNKNOWN) {
+    int bit_size =
+        token_type_to_bit_size(builtin_type_name_to_type(overload->type_name));
+    std::string reg = allocateRegister(true, bit_size <= 32);
+    emitMove(reg, bit_size <= 32 ? "eax" : "rax");
+    eval_stack.push_back(reg);
+  }
 
   if (stack_bytes > 0) emit("add rsp, " + std::to_string(stack_bytes));
 
-  for (auto reg : function_arg_registers) freeRegister(reg);
+  for (auto reg : used_function_arg_regs) freeRegister(reg);
 
   restore_spilled(spilled);
 
   // free all registers args took
 
-  eval_stack.push_back("rax");
+  // eval_stack.push_back("rax");
 }
 
 void CodeGenerator::visit(ArgumentNode<NodeInfo> &node) {
@@ -348,7 +376,11 @@ void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
   eval_stack.pop_back();
 
   if (marker != "$str") {
-    emitMove("rax", marker);
+    emitMove(token_type_to_bit_size(
+                 builtin_type_name_to_type(node.ret->extra.type_name)) <= 32
+                 ? "eax"
+                 : "rax",
+             marker);
   }
 }
 
@@ -425,27 +457,23 @@ void CodeGenerator::exit(WhileStmtNode<NodeInfo> &) {
 
 void CodeGenerator::enter(MethodDeclNode<NodeInfo> &node) {
   LOG_DEBUG("[GEN] Generating method: {}", node.identifier.getValue());
-  emitLabel(node.identifier.getValue());
+  emitLabel(node.extra.sym->method_key);
   emit("push rbp");
   emitMove("rbp", "rsp");
   emit("sub rsp, " + std::to_string(node.extra.frame_size));
 
   for (size_t i = 0;
-       i < node.param_list.size() && i < function_arg_registers.size(); ++i) {
-    std::string param_reg = function_arg_registers[i];
-    std::string local_slot = formatSlot(*node.param_list[i]);
-    emitMove(local_slot, param_reg);
-  }
-
-  for (size_t i = function_arg_registers.size(); i < node.param_list.size();
+       i < node.param_list.size() && i < function_arg_registers_abi32.size();
        ++i) {
-    size_t stack_arg_index = i - function_arg_registers.size();
-    size_t offset = 16 + stack_arg_index * 8;
-    std::string local_slot = formatSlot(*node.param_list[i]);
-    std::string temp = allocateRegister(true);
-    emitMove(temp, "[rbp+" + std::to_string(offset) + "]");
-    emitMove(local_slot, temp);
-    freeRegister(temp);
+    LOG_DEBUG("bit size: {}",
+              token_type_to_bit_size(node.param_list[i]->extra.sym->type));
+    int bit_size = token_type_to_bit_size(
+        builtin_type_name_to_type(node.param_list[i]->extra.sym->type_name));
+    std::string param_reg = bit_size <= 32 ? function_arg_registers32[i]
+                                           : function_arg_registers64[i];
+    std::string local_slot =
+        ptrType(bit_size) + " " + formatSlot(*node.param_list[i]);
+    emitMove(local_slot, param_reg);
   }
 }
 

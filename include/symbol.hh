@@ -18,6 +18,7 @@ struct Symbol {
   bool is_static = false;
 
   std::string owner_class;
+  std::string method_key;
 
   std::vector<TokenType> param_types;
   std::vector<std::string> param_names;

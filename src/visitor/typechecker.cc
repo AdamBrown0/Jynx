@@ -31,10 +31,13 @@ void TypeCheckerVisitor::enter(MethodDeclNode<NodeInfo>& node) {
 
   push_scope();
 
+  size_t param_index = 0;
   for (auto& param : node.param_list) {
     if (param) {
+      param->extra.param_index = param_index;
       add_param_symbol(*param);
     }
+    param_index++;
   }
 }
 
@@ -76,15 +79,21 @@ void TypeCheckerVisitor::add_param_symbol(ParamNode<NodeInfo>& node) {
   param_symbol.is_param = true;
   param_symbol.decl_loc = node.location;
 
-  current_stack_offset += 8;
-  max_stack_offset = std::max(max_stack_offset, current_stack_offset);
-  param_symbol.stack_offset = current_stack_offset;
+  LOG_DEBUG("[TYPE] param_index: {}", node.extra.param_index);
+
+  if (node.extra.param_index < 6) {
+    current_stack_offset += 8;
+    max_stack_offset = std::max(max_stack_offset, current_stack_offset);
+    param_symbol.stack_offset = -current_stack_offset;
+  } else {
+    param_symbol.stack_offset = 16 + 8 * (node.extra.param_index - 6);
+  }
   param_symbol.has_stack_slot = true;
 
   add_symbol(param_symbol);
 
   node.extra.has_stack_slot = true;
-  node.extra.stack_offset = current_stack_offset;
+  node.extra.stack_offset = -current_stack_offset;
   node.extra.resolved_type = param_symbol.type;
   node.extra.type_name = param_symbol.type_name;
 }
@@ -153,7 +162,6 @@ void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
 }
 
 void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
-  LOG_DEBUG("TYPE CHEKCIN VARDECL");
   if (!scope_stack.empty()) {
     if (check_symbol(node.identifier.getValue())) {
       report_error(
@@ -170,10 +178,10 @@ void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
       var_symbol.type_name = node.type_token.getValue();
       var_symbol.decl_loc = node.location;
       var_symbol.has_stack_slot = true;
-      var_symbol.stack_offset = current_stack_offset;
+      var_symbol.stack_offset = -current_stack_offset;
       add_symbol(var_symbol);
 
-      node.extra.stack_offset = current_stack_offset;
+      node.extra.stack_offset = -current_stack_offset;
       node.extra.has_stack_slot = true;
     }
   }
@@ -184,7 +192,6 @@ void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
   node.extra.type_name = node.type_token.getValue();
 
   if (node.initializer) {
-    LOG_DEBUG("NODE INIT");
     node.initializer->accept(*this);
     TypeInfo initializer_type{node.initializer->extra.resolved_type,
                               node.initializer->extra.type_name};
@@ -270,7 +277,7 @@ void TypeCheckerVisitor::visit(MethodCallNode<NodeInfo>& node) {
     return;
   }
 
-  node.extra.sym = matching_overload;
+  node.extra.sym = std::make_unique<Symbol>(*matching_overload);
 
   if (node.extra.sym->type == TokenType::TOKEN_DATA_TYPE) {
     TokenType resolved = resolve_type(node.extra.sym->type_name);
@@ -352,7 +359,8 @@ void TypeCheckerVisitor::visit(UnaryExprNode<NodeInfo>& node) {
 void TypeCheckerVisitor::visit(ReturnStmtNode<NodeInfo>& node) {
   if (node.ret) node.ret->accept(*this);
 
-  if (current_method_ret_type != node.ret->extra.resolved_type) {
+  if (!token_implicit_cast(node.ret->extra.resolved_type,
+                           current_method_ret_type)) {
     report_error("Return type does not match method type", node.location);
     return;
   }

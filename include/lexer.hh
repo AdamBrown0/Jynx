@@ -7,24 +7,27 @@
 #include "log.hh"
 #include "token.hh"
 #include "trie.hh"
+#include "visitor/visitor.hh"
 
 class Lexer {
  public:
   /// Set up built in keywords (types, flow control)
-  explicit Lexer(std::istream& input) : in(input), location() {
-    keywords.insert("int", TokenType::TOKEN_DATA_TYPE);
-    keywords.insert("string", TokenType::TOKEN_DATA_TYPE);
-    keywords.insert("bool", TokenType::TOKEN_DATA_TYPE);
-    keywords.insert("void", TokenType::TOKEN_DATA_TYPE);
-    keywords.insert("public", TokenType::KW_ACCESS_MODIFIER);
-    keywords.insert("private", TokenType::KW_ACCESS_MODIFIER);
-    keywords.insert("protected", TokenType::KW_ACCESS_MODIFIER);
-    keywords.insert("class", TokenType::KW_CLASS);
-    keywords.insert("if", TokenType::KW_IF);
-    keywords.insert("else", TokenType::KW_ELSE);
-    keywords.insert("return", TokenType::KW_RETURN);
-    keywords.insert("while", TokenType::KW_WHILE);
-    keywords.insert("constructor", TokenType::KW_CONSTRUCTOR);
+  explicit Lexer(std::istream& input, CompilerContext& ctx)
+      : in(input), location(), context(ctx) {
+    context.keywords.insert("int", TokenType::TOKEN_DATA_TYPE);
+    context.keywords.insert("string", TokenType::TOKEN_DATA_TYPE);
+    context.keywords.insert("char", TokenType::TOKEN_DATA_TYPE);
+    context.keywords.insert("bool", TokenType::TOKEN_DATA_TYPE);
+    context.keywords.insert("void", TokenType::TOKEN_DATA_TYPE);
+    context.keywords.insert("public", TokenType::KW_ACCESS_MODIFIER);
+    context.keywords.insert("private", TokenType::KW_ACCESS_MODIFIER);
+    context.keywords.insert("protected", TokenType::KW_ACCESS_MODIFIER);
+    context.keywords.insert("class", TokenType::KW_CLASS);
+    context.keywords.insert("if", TokenType::KW_IF);
+    context.keywords.insert("else", TokenType::KW_ELSE);
+    context.keywords.insert("return", TokenType::KW_RETURN);
+    context.keywords.insert("while", TokenType::KW_WHILE);
+    context.keywords.insert("constructor", TokenType::KW_CONSTRUCTOR);
   }
 
   /// Returns the next token from the source file
@@ -38,7 +41,7 @@ class Lexer {
   /// @cond INTERNAL
   std::istream& in;
   SourceLocation location;
-  KeywordTrie keywords;
+  CompilerContext& context;
   /// @endcond
 
   /// Wrapper for making a token with type and value
@@ -56,6 +59,7 @@ class Lexer {
   Token number();
   /// @return String token
   Token string_literal();
+  Token char_literal();
 };
 
 #endif  // LEXER_HH

@@ -3,15 +3,15 @@
 
 #include "ast.hh"
 #include "methodtable.hh"
+#include "visitor/visitor.hh"
 
 class Sema {
  public:
-  Sema() {}
-  ProgramNode<NodeInfo>* analyze(ProgramNode<NodeInfo>&);
-    MethodTable &get_method_table() { return methods; }
+  Sema(CompilerContext &ctx) : context(ctx) {}
+  ProgramNode<NodeInfo> *analyze(ProgramNode<NodeInfo> &);
 
  private:
-    MethodTable methods;
+  CompilerContext &context;
 };
 
 #endif  // SEMA_H_

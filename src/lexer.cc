@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "../include/token.hh"
+#include "log.hh"
 
 Token Lexer::next_token() {
   skip_whitespace();
@@ -20,6 +21,9 @@ Token Lexer::next_token() {
 
   // strings
   if (c == '"') return string_literal();
+
+  // chars
+  if (c == '\'') return char_literal();
 
   advance();  // consume the character
   switch (c) {
@@ -134,7 +138,8 @@ Token Lexer::identifier() {
     buf.push_back(in.peek());
     advance();
   }
-  if (TokenType* type = keywords.find(buf)) return make_token(*type, buf);
+  if (TokenType* type = context.keywords.find(buf))
+    return make_token(*type, buf);
   // if (in.peek() == '(') return make_token(TokenType::)
   return make_token(TokenType::TOKEN_ID, buf);
 }
@@ -159,4 +164,16 @@ Token Lexer::string_literal() {
   }
   advance();  // skip last quote marks
   return make_token(TokenType::TOKEN_STRING, buf);
+}
+
+Token Lexer::char_literal() {
+  char c;
+  advance();
+  if (!isascii(in.peek()))
+    LOG_LEXER_ERROR("Non-ascii character found", location);
+  c = in.peek();
+  advance();
+  if (in.peek() != '\'') LOG_LEXER_ERROR("Closing \' not found", location);
+  advance();
+  return make_token(TokenType::TOKEN_CHAR, std::to_string((int)c));
 }

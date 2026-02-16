@@ -14,13 +14,7 @@ typedef struct TypeInfo {
 
 class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
  public:
-  TypeCheckerVisitor() {}
-
-  TypeCheckerVisitor(std::unordered_map<std::string, Symbol> &symbols,
-                     MethodTable &methods) {
-    set_global_symbols(&symbols);
-    set_method_table(&methods);
-  }
+  TypeCheckerVisitor(CompilerContext &ctx) : ASTVisitor<NodeInfo>(ctx) {}
 
   void visit(BinaryExprNode<NodeInfo> &node) override;
   void visit(UnaryExprNode<NodeInfo> &node) override;
@@ -119,6 +113,7 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
     if (name == "int") return TokenType::TOKEN_INT;
     if (name == "string") return TokenType::TOKEN_STRING;
     if (name == "bool") return TokenType::TOKEN_INT;
+    if (name == "char") return TokenType::TOKEN_CHAR;
 
     Symbol *symbol = lookup_symbol(name);
     if (symbol && symbol->is_class) {
@@ -134,6 +129,8 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
         return "int";
       case TokenType::TOKEN_STRING:
         return "string";
+      case TokenType::TOKEN_CHAR:
+        return "char";
       default:
         return "unknown";
     }

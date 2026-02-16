@@ -11,11 +11,7 @@
 
 class NameResolver : public ASTVisitor<NodeInfo> {
  public:
-  NameResolver(std::unordered_map<std::string, Symbol> &symbols,
-               MethodTable &methods) {
-    set_global_symbols(&symbols);
-    set_method_table(&methods);
-  }
+  NameResolver(CompilerContext &ctx) : ASTVisitor<NodeInfo>(ctx) {}
 
   void enter(BlockNode<NodeInfo> &node) override;
   void exit(BlockNode<NodeInfo> &node) override;

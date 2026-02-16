@@ -6,8 +6,13 @@ int arg_7(int a, int b, int c, int d, int e, int f, int g) {
   return a + b + c + d + e + f + g;
 }
 
+int arg_10(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j) {
+  return a + b + c + d + e + f + g + h + i + j;
+}
+
 int main() {
   int a6 = arg_6(1, 2, 3, 4, 5, 6);
   int a7 = arg_7(1, 2, 3, 4, 5, 6, 7);
-  return a6 + a7;
+  int a10 = arg_10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+  return a6 + a7 + a10;
 }

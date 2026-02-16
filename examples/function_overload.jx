@@ -1,0 +1,11 @@
+int main() {
+  return overloaded(1) + overloaded(1, 2);
+}
+
+int overloaded(int a) {
+  return a;
+}
+
+int overloaded(int a, int b) {
+  return a + b;
+}

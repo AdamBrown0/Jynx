@@ -5,9 +5,12 @@
 
 const std::vector<Symbol> *NameResolver::find_method_overloads(
     const std::string &owner, const std::string &name) {
-  if (!method_symbols) return nullptr;
+  if (context.method_table.empty()) {
+    LOG_FATAL("No methods in method table to find overload");
+    return nullptr;
+  }
 
-  return method_symbols->find_all(owner, name);
+  return context.method_table.find_all(owner, name);
 }
 
 void NameResolver::enter(BlockNode<NodeInfo> &) { push_scope(); }
@@ -87,7 +90,7 @@ void NameResolver::visit(VarDeclNode<NodeInfo> &node) {
   var_sym.decl_loc = node.location;
 
   add_symbol(var_sym);
-  node.extra.sym = &scope_stack.back()[name];
+  node.extra.sym = std::make_unique<Symbol>(scope_stack.back()[name]);
 }
 
 void NameResolver::visit(ParamNode<NodeInfo> &node) {}
@@ -102,8 +105,8 @@ void NameResolver::visit(MethodDeclNode<NodeInfo> &node) {
     }
   }
 
-  const std::string owner = current_class.empty() ? "<global>" : current_class;
-  if (!method_symbols) {
+  const std::string owner = current_class.empty() ? "global" : current_class;
+  if (context.method_table.empty()) {
     report_error("Missing method table for resolver", node.location);
     return;
   }
@@ -125,7 +128,7 @@ void NameResolver::visit(IdentifierExprNode<NodeInfo> &node) {
     report_error("Undeclared identifier '" + name + "'", node.location);
     return;
   }
-  node.extra.sym = symbol;
+  node.extra.sym = std::make_unique<Symbol>(*symbol);
 }
 
 void NameResolver::visit(ClassNode<NodeInfo> &node) {}
@@ -142,11 +145,11 @@ void NameResolver::visit(MethodCallNode<NodeInfo> &node) {
   bool is_static = false;
 
   if (node.expr == nullptr)
-    owner = "<global>";  // temp i think?
+    owner = "global";  // temp i think?
 
   else if (auto *ident =
                dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.expr.get())) {
-    Symbol *base_sym = ident->extra.sym;
+    Symbol *base_sym = ident->extra.sym.get();
     if (!base_sym) {
       report_error("Unresolved method base", node.location);
       return;

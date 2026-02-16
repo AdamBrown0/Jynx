@@ -7,15 +7,7 @@
 
 class SymbolCollectorVisitor : public ASTVisitor<NodeInfo> {
  public:
-  SymbolCollectorVisitor(std::unordered_map<std::string, Symbol> &symbols,
-                         MethodTable &methods) {
-    set_global_symbols(&symbols);
-    set_method_table(&methods);
-  }
-
-  std::unordered_map<std::string, Symbol> &get_global_symbols() {
-    return *global_symbols;
-  }
+  SymbolCollectorVisitor(CompilerContext &ctx) : ASTVisitor<NodeInfo>(ctx) {}
 
   void enter(BlockNode<NodeInfo> &node) override;
   void exit(BlockNode<NodeInfo> &node) override;
@@ -25,6 +17,8 @@ class SymbolCollectorVisitor : public ASTVisitor<NodeInfo> {
   void exit(ConstructorDeclNode<NodeInfo> &node) override;
 
   void visit(ParamNode<NodeInfo> &node) override;
+  void visit(ArgumentNode<NodeInfo> &node) override;
+  void visit(LiteralExprNode<NodeInfo> &node) override;
   void visit(VarDeclNode<NodeInfo> &node) override;
   void visit(ClassNode<NodeInfo> &node) override;
   void visit(FieldDeclNode<NodeInfo> &node) override;

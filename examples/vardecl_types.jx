@@ -1,3 +1,7 @@
-int i = 67;
-string str = "67" + "69";
-bool b = false;
+int main() {
+  // int i = 67;
+  // string str = "67" + "69";
+  // bool b = false;
+  char c = 'c';
+  return c;
+}

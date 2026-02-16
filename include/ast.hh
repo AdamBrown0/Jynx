@@ -444,13 +444,15 @@ struct ConstructorDeclNode : ClassMemberNode<Extra> {
 };
 
 struct NodeInfo {
-  Symbol* sym;
+  std::unique_ptr<Symbol> sym;
   TokenType resolved_type = TokenType::TOKEN_UNKNOWN;
   std::string type_name;
 
   int stack_offset = 0;  // for vardecl/ident
   int frame_size = 0;    // for methoddecl/program
   bool has_stack_slot = false;
+
+  size_t param_index = 0;
 
   std::vector<Symbol> overload_set;
 };

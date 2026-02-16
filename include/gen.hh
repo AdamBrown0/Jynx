@@ -12,7 +12,7 @@
 
 #include "ast.hh"
 #include "log.hh"
-#include "methodtable.hh"
+#include "token.hh"
 #include "visitor/visitor.hh"
 
 typedef struct Scope {
@@ -27,8 +27,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   using ASTVisitor<NodeInfo>::exit;
   using ASTVisitor<NodeInfo>::before_else;
 
-  explicit CodeGenerator(MethodTable &methods) {
-    set_method_table(&methods);
+  explicit CodeGenerator(CompilerContext &ctx) : ASTVisitor<NodeInfo>(ctx) {
     setupRegisters();
   }
   virtual ~CodeGenerator() = default;
@@ -182,12 +181,14 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
     return scope_stack.back().string_var_slots[name];
   }
 
-  std::string allocateRegister(bool local) {
+  std::string allocateRegister(bool local, bool _32bit) {
     std::string r;
+    std::vector<std::string> &regs =
+        _32bit ? caller_saved_registers32 : caller_saved_registers64;
     if (local) {
-      if (caller_saved_registers.empty()) return "";
-      r = caller_saved_registers.back();
-      caller_saved_registers.pop_back();
+      if (regs.empty()) return "";
+      r = regs.back();
+      regs.pop_back();
       live_regs.emplace(r);
       LOG_DEBUG("[gen] emplacing {}", r);
     } else {
@@ -197,9 +198,12 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   }
 
   void freeRegister(const std::string &reg) {
-    if (contains(caller_saved_registers_abi, reg) &&
-        !contains(caller_saved_registers, reg)) {
-      caller_saved_registers.push_back(reg);
+    if (contains(caller_saved_registers_abi32, reg) &&
+        !contains(caller_saved_registers32, reg)) {
+      caller_saved_registers32.push_back(reg);
+    } else if (contains(caller_saved_registers_abi64, reg) &&
+               !contains(caller_saved_registers64, reg)) {
+      caller_saved_registers64.push_back(reg);
     } else if (!contains(callee_saved_registers, reg)) {
       callee_saved_registers.push_back(reg);
     } else {
@@ -209,21 +213,44 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
     LOG_DEBUG("[gen] erasing {}", reg);
   }
 
+  TokenType builtin_type_name_to_type(std::string type_name) {
+    if (!context.keywords.find(type_name)) return TokenType::TOKEN_UNKNOWN;
+
+    if (type_name == "int") return TokenType::TOKEN_INT;
+    if (type_name == "char") return TokenType::TOKEN_CHAR;
+
+    return TokenType::TOKEN_UNKNOWN;
+  }
+
+  static inline std::string ptrType(int size) {
+    if (size <= 8) return "byte ptr";
+    if (size <= 16) return "word ptr";
+    if (size <= 32) return "dword ptr";
+    if (size <= 64) return "qword ptr";
+    LOG_FATAL("128-bit sizes are not supported");
+    return "";
+  }
+
+  static std::string formatSlotOffset(int offset) {
+    if (offset > 0) return "+" + std::to_string(offset);
+    return std::to_string(offset);
+  }
+
   static inline std::string formatSlot(int offset) {
     return "[rbp-" + std::to_string(offset) + "]";
   }
 
   static inline std::string formatSlot(const VarDeclNode<NodeInfo> &node) {
-    return "[rbp-" + std::to_string(node.extra.stack_offset) + "]";
+    return "[rbp" + formatSlotOffset(node.extra.stack_offset) + "]";
   }
 
   static inline std::string formatSlot(
       const IdentifierExprNode<NodeInfo> &node) {
-    return "[rbp-" + std::to_string(node.extra.stack_offset) + "]";
+    return "[rbp" + formatSlotOffset(node.extra.stack_offset) + "]";
   }
 
   static inline std::string formatSlot(const ParamNode<NodeInfo> &node) {
-    return "[rbp-" + std::to_string(node.extra.stack_offset) + "]";
+    return "[rbp" + formatSlotOffset(node.extra.stack_offset) + "]";
   }
 
   static inline std::string formatStringLabel(std::string label) {
@@ -331,7 +358,8 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   }
 
   bool isCallerSaved(const std::string &r) {
-    return contains(caller_saved_registers, r);
+    return contains(caller_saved_registers32, r) ||
+           contains(caller_saved_registers64, r);
   }
 
   void spill_live_regs(std::vector<std::string> &spilled) {
@@ -349,15 +377,22 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   }
 
   void setupRegisters() {
-    caller_saved_registers_abi = {"rax", "rcx", "rdx", "rsi", "rdi",
-                                  "r8",  "r9",  "r10", "r11"};
+    caller_saved_registers_abi64 = {"rax", "rcx", "rdx", "rsi", "rdi",
+                                    "r8",  "r9",  "r10", "r11"};
+    caller_saved_registers_abi32 = {"eax", "ecx", "edx",  "esi", "edi",
+                                    "r8d", "r9d", "r10d", "r11d"};
 
-    caller_saved_registers = {"rax", "rcx", "rdx", "rsi", "rdi",
-                              "r8",  "r9",  "r10", "r11"};
+    caller_saved_registers64 = {"rax", "rcx", "rdx", "rsi", "rdi",
+                                "r8",  "r9",  "r10", "r11"};
+    caller_saved_registers32 = {"eax", "ecx", "edx",  "esi", "edi",
+                                "r8d", "r9d", "r10d", "r11d"};
 
     callee_saved_registers = {"rbx", "rbp", "r12", "r13", "r14", "r15"};
 
-    function_arg_registers = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    function_arg_registers_abi64 = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    function_arg_registers_abi32 = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    function_arg_registers64 = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    function_arg_registers32 = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
   }
 
   std::stringstream text_section;
@@ -366,11 +401,16 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
   std::vector<Scope> scope_stack;
   int current_stack_offset = 0;
 
-  std::vector<std::string> caller_saved_registers_abi;
+  std::vector<std::string> caller_saved_registers_abi32;
+  std::vector<std::string> caller_saved_registers_abi64;
+  std::vector<std::string> function_arg_registers_abi32;
+  std::vector<std::string> function_arg_registers_abi64;
 
-  std::vector<std::string> caller_saved_registers;
+  std::vector<std::string> caller_saved_registers32;
+  std::vector<std::string> caller_saved_registers64;
   std::vector<std::string> callee_saved_registers;
-  std::vector<std::string> function_arg_registers;
+  std::vector<std::string> function_arg_registers32;
+  std::vector<std::string> function_arg_registers64;
 
   std::unordered_set<std::string> live_regs;
   std::unordered_map<std::string, int> spill_slots;

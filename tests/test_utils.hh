@@ -9,17 +9,17 @@
 #include "parser.hh"
 #include "sema.hh"
 
-inline std::unique_ptr<ProgramNode<NodeInfo>> parse_program(
-    const std::string& source) {
-  std::istringstream input(source);
-  Lexer lexer(input);
-  Parser parser(lexer);
-  return std::unique_ptr<ProgramNode<NodeInfo>>(parser.parseProgram());
-}
+// inline std::unique_ptr<ProgramNode<NodeInfo>> parse_program(
+//     const std::string& source) {
+//   std::istringstream input(source);
+//   Lexer lexer(input);
+//   Parser parser(lexer);
+//   return std::unique_ptr<ProgramNode<NodeInfo>>(parser.parseProgram());
+// }
 
-inline ProgramNode<NodeInfo>* analyze_program(ProgramNode<NodeInfo>& root) {
-  Sema sema;
-  return sema.analyze(root);
-}
+// inline ProgramNode<NodeInfo>* analyze_program(ProgramNode<NodeInfo>& root) {
+//   Sema sema;
+//   return sema.analyze(root);
+// }
 
 #endif  // TEST_UTILS_H_

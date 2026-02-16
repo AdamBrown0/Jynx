@@ -9,6 +9,7 @@
 #include "log.hh"
 #include "parser.hh"
 #include "sema.hh"
+#include "visitor/visitor.hh"
 
 void print_usage(char** argv) {
   LOG_FATAL("USAGE: {} <path-to-file>\n", argv[0]);
@@ -27,7 +28,9 @@ int main(const int argc, char** argv) {
     exit(1);
   }
 
-  Lexer lexer(file);
+  CompilerContext ctx;
+
+  Lexer lexer(file, ctx);
 
   Parser parser(lexer);
 
@@ -44,7 +47,7 @@ int main(const int argc, char** argv) {
     return 1;
   }
 
-  Sema sema;
+  Sema sema(ctx);
   ProgramNode<NodeInfo>* sema_tree = sema.analyze(*ast);
 
   if (!sema_tree) {
@@ -53,7 +56,7 @@ int main(const int argc, char** argv) {
     return 1;
   }
 
-  CodeGenerator gen(sema.get_method_table());
+  CodeGenerator gen(ctx);
   std::string code = gen.generate(*sema_tree);
   LOG_INFO("\n{}", code);
 

@@ -6,6 +6,7 @@
 
 #include "log.hh"
 #include "symbol.hh"
+#include "token.hh"
 
 struct MethodKey {
   std::string owner;
@@ -40,6 +41,15 @@ class MethodTable {
     return true;
   }
 
+  static std::string make_method_key(const Symbol &method) {
+    std::string key = method.owner_class + "_" + method.name + "_";
+    for (size_t i = 0; i < method.param_types.size(); ++i) {
+      if (i > 0) key += "_";
+      key += token_type_to_string(method.param_types[i]);
+    }
+    return key;
+  }
+
   const Symbol *find_overload(const std::string &owner, const std::string &name,
                               const std::vector<TokenType> &param_types) const {
     MethodKey key{owner, name};
@@ -59,6 +69,8 @@ class MethodTable {
     if (it == methods.end()) return nullptr;
     return &it->second;
   }
+
+  bool empty() const { return methods.empty(); }
 
  private:
   std::unordered_map<MethodKey, std::vector<Symbol>, MethodKeyHash> methods;
