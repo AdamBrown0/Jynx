@@ -44,12 +44,6 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
 
   int align16(int n) { return (n + 15) & ~15; }
 
-  int slot_size_for(const VarDeclNode<NodeInfo> &node) {
-    // assuming int = 8, string = 16
-    if (node.extra.resolved_type == TokenType::TOKEN_STRING) return 16;
-    return 8;
-  }
-
   void add_param_symbol(ParamNode<NodeInfo> &node);
 
   bool types_compatible(const std::string &declared_type_name,

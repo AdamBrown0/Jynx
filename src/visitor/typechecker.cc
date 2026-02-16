@@ -81,8 +81,12 @@ void TypeCheckerVisitor::add_param_symbol(ParamNode<NodeInfo>& node) {
 
   LOG_DEBUG("[TYPE] param_index: {}", node.extra.param_index);
 
+  int stack_offset_size =
+      token_type_to_bit_size(builtin_type_name_to_type(node.type.getValue())) /
+      8;
+
   if (node.extra.param_index < 6) {
-    current_stack_offset += 8;
+    current_stack_offset += stack_offset_size;
     max_stack_offset = std::max(max_stack_offset, current_stack_offset);
     param_symbol.stack_offset = -current_stack_offset;
   } else {
@@ -168,7 +172,9 @@ void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
           "Redeclaration of variable '" + node.identifier.getValue() + "'",
           node.location);
     } else {
-      int size = slot_size_for(node);
+      int size = token_type_to_bit_size(
+                     builtin_type_name_to_type(node.type_token.getValue())) /
+                 8;
       current_stack_offset += size;
       max_stack_offset = std::max(max_stack_offset, current_stack_offset);
 

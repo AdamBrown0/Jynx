@@ -213,15 +213,6 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
     LOG_DEBUG("[gen] erasing {}", reg);
   }
 
-  TokenType builtin_type_name_to_type(std::string type_name) {
-    if (!context.keywords.find(type_name)) return TokenType::TOKEN_UNKNOWN;
-
-    if (type_name == "int") return TokenType::TOKEN_INT;
-    if (type_name == "char") return TokenType::TOKEN_CHAR;
-
-    return TokenType::TOKEN_UNKNOWN;
-  }
-
   static inline std::string ptrType(int size) {
     if (size <= 8) return "byte ptr";
     if (size <= 16) return "word ptr";

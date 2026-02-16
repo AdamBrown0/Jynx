@@ -165,6 +165,15 @@ class ASTVisitor {
     return nullptr;
   }
 
+  TokenType builtin_type_name_to_type(std::string type_name) {
+    if (!context.keywords.find(type_name)) return TokenType::TOKEN_UNKNOWN;
+
+    if (type_name == "int") return TokenType::TOKEN_INT;
+    if (type_name == "char") return TokenType::TOKEN_CHAR;
+
+    return TokenType::TOKEN_UNKNOWN;
+  }
+
   Symbol *add_symbol(const Symbol &symbol) {
     if (!scope_stack.empty()) {
       scope_stack.back()[symbol.name] = symbol;
