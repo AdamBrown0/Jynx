@@ -18,7 +18,7 @@ ProgramNode<NodeInfo>* Parser::parseProgram() {
     LOG_DEBUG("PARSING PROGRAM");
     current.print();
     std::optional<Token> access_modifier;
-    _StmtNode* statement = Parser::parseMethodDecl(access_modifier);
+    _StmtNode* statement = Parser::parseStatement();
     if (!statement) LOG_PARSER_ERROR("Method declaration required", current);
 
     program->children.emplace_back(statement);

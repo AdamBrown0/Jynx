@@ -1,5 +1,5 @@
-class my_class {
-  void my_func() {
-    int a = 1;
+class Program {
+  int main() {
+    return 6;
   }
 }
