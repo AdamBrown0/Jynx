@@ -84,7 +84,13 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
     text_section << "    " << instruction << "\n";
   }
   void emitMove(const std::string &dst, const std::string &src) {
-    emit("mov " + dst + ", " + src);
+    if ((contains(function_arg_registers64, dst) &&
+         contains(function_arg_registers32, src)) ||
+        (contains(caller_saved_registers64, dst) &&
+         contains(caller_saved_registers_abi32, src)))
+      emit("movsx " + dst + ", " + src);
+    else
+      emit("mov " + dst + ", " + src);
   }
   void emitArithmetic(const TokenType op, const std::string &left,
                       const std::string &right, const std::string &dest) {
@@ -381,7 +387,7 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
     callee_saved_registers = {"rbx", "rbp", "r12", "r13", "r14", "r15"};
 
     function_arg_registers_abi64 = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-    function_arg_registers_abi32 = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    function_arg_registers_abi32 = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
     function_arg_registers64 = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
     function_arg_registers32 = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
   }

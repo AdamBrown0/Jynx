@@ -1,14 +1,11 @@
 #ifndef TYPECHECKER_H_
 #define TYPECHECKER_H_
 
-#include <unordered_map>
-
 #include "ast.hh"
-#include "methodtable.hh"
 #include "visitor.hh"
 
 typedef struct TypeInfo {
-  TokenType token_type;
+  TypeNode<NodeInfo> *token_type;
   std::string type_name;
 } TypeInfo;
 
@@ -46,60 +43,53 @@ class TypeCheckerVisitor : public ASTVisitor<NodeInfo> {
 
   void add_param_symbol(ParamNode<NodeInfo> &node);
 
-  bool types_compatible(const std::string &declared_type_name,
-                        const TypeInfo &expr_type_info) {
-    TokenType declared_builtin = resolve_type(declared_type_name);
-    if (declared_builtin != TokenType::TOKEN_UNKNOWN &&
-        declared_builtin != TokenType::TOKEN_DATA_TYPE) {
-      return declared_builtin == expr_type_info.token_type;
-    }
 
-    Symbol *declared_symbol = lookup_symbol(declared_type_name);
-    if (declared_symbol && declared_symbol->is_class) {
-      return declared_type_name == expr_type_info.type_name;
-    }
-
-    return false;
+  bool types_compatible(TypeNode<NodeInfo>* declared_type, TypeNode<NodeInfo>* expr_type) {
+    if (!declared_type || !expr_type) return false;
+    if (declared_type->kind != expr_type->kind) return false;
+    if (declared_type->name != expr_type->name) return false;
+    return true;
   }
 
-  TypeInfo check_binary_op(TokenType op, const TypeInfo &left,
-                           const TypeInfo &right) {
+
+  TypeInfo check_binary_op(TokenType op, const TypeInfo &left, const TypeInfo &right) {
+    auto get_builtin_type = [&](const std::string& name) -> TypeNode<NodeInfo>* {
+      Symbol* sym = lookup_symbol(name);
+      return sym ? sym->type : nullptr;
+    };
     switch (op) {
-      // arithmetic operators: +, -, *, /
       case TokenType::TOKEN_PLUS:
       case TokenType::TOKEN_MULTIPLY:
-        if (left.token_type == TokenType::TOKEN_STRING) {
-          return {TokenType::TOKEN_STRING, "string"};
+        if (left.token_type && left.token_type->name == "string") {
+          return {get_builtin_type("string"), "string"};
         }
+        // fallthrough
       case TokenType::TOKEN_MINUS:
       case TokenType::TOKEN_DIVIDE:
-        if (left.token_type == TokenType::TOKEN_INT &&
-            right.token_type == TokenType::TOKEN_INT)
-          return {TokenType::TOKEN_INT, "int"};
-        // only doing int and int for now, could add string and other
-        return {TokenType::TOKEN_UNKNOWN, ""};
-
-      // comparison operators: <, >, <=, >=, ==, !=
+        if (left.token_type && right.token_type &&
+            left.token_type->name == "int" && right.token_type->name == "int") {
+          return {get_builtin_type("int"), "int"};
+        }
+        return {nullptr, ""};
       case TokenType::TOKEN_LT:
       case TokenType::TOKEN_GT:
       case TokenType::TOKEN_LEQ:
       case TokenType::TOKEN_GEQ:
-        if (left.token_type == TokenType::TOKEN_INT &&
-            right.token_type == TokenType::TOKEN_INT) {
-          return {TokenType::TOKEN_INT, "int"};
+        if (left.token_type && right.token_type &&
+            left.token_type->name == "int" && right.token_type->name == "int") {
+          return {get_builtin_type("int"), "int"};
         }
-        return {TokenType::TOKEN_UNKNOWN, ""};
+        return {nullptr, ""};
       case TokenType::TOKEN_DEQ:
       case TokenType::TOKEN_NEQ:
-        if (left.token_type == right.token_type &&
-            (left.token_type == TokenType::TOKEN_INT ||
-             left.token_type == TokenType::TOKEN_STRING)) {
-          return {TokenType::TOKEN_INT, "int"};
+        if (left.token_type && right.token_type &&
+            left.token_type->name == right.token_type->name &&
+            (left.token_type->name == "int" || left.token_type->name == "string")) {
+          return {get_builtin_type("int"), "int"};
         }
-        return {TokenType::TOKEN_UNKNOWN, ""};
-
+        return {nullptr, ""};
       default:
-        return {TokenType::TOKEN_UNKNOWN, ""};
+        return {nullptr, ""};
     }
   }
 

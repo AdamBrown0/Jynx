@@ -7,6 +7,7 @@
 #include "ast.hh"
 #include "log.hh"
 #include "token.hh"
+#include "token_utils.hh"
 
 std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   LOG_DEBUG("[GEN] Resetting areas");
@@ -51,7 +52,7 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   // generate entrypoint
   emitLabel("\n_start");
   emitCall("global_main_");
-  emit("movsx rdi, eax");
+  emitMove("rdi", "eax");
   // emitMove("rdi", "eax");
   emitMove("rax", "60");
   emit("syscall");
@@ -100,8 +101,8 @@ void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
     }
   } else {
     std::string loc =
-        ptrType(token_type_to_bit_size(node.extra.resolved_type)) + " " +
-        formatSlot(node);
+        ptrType(TokenUtils::token_to_bit_size(node.extra.sym->type_name)) +
+        " " + formatSlot(node);
     if (node.initializer) {
       std::string r = eval_stack.back();
       eval_stack.pop_back();
@@ -131,7 +132,8 @@ void CodeGenerator::visit(BinaryExprNode<NodeInfo> &node) {
 }
 
 void CodeGenerator::visit(LiteralExprNode<NodeInfo> &node) {
-  if (token_implicit_cast(node.literal_token.getType(), TokenType::TOKEN_INT)) {
+  if (TokenUtils::token_implicit_cast(node.literal_token.getType(),
+                                      TokenType::TOKEN_INT)) {
     eval_stack.push_back(node.literal_token.getValue());
   } else if (node.literal_token.getType() == TokenType::TOKEN_STRING) {
     // Load string literal into RAX (ptr) and RDX (len)
@@ -154,18 +156,11 @@ void CodeGenerator::visit(IdentifierExprNode<NodeInfo> &node) {
     loadStringFromVar(name);  // RAX/RDX
     eval_stack.push_back("$str");
   } else {
-    int bit_size = token_type_to_bit_size(node.extra.resolved_type);
+    int bit_size = TokenUtils::token_to_bit_size(node.extra.sym->type_name);
     std::string var_location = ptrType(bit_size) + " " + formatSlot(node);
     std::string r = allocateRegister(true, bit_size <= 32);
     if (r.empty()) r = "rax";
-    if (bit_size <= 32 && !contains(function_arg_registers_abi32, r)) {
-      emit("movsx " + r + ", " + var_location);
-    }
-
-    else {
-      emitMove(r, var_location);
-      LOG_FATAL("IdentifierExprNode errored");
-    }
+    emitMove(r, var_location);
     eval_stack.push_back(r);
   }
 }
@@ -322,7 +317,8 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
   std::vector<std::string> used_function_arg_regs;
 
   for (size_t i = reg_arg_count; i-- > 0;) {
-    if (token_type_to_bit_size(node.arg_list[i]->extra.sym->type) <= 32) {
+    if (TokenUtils::token_to_bit_size(node.arg_list[i]->extra.sym->type_name) <=
+        32) {
       emitMove(function_arg_registers32[i], arg_vals[i]);
       used_function_arg_regs.push_back(function_arg_registers32[i]);
     } else {
@@ -344,8 +340,7 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
   emitCall(overload->method_key);
 
   if (overload->type != TokenType::TOKEN_UNKNOWN) {
-    int bit_size =
-        token_type_to_bit_size(builtin_type_name_to_type(overload->type_name));
+    int bit_size = TokenUtils::token_to_bit_size(overload->type_name);
     std::string reg = allocateRegister(true, bit_size <= 32);
     emitMove(reg, bit_size <= 32 ? "eax" : "rax");
     eval_stack.push_back(reg);
@@ -376,8 +371,8 @@ void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
   eval_stack.pop_back();
 
   if (marker != "$str") {
-    emitMove(token_type_to_bit_size(
-                 builtin_type_name_to_type(node.ret->extra.type_name)) <= 32
+    emitMove(TokenUtils::token_to_bit_size(node.ret->extra.sym->type_name,
+                                           node.ret->extra.sym->type) <= 32
                  ? "eax"
                  : "rax",
              marker);
@@ -465,10 +460,8 @@ void CodeGenerator::enter(MethodDeclNode<NodeInfo> &node) {
   for (size_t i = 0;
        i < node.param_list.size() && i < function_arg_registers_abi32.size();
        ++i) {
-    LOG_DEBUG("bit size: {}",
-              token_type_to_bit_size(node.param_list[i]->extra.sym->type));
-    int bit_size = token_type_to_bit_size(
-        builtin_type_name_to_type(node.param_list[i]->extra.sym->type_name));
+    int bit_size =
+        TokenUtils::token_to_bit_size(node.param_list[i]->extra.sym->type_name);
     std::string param_reg = bit_size <= 32 ? function_arg_registers32[i]
                                            : function_arg_registers64[i];
     std::string local_slot =

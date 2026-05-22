@@ -5,6 +5,7 @@
 
 #include "ast.hh"
 #include "log.hh"
+#include "sourcelocation.hh"
 #include "token.hh"
 
 ProgramNode<NodeInfo>* Parser::parseProgram() {
@@ -129,7 +130,7 @@ ClassMemberNode<NodeInfo>* Parser::parseConstructorDecl() {
     if (current.getType() == TokenType::TOKEN_COMMA) continue;
     if (current.getType() != TokenType::TOKEN_DATA_TYPE)
       LOG_PARSER_ERROR("Expected data type for parameter", current);
-    Token type = ret_advance();
+    TypeNode<NodeInfo>* type = parseType(ret_advance());
     if (current.getType() != TokenType::TOKEN_ID)
       LOG_PARSER_ERROR("Expected identifier for parameter", current);
     Token param_identifier = current;
@@ -149,9 +150,10 @@ ClassMemberNode<NodeInfo>* Parser::parseConstructorDecl() {
 ClassMemberNode<NodeInfo>* Parser::parseMethodDecl(
     std::optional<Token> access_modifier) {
   LOG_PARSER_ENTER("Method Decl");
-  Token type = ret_advance();
-  if (type.getType() != TokenType::TOKEN_DATA_TYPE)
-    LOG_PARSER_ERROR("Expected return type", type);
+  if (current.getType() != TokenType::TOKEN_DATA_TYPE)
+    LOG_PARSER_ERROR("Expected return type", current);
+
+  TypeNode<NodeInfo>* type = parseType(ret_advance());
 
   Token identifier = ret_advance();
   if (identifier.getType() != TokenType::TOKEN_ID)
@@ -165,12 +167,12 @@ ClassMemberNode<NodeInfo>* Parser::parseMethodDecl(
     if (current.getType() == TokenType::TOKEN_COMMA) continue;
     if (current.getType() != TokenType::TOKEN_DATA_TYPE)
       LOG_PARSER_ERROR("Expected data type for parameter", current);
-    Token type = ret_advance();
+    TypeNode<NodeInfo>* param_type = parseType(ret_advance());
     if (current.getType() != TokenType::TOKEN_ID)
       LOG_PARSER_ERROR("Expected identifier for parameter", current);
     Token identifier = current;
     param_list.emplace_back(
-        new ParamNode<NodeInfo>(type, identifier, lexer.getLocation()));
+        new ParamNode<NodeInfo>(param_type, identifier, lexer.getLocation()));
   }
   advance();  // skip closing parenthesis
   BlockNode<NodeInfo>* body =
@@ -190,9 +192,10 @@ ClassMemberNode<NodeInfo>* Parser::parseMethodDecl(
 ClassMemberNode<NodeInfo>* Parser::parseFieldDecl(
     std::optional<Token> access_modifier) {
   // <field_decl> ::= <access_modifier> [ "static" ] <type> <identifier> ";"
-  Token type = ret_advance();
-  if (type.getType() != TokenType::TOKEN_DATA_TYPE)
-    LOG_PARSER_ERROR("Expected field type", type);
+  if (current.getType() != TokenType::TOKEN_DATA_TYPE)
+    LOG_PARSER_ERROR("Expected field type", current);
+
+  TypeNode<NodeInfo>* type = parseType(ret_advance());
 
   Token identifier = ret_advance();
   if (identifier.getType() != TokenType::TOKEN_ID)
@@ -271,12 +274,11 @@ StmtNode<NodeInfo>* Parser::parseIfStmt() {
 StmtNode<NodeInfo>* Parser::parseVarDecl() {
   LOG_PARSER_ENTER("VarDecl");
   // current must be the keyword
-  Token type_token = ret_advance();
-  if (type_token.getType() != TokenType::TOKEN_DATA_TYPE)
-    LOG_PARSER_ERROR("Expected data type", type_token);
-  SourceLocation decl_loc;
-  decl_loc.line = type_token.getLine();
-  decl_loc.col = type_token.getCol();
+  if (current.getType() != TokenType::TOKEN_DATA_TYPE)
+    LOG_PARSER_ERROR("Expected data type", current);
+
+  auto type_node = parseType(ret_advance());
+  SourceLocation decl_loc = type_node->location;
 
   // check if function decl
   // if (peek(1).getType() == TokenType::TOKEN_LPAREN)
@@ -291,14 +293,14 @@ StmtNode<NodeInfo>* Parser::parseVarDecl() {
   // colon, in which case we consume and move on
   if (current.getType() == TokenType::TOKEN_SEMICOLON) {
     advance();  // consume semicolon
-    return new VarDeclNode<NodeInfo>(type_token, identifier, nullptr, decl_loc);
+    return new VarDeclNode<NodeInfo>(type_node, identifier, nullptr, decl_loc);
   } else if (current.getType() == TokenType::TOKEN_EQUALS) {
     advance();  // skip equals
     _ExprNode* init = parseBinaryExpr();
     if (current.getType() != TokenType::TOKEN_SEMICOLON)
       LOG_PARSER_ERROR("Expected semicolon after declaration", current);
     advance();  // consume semicolon
-    return new VarDeclNode<NodeInfo>(type_token, identifier, init, decl_loc);
+    return new VarDeclNode<NodeInfo>(type_node, identifier, init, decl_loc);
   } else {
     LOG_PARSER_ERROR("Expected semi-colon or initializer", current);
   }
@@ -529,4 +531,33 @@ ExprNode<NodeInfo>* Parser::parseMethodCall() {
     return new MethodCallNode<NodeInfo>(nullptr, identifier,
                                         std::move(arg_list), call_loc);
   }
+}
+
+TypeNode<NodeInfo>* Parser::parseType(const Token& token) {
+  std::string type_str = token.getValue();
+  SourceLocation loc;
+  loc.line = token.getLine();
+  loc.col = token.getCol();
+
+  size_t pos = type_str.find('[');
+  std::string base_name =
+      (pos == std::string::npos) ? type_str : type_str.substr(0, pos);
+
+  auto base = new TypeNode<NodeInfo>(base_name, loc);
+
+  // recursive array
+  while (pos != std::string::npos) {
+    size_t end = type_str.find(']', pos);
+    if (end == std::string::npos)
+      LOG_PARSER_ERROR("Unmatched '[' in type", token);
+
+    std::string len_str = type_str.substr(pos + 1, end - pos - 1);
+    size_t length = std::stoul(len_str);
+
+    base = new TypeNode<NodeInfo>(base, length, loc);
+
+    pos = type_str.find('[', end);
+  }
+
+  return base;
 }

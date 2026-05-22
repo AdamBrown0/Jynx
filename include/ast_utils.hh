@@ -42,8 +42,8 @@ class ASTStringBuilder {
 
     // ============ Statement Nodes ============
     else if (auto var_decl = dynamic_cast<VarDeclNode<Extra>*>(node)) {
-      std::string result = var_decl->type_token.getValue() + " " +
-                           var_decl->identifier.getValue();
+      std::string result =
+          var_decl->type->name + " " + var_decl->identifier.getValue();
       if (var_decl->initializer) {
         result += " = " + node_to_string(var_decl->initializer.get());
       }
@@ -82,13 +82,13 @@ class ASTStringBuilder {
     } else if (auto field_decl = dynamic_cast<FieldDeclNode<Extra>*>(node)) {
       std::string result = field_decl->access_modifier.getValue();
       if (field_decl->is_static) result += " static";
-      result += " " + field_decl->type.getValue() + " " +
+      result += " " + field_decl->type->name + " " +
                 field_decl->identifier.getValue();
       return result;
     } else if (auto method_decl = dynamic_cast<MethodDeclNode<Extra>*>(node)) {
       std::string result = method_decl->access_modifier.getValue();
       if (method_decl->is_static) result += " static";
-      result += " " + method_decl->type.getValue() + " " +
+      result += " " + method_decl->type->name + " " +
                 method_decl->identifier.getValue() + "(" +
                 std::to_string(method_decl->param_list.size()) + " params)";
       return result;
@@ -97,7 +97,7 @@ class ASTStringBuilder {
       return constructor_decl->identifier.getValue() + "(" +
              std::to_string(constructor_decl->param_list.size()) + " params)";
     } else if (auto param = dynamic_cast<ParamNode<Extra>*>(node)) {
-      return param->type.getValue() + " " + param->identifier.getValue();
+      return param->type->name + " " + param->identifier.getValue();
     } else if (auto arg = dynamic_cast<ArgumentNode<Extra>*>(node)) {
       return node_to_string(arg->expr.get());
     }

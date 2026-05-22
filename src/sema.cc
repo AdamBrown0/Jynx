@@ -1,7 +1,5 @@
 #include "sema.hh"
 
-#include <unordered_map>
-
 #include "ast.hh"
 #include "log.hh"
 #include "methodtable.hh"
@@ -21,11 +19,10 @@ ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
   }
 
   {
-    const std::vector<TokenType> no_params;
+    const std::vector<TypeNode<NodeInfo>*> no_params;
     const Symbol* main_method =
         context.method_table.find_overload("global", "main", no_params);
-    if (!main_method || main_method->type != TokenType::TOKEN_DATA_TYPE ||
-        main_method->type_name != "int") {
+    if (!main_method || !main_method->type || main_method->type->name != "int") {
       LOG_ERROR("Missing required entry point: int main() with no parameters");
       return nullptr;
     }

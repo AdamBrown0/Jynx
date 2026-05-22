@@ -20,15 +20,14 @@ void NameResolver::enter(ProgramNode<NodeInfo> &) { push_scope(); }
 void NameResolver::exit(ProgramNode<NodeInfo> &) { pop_scope(); }
 
 void NameResolver::enter(MethodDeclNode<NodeInfo> &node) {
-  enter_method(node.identifier.getValue(), node.type.getType());
+  enter_method(node.identifier.getValue(), node.type.get()->name);
   push_scope();
 
   for (auto &param : node.param_list) {
     if (!param) continue;
     Symbol param_sym;
     param_sym.name = param->identifier.getValue();
-    param_sym.type = param->type.getType();
-    param_sym.type_name = param->type.getValue();
+    param_sym.type = param->type.get();
     param_sym.is_param = true;
     param_sym.decl_loc = param->location;
 
@@ -46,15 +45,14 @@ void NameResolver::exit(MethodDeclNode<NodeInfo> &) {
 }
 
 void NameResolver::enter(ConstructorDeclNode<NodeInfo> &node) {
-  enter_method(node.identifier.getValue(), TokenType::TOKEN_UNKNOWN);
+  enter_method(node.identifier.getValue(), "void");
   push_scope();
 
   for (auto &param : node.param_list) {
     if (!param) continue;
     Symbol param_sym;
     param_sym.name = param->identifier.getValue();
-    param_sym.type = param->type.getType();
-    param_sym.type_name = param->type.getValue();
+    param_sym.type = param->type.get();
     param_sym.is_param = true;
     param_sym.decl_loc = param->location;
 
@@ -85,8 +83,7 @@ void NameResolver::visit(VarDeclNode<NodeInfo> &node) {
 
   Symbol var_sym;
   var_sym.name = name;
-  var_sym.type = node.type_token.getType();
-  var_sym.type_name = node.type_token.getValue();
+  var_sym.type = node.type.get();
   var_sym.decl_loc = node.location;
 
   add_symbol(var_sym);
@@ -97,11 +94,11 @@ void NameResolver::visit(ParamNode<NodeInfo> &node) {}
 
 void NameResolver::visit(MethodDeclNode<NodeInfo> &node) {
   const std::string name = node.identifier.getValue();
-  std::vector<TokenType> param_types;
+  std::vector<TypeNode<NodeInfo> *> param_types;
   param_types.reserve(node.param_list.size());
   for (auto &param : node.param_list) {
     if (param) {
-      param_types.push_back(param->type.getType());
+      param_types.push_back(param->type.get());
     }
   }
 
@@ -158,13 +155,11 @@ void NameResolver::visit(MethodCallNode<NodeInfo> &node) {
     if (base_sym->is_class) {
       owner = base_sym->name;
       is_static = true;
-    } else if (base_sym->type == TokenType::TOKEN_DATA_TYPE) {
-      owner = base_sym->type_name;
+    } else {
+      owner = base_sym->type->name;
     }
   } else {
-    if (node.expr->extra.resolved_type == TokenType::TOKEN_DATA_TYPE) {
-      owner = node.expr->extra.type_name;
-    }
+    owner = node.expr->extra.type_name;
   }
 
   if (owner.empty()) {

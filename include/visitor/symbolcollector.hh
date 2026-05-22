@@ -2,7 +2,6 @@
 #define SYMBOLCOLLECTOR_H_
 
 #include "ast.hh"
-#include "methodtable.hh"
 #include "visitor.hh"
 
 class SymbolCollectorVisitor : public ASTVisitor<NodeInfo> {
@@ -19,6 +18,7 @@ class SymbolCollectorVisitor : public ASTVisitor<NodeInfo> {
   void visit(ParamNode<NodeInfo> &node) override;
   void visit(ArgumentNode<NodeInfo> &node) override;
   void visit(LiteralExprNode<NodeInfo> &node) override;
+  void visit(IdentifierExprNode<NodeInfo> &node) override;
   void visit(VarDeclNode<NodeInfo> &node) override;
   void visit(ClassNode<NodeInfo> &node) override;
   void visit(FieldDeclNode<NodeInfo> &node) override;

@@ -4,12 +4,15 @@
 #include <string>
 #include <vector>
 
-#include "token.hh"
+#include "sourcelocation.hh"
+
+template <typename Extra>
+struct TypeNode;
+struct NodeInfo;
 
 struct Symbol {
   std::string name;
-  TokenType type;
-  std::string type_name;
+  TypeNode<NodeInfo>* type;
   SourceLocation decl_loc;
   int stack_offset;
   bool has_stack_slot = false;
@@ -20,7 +23,7 @@ struct Symbol {
   std::string owner_class;
   std::string method_key;
 
-  std::vector<TokenType> param_types;
+  std::vector<TypeNode<NodeInfo>*> param_types;
   std::vector<std::string> param_names;
   std::vector<std::string> param_type_names;
 

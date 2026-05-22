@@ -138,8 +138,26 @@ Token Lexer::identifier() {
     buf.push_back(in.peek());
     advance();
   }
-  if (TokenType* type = context.keywords.find(buf))
+  if (TokenType* type = context.keywords.find(buf)) {
+    if (*type == TokenType::TOKEN_DATA_TYPE) {
+      while (in.peek() == '[') {
+        buf.push_back('[');
+        advance();  // consume '['
+
+        while (!in.eof() && std::isdigit(in.peek())) {
+          buf.push_back(in.peek());
+          advance();
+        }
+
+        if (in.peek() != ']')
+          LOG_LEXER_ERROR("Expected closing ']' in array type", location);
+
+        buf.push_back(']');
+        advance();  // consume ']'
+      }
+    }
     return make_token(*type, buf);
+  }
   // if (in.peek() == '(') return make_token(TokenType::)
   return make_token(TokenType::TOKEN_ID, buf);
 }

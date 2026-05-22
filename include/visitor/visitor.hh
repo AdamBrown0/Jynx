@@ -3,12 +3,11 @@
 
 #include <unordered_map>
 
+#include "context.hh"
 #include "diagnostics.hh"
 #include "log.hh"
-#include "methodtable.hh"
 #include "symbol.hh"
 #include "token.hh"
-#include "trie.hh"
 
 template <typename Extra>
 struct ASTNode;
@@ -51,12 +50,6 @@ struct ConstructorDeclNode;
 template <typename Extra>
 struct ExprStmtNode;
 
-struct CompilerContext {
-  std::unordered_map<std::string, Symbol> symbol_table;
-  MethodTable method_table;
-  KeywordTrie keywords;
-};
-
 template <typename Extra>
 class ASTVisitor {
  public:
@@ -87,6 +80,7 @@ class ASTVisitor {
   virtual void enter(MethodDeclNode<Extra> &) {}
   virtual void enter(ConstructorDeclNode<Extra> &) {}
   virtual void enter(ExprStmtNode<Extra> &) {}
+  virtual void enter(TypeNode<Extra> &) {}
 
   virtual void before_else(IfStmtNode<Extra> &) {}
 
@@ -109,6 +103,7 @@ class ASTVisitor {
   virtual void exit(MethodDeclNode<Extra> &) {}
   virtual void exit(ConstructorDeclNode<Extra> &) {}
   virtual void exit(ExprStmtNode<Extra> &) {}
+  virtual void exit(TypeNode<Extra> &) {}
 
   virtual void visit(ASTNode<Extra> &) {}
   virtual void visit(BinaryExprNode<Extra> &) {}
@@ -130,6 +125,7 @@ class ASTVisitor {
   virtual void visit(MethodDeclNode<Extra> &) {}
   virtual void visit(ConstructorDeclNode<Extra> &) {}
   virtual void visit(ExprStmtNode<Extra> &) {}
+  virtual void visit(TypeNode<Extra> &) {}
 
  protected:
   CompilerContext &context;
@@ -139,7 +135,7 @@ class ASTVisitor {
 
   std::string current_class;
   std::string current_method;
-  TokenType current_method_ret_type = TokenType::TOKEN_UNKNOWN;
+  std::string current_method_ret_type;
 
   void push_scope() { scope_stack.emplace_back(); }
   void pop_scope() {
@@ -166,6 +162,8 @@ class ASTVisitor {
   }
 
   TokenType builtin_type_name_to_type(std::string type_name) {
+    if (type_name.find("[")) return TokenType::TOKEN_ARRAY;
+
     if (!context.keywords.find(type_name)) return TokenType::TOKEN_UNKNOWN;
 
     if (type_name == "int") return TokenType::TOKEN_INT;
@@ -199,14 +197,14 @@ class ASTVisitor {
 
   void exit_class() { current_class.clear(); }
 
-  void enter_method(const std::string &method_name, TokenType ret_type) {
+  void enter_method(const std::string &method_name, std::string ret_type) {
     current_method = method_name;
     current_method_ret_type = ret_type;
   }
 
   void exit_method() {
     current_method.clear();
-    current_method_ret_type = TokenType::TOKEN_UNKNOWN;
+    current_method_ret_type = "void";
   }
 
   void report_error(const std::string &message, SourceLocation loc) {

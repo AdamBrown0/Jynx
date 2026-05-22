@@ -7,6 +7,7 @@
 #include <system_error>
 
 #include "ast.hh"
+#include "token_utils.hh"
 #include "ast_utils.hh"
 #include "diagnostics.hh"
 
@@ -153,7 +154,7 @@ void parser_error(const std::string& message, const Token& token) {
   std::stringstream ss;
   ss << "Parser error at line " << token.getLine() << ", col " << token.getCol()
      << ": " << message << " (found: '" << token.getValue()
-     << "', type: " << token_type_to_string(token.getType()) << ")";
+     << "', type: " << TokenUtils::token_type_to_string(token.getType()) << ")";
   // Logger::error(ss.str());
   Diagnostics::instance().report_error(ss.str());
 }

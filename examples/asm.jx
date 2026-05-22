@@ -1,0 +1,5 @@
+int printf(string c) {
+    asm!(
+    ; mov r9, 10
+    )
+}

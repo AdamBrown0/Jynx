@@ -8,7 +8,9 @@
 #include "log.hh"
 #include "symbol.hh"
 #include "token.hh"
-#include "visitor/visitor.hh"
+
+template <typename Extra>
+class ASTVisitor;
 
 template <typename T>
 using uptr = std::unique_ptr<T>;
@@ -41,6 +43,28 @@ struct ASTNode {
   virtual ~ASTNode() = default;
 
   virtual void accept(ASTVisitor<Extra>& visitor) { visitor.visit(*this); }
+};
+
+template <typename Extra>
+struct TypeNode : ASTNode<Extra> {
+  enum Kind { Primitive, Array, Unknown } kind;
+
+  std::string name;
+  uptr<TypeNode<Extra>> element;
+  size_t length = 0;
+
+  TypeNode(std::string name, SourceLocation loc)
+      : ASTNode<Extra>(loc), kind(Primitive), name(name) {}
+
+  TypeNode(TypeNode<Extra>* element, size_t length, SourceLocation loc)
+      : ASTNode<Extra>(loc), kind(Array), element(element), length(length) {}
+
+  void accept(ASTVisitor<Extra>& visitor) override {
+    visitor.enter(*this);
+    if (element) element->accept(visitor);
+    visitor.visit(*this);
+    visitor.exit(*this);
+  }
 };
 
 /// ============
@@ -180,11 +204,11 @@ struct ArgumentNode : ASTNode<Extra> {
 
 template <typename Extra>
 struct ParamNode : ASTNode<Extra> {
-  Token type;
+  uptr<TypeNode<Extra>> type;
   Token identifier;  // might actually want to replace with something like
                      // vardecl or variable node
 
-  ParamNode(Token type, Token identifier, SourceLocation loc)
+  ParamNode(TypeNode<Extra>* type, Token identifier, SourceLocation loc)
       : ASTNode<Extra>(loc), type(type), identifier(identifier) {}
 
   void accept(ASTVisitor<Extra>& visitor) override {
@@ -241,14 +265,14 @@ struct BlockNode : StmtNode<Extra> {
 
 template <typename Extra>
 struct VarDeclNode : StmtNode<Extra> {
-  Token type_token;
+  uptr<TypeNode<Extra>> type;
   Token identifier;
   uptr<ExprNode<Extra>> initializer;
 
-  VarDeclNode(Token type_token, Token identifier, ExprNode<Extra>* initializer,
-              SourceLocation loc)
+  VarDeclNode(TypeNode<Extra>* type, Token identifier,
+              ExprNode<Extra>* initializer, SourceLocation loc)
       : StmtNode<Extra>(loc),
-        type_token(type_token),
+        type(type),
         identifier(identifier),
         initializer(initializer) {}
 
@@ -369,10 +393,10 @@ template <typename Extra>
 struct FieldDeclNode : ClassMemberNode<Extra> {
   Token access_modifier;
   bool is_static;
-  Token type;
+  uptr<TypeNode<Extra>> type;
   Token identifier;
 
-  FieldDeclNode(Token access_modifier, bool is_static, Token type,
+  FieldDeclNode(Token access_modifier, bool is_static, TypeNode<Extra>* type,
                 Token identifier, SourceLocation loc)
       : ClassMemberNode<Extra>(loc),
         access_modifier(access_modifier),
@@ -391,12 +415,12 @@ template <typename Extra>
 struct MethodDeclNode : ClassMemberNode<Extra> {
   Token access_modifier;
   bool is_static;
-  Token type;
+  uptr<TypeNode<Extra>> type;
   Token identifier;
   uptr_vector<ParamNode<Extra>> param_list;
   uptr<BlockNode<Extra>> body;
 
-  MethodDeclNode(Token access_modifier, bool is_static, Token type,
+  MethodDeclNode(Token access_modifier, bool is_static, TypeNode<Extra>* type,
                  Token identifier, uptr_vector<ParamNode<Extra>>&& param_list,
                  uptr<BlockNode<Extra>> body, SourceLocation loc)
       : ClassMemberNode<Extra>(loc),
@@ -445,7 +469,7 @@ struct ConstructorDeclNode : ClassMemberNode<Extra> {
 
 struct NodeInfo {
   std::unique_ptr<Symbol> sym;
-  TokenType resolved_type = TokenType::TOKEN_UNKNOWN;
+  TypeNode<NodeInfo>* resolved_type = nullptr;
   std::string type_name;
 
   int stack_offset = 0;  // for vardecl/ident

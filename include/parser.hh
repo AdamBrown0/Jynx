@@ -127,6 +127,7 @@ class Parser {
   // supporting
   _ASTNode* parseArgument();
   _ASTNode* parseParam();
+  TypeNode<NodeInfo>* parseType(const Token& token);
 };
 
 #endif  // PARSER_H_
