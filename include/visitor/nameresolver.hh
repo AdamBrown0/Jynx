@@ -11,31 +11,33 @@
 
 class NameResolver : public ASTVisitor<NodeInfo> {
  public:
-  NameResolver(CompilerContext &ctx) : ASTVisitor<NodeInfo>(ctx) {}
+  NameResolver(CompilerContext& ctx) : ASTVisitor<NodeInfo>(ctx) {}
 
-  void enter(BlockNode<NodeInfo> &node) override;
-  void exit(BlockNode<NodeInfo> &node) override;
-  void enter(ProgramNode<NodeInfo> &node) override;
-  void exit(ProgramNode<NodeInfo> &node) override;
-  void enter(MethodDeclNode<NodeInfo> &node) override;
-  void exit(MethodDeclNode<NodeInfo> &node) override;
-  void enter(ConstructorDeclNode<NodeInfo> &node) override;
-  void exit(ConstructorDeclNode<NodeInfo> &node) override;
-  void enter(ClassNode<NodeInfo> &node) override;
-  void exit(ClassNode<NodeInfo> &node) override;
-
-  void visit(VarDeclNode<NodeInfo> &node) override;
-  void visit(ParamNode<NodeInfo> &node) override;
-  void visit(ArgumentNode<NodeInfo> &node) override;
-  void visit(MethodDeclNode<NodeInfo> &node) override;
-  void visit(IdentifierExprNode<NodeInfo> &node) override;
-  void visit(ClassNode<NodeInfo> &node) override;
-  void visit(MethodCallNode<NodeInfo> &node) override;
-  void visit(AssignmentExprNode<NodeInfo> &node) override;
+  void resolve(ProgramNode<NodeInfo>& program);
 
  private:
-  const std::vector<Symbol> *find_method_overloads(const std::string &owner,
-                                                   const std::string &name);
+  void resolveStatement(StmtNode<NodeInfo>& stmt);
+  void resolveExpression(ExprNode<NodeInfo>& expr);
+
+  void resolveProgram(ProgramNode<NodeInfo>& node);
+  void resolveBlock(BlockNode<NodeInfo>& node);
+  void resolveVarDecl(VarDeclNode<NodeInfo>& node);
+  void resolveIfStmt(IfStmtNode<NodeInfo>& node);
+  void resolveWhileStmt(WhileStmtNode<NodeInfo>& node);
+  void resolveReturn(ReturnStmtNode<NodeInfo>& node);
+  void resolveExprStmt(ExprStmtNode<NodeInfo>& node);
+  void resolveMethodDecl(MethodDeclNode<NodeInfo>& node);
+
+  void resolveBinaryExpr(BinaryExprNode<NodeInfo>& node);
+  void resolveUnaryExpr(UnaryExprNode<NodeInfo>& node);
+  void resolveLiteralExpr(LiteralExprNode<NodeInfo>& node);
+  void resolveIdentifierExpr(IdentifierExprNode<NodeInfo>& node);
+  void resolveAssignmentExpr(AssignmentExprNode<NodeInfo>& node);
+  void resolveMethodCall(MethodCallNode<NodeInfo>& node);
+  void resolveArgument(ArgumentNode<NodeInfo>& node);
+
+  const std::vector<Symbol>* find_method_overloads(const std::string& owner,
+                                                   const std::string& name);
 };
 
 #endif  // NAMERESOLVER_H_

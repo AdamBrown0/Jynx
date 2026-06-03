@@ -19,18 +19,18 @@ inline const char* token_type_to_string(TokenType type) {
   }
 }
 
-inline const std::string type_to_string(TypeNode<NodeInfo>* type) {
-  if (!type) return "void";
+// inline const std::string type_to_string(TypeNode<NodeInfo>* type) {
+//   if (!type) return "void";
 
-  switch (type->kind) {
-    case TypeNode<NodeInfo>::Primitive:
-      return type->name;
-    case TypeNode<NodeInfo>::Array:
-      return type_to_string(type->element.get()) + "[]";
-    case TypeNode<NodeInfo>::Unknown:
-      return "unknown";
-  }
-}
+//   switch (type->kind) {
+//     case TypeNode<NodeInfo>::Primitive:
+//       return type->name;
+//     case TypeNode<NodeInfo>::Array:
+//       return type_to_string(type->element.get()) + "[]";
+//     case TypeNode<NodeInfo>::Unknown:
+//       return "unknown";
+//   }
+// }
 
 inline bool token_implicit_cast(TokenType from, TokenType to) {
   if (from == to) return true;

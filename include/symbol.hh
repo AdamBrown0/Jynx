@@ -5,14 +5,11 @@
 #include <vector>
 
 #include "sourcelocation.hh"
-
-template <typename Extra>
-struct TypeNode;
-struct NodeInfo;
+#include "type.hh"
 
 struct Symbol {
   std::string name;
-  TypeNode<NodeInfo>* type;
+  const Type* type = nullptr;
   SourceLocation decl_loc;
   int stack_offset;
   bool has_stack_slot = false;
@@ -23,7 +20,7 @@ struct Symbol {
   std::string owner_class;
   std::string method_key;
 
-  std::vector<TypeNode<NodeInfo>*> param_types;
+  std::vector<Type*> param_types;
   std::vector<std::string> param_names;
   std::vector<std::string> param_type_names;
 

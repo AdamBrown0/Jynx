@@ -10,8 +10,8 @@
 ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
   // pass 1: symbol table and scopes
   LOG_DEBUG("Collecting symbols");
-  SymbolCollectorVisitor symbol_collector(context);
-  root.accept(symbol_collector);
+  SymbolCollector symbol_collector(context);
+  symbol_collector.collect(root);
   if (symbol_collector.has_errors()) {
     LOG_ERROR("Symbol collector has failed with {} errors",
               symbol_collector.error_count());
@@ -19,10 +19,11 @@ ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
   }
 
   {
-    const std::vector<TypeNode<NodeInfo>*> no_params;
+    const std::vector<Type*> no_params;
     const Symbol* main_method =
         context.method_table.find_overload("global", "main", no_params);
-    if (!main_method || !main_method->type || main_method->type->name != "int") {
+    if (!main_method || !main_method->type ||
+        main_method->type->to_string() != "int") {
       LOG_ERROR("Missing required entry point: int main() with no parameters");
       return nullptr;
     }
@@ -30,7 +31,7 @@ ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
 
   LOG_DEBUG("Resolving names");
   NameResolver name_resolver(context);
-  root.accept(name_resolver);
+  name_resolver.resolve(root);
   if (name_resolver.has_errors()) {
     LOG_ERROR("Name resolver has failed with {} errors",
               name_resolver.error_count());
@@ -38,8 +39,8 @@ ProgramNode<NodeInfo>* Sema::analyze(ProgramNode<NodeInfo>& root) {
   }
 
   LOG_DEBUG("Type/decl checking");
-  TypeCheckerVisitor type_checker(context);
-  root.accept(type_checker);
+  TypeChecker type_checker(context);
+  type_checker.check(root);
 
   if (type_checker.has_errors()) {
     LOG_ERROR("Type checker has failed with {} errors",

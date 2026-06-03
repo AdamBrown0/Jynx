@@ -29,7 +29,7 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
 
   LOG_DEBUG("[GEN] Accepting nodes");
   auto &root_noconst = const_cast<ProgramNode<NodeInfo> &>(root);
-  root_noconst.accept(*this);
+  // root_noconst.accept(*this);
 
   // Exit main function scope
   exit_scope();
@@ -334,7 +334,7 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
                           ? "global"
                           : node.extra.sym->owner_class;
 
-  const Symbol *overload = context.method_table.find_overload(
+  const Symbol *overload = ctx.method_table.find_overload(
       owner, node.extra.sym->name, node.extra.sym->param_types);
 
   emitCall(overload->method_key);

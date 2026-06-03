@@ -47,14 +47,13 @@ class MethodTable {
     std::string key = method.owner_class + "_" + method.name + "_";
     for (size_t i = 0; i < method.param_types.size(); ++i) {
       if (i > 0) key += "_";
-      key += TokenUtils::type_to_string(method.param_types[i]);
+      key += method.param_types[i]->to_string();
     }
     return key;
   }
 
-  const Symbol *find_overload(
-      const std::string &owner, const std::string &name,
-      const std::vector<TypeNode<NodeInfo> *> &param_types) const {
+  const Symbol *find_overload(const std::string &owner, const std::string &name,
+                              const std::vector<Type *> &param_types) const {
     MethodKey key{owner, name};
     auto it = methods.find(key);
     if (it == methods.end()) return nullptr;

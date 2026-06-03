@@ -67,3 +67,4 @@ docs
 program.s
 program
 compile_commands.json
+.clangd

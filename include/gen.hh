@@ -23,10 +23,6 @@ typedef struct Scope {
 
 class CodeGenerator : public ASTVisitor<NodeInfo> {
  public:
-  using ASTVisitor<NodeInfo>::enter;
-  using ASTVisitor<NodeInfo>::exit;
-  using ASTVisitor<NodeInfo>::before_else;
-
   explicit CodeGenerator(CompilerContext &ctx) : ASTVisitor<NodeInfo>(ctx) {
     setupRegisters();
   }
@@ -34,38 +30,27 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
 
   std::string generate(const ProgramNode<NodeInfo> &root);
 
-  void visit(ASTNode<NodeInfo> &node) override;
-  void visit(BinaryExprNode<NodeInfo> &node) override;
-  void visit(UnaryExprNode<NodeInfo> &node) override;
-  void visit(LiteralExprNode<NodeInfo> &node) override;
-  void visit(IdentifierExprNode<NodeInfo> &node) override;
-  void visit(AssignmentExprNode<NodeInfo> &node) override;
-  void visit(MethodCallNode<NodeInfo> &node) override;
-  void visit(ArgumentNode<NodeInfo> &node) override;
-  void visit(ParamNode<NodeInfo> &node) override;
-  void visit(ProgramNode<NodeInfo> &node) override;
-  void visit(BlockNode<NodeInfo> &node) override;
-  void visit(VarDeclNode<NodeInfo> &node) override;
-  void visit(IfStmtNode<NodeInfo> &node) override;
-  void visit(WhileStmtNode<NodeInfo> &node) override;
-  void visit(ReturnStmtNode<NodeInfo> &node) override;
-  void visit(ClassNode<NodeInfo> &node) override;
-  void visit(FieldDeclNode<NodeInfo> &node) override;
-  void visit(MethodDeclNode<NodeInfo> &node) override;
-  void visit(ConstructorDeclNode<NodeInfo> &node) override;
-  void visit(ExprStmtNode<NodeInfo> &node) override;
-
-  void enter(BlockNode<NodeInfo> &node) override;
-  void exit(BlockNode<NodeInfo> &node) override;
-  void enter(IfStmtNode<NodeInfo> &node) override;
-  void before_else(IfStmtNode<NodeInfo> &node) override;
-  void exit(IfStmtNode<NodeInfo> &node) override;
-  void enter(WhileStmtNode<NodeInfo> &node) override;
-  void exit(WhileStmtNode<NodeInfo> &node) override;
-  void enter(MethodDeclNode<NodeInfo> &node) override;
-  void exit(MethodDeclNode<NodeInfo> &node) override;
-
  private:
+  void generateStatement(StmtNode<NodeInfo> &stmt);
+  void generateExpression(ExprNode<NodeInfo> &expr);
+
+  void generateProgram(ProgramNode<NodeInfo> &node);
+  void generateBlock(BlockNode<NodeInfo> &node);
+  void generateVarDecl(VarDeclNode<NodeInfo> &node);
+  void generateIfStmt(IfStmtNode<NodeInfo> &node);
+  void generateWhileStmt(WhileStmtNode<NodeInfo> &node);
+  void generateReturn(ReturnStmtNode<NodeInfo> &node);
+  void generateExprStmt(ExprStmtNode<NodeInfo> &node);
+  void generateMethodDecl(MethodDeclNode<NodeInfo> &node);
+
+  void generateBinaryExpr(BinaryExprNode<NodeInfo> &node);
+  void generateUnaryExpr(UnaryExprNode<NodeInfo> &node);
+  void generateLiteralExpr(LiteralExprNode<NodeInfo> &node);
+  void generateIdentifierExpr(IdentifierExprNode<NodeInfo> &node);
+  void generateAssignmentExpr(AssignmentExprNode<NodeInfo> &node);
+  void generateMethodCall(MethodCallNode<NodeInfo> &node);
+  void generateArgument(ArgumentNode<NodeInfo> &node);
+
   struct IfContext {
     std::string false_label;
     std::string end_label;

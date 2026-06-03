@@ -10,7 +10,8 @@
 
 class Parser {
  public:
-  explicit Parser(Lexer& lexer) : lexer(lexer), current(Token()) {}
+  explicit Parser(Lexer& lexer, CompilerContext& context)
+      : lexer(lexer), current(Token()), ctx(context) {}
 
   ProgramNode<NodeInfo>* parseProgram();
 
@@ -19,6 +20,8 @@ class Parser {
   Lexer& lexer;
   /// @internal
   Token current;
+
+  CompilerContext& ctx;
 
   /// @internal
   std::deque<Token> peeked_tokens;
@@ -61,6 +64,9 @@ class Parser {
         return -1;
     }
   }
+
+  /// Returns true if current token type matches the one passed
+  inline bool match(TokenType type) const { return current.getType() == type; }
 
   /// Peek at the next token in the stream
   /// @return Next token
@@ -127,7 +133,7 @@ class Parser {
   // supporting
   _ASTNode* parseArgument();
   _ASTNode* parseParam();
-  TypeNode<NodeInfo>* parseType(const Token& token);
+  const Type* parseType();
 };
 
 #endif  // PARSER_H_

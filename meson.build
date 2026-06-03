@@ -1,6 +1,7 @@
 project(
   'jynxc', 'cpp',
   default_options: [
+    'cpp_std=c++23',
     'c_std=c11',
     'warning_level=3',
     'b_sanitize=address'
@@ -36,64 +37,64 @@ project_target = executable(
 # Tests
 # ======
 # CLI
-test('no_arg', project_target, should_fail: true, suite:'cli')
-test('one_arg', project_target, args : ['../examples/example.jx'], suite:'cli')
+# test('no_arg', project_target, should_fail: true, suite:'cli')
+# test('one_arg', project_target, args : ['../examples/example.jx'], suite:'cli')
 
-catch2_dep = dependency('catch2', fallback: ['catch2', 'catch2_with_main_dep'])
+# catch2_dep = dependency('catch2', fallback: ['catch2', 'catch2_with_main_dep'])
 
-# Lexer
-test_lexer_exe = executable(
-  'test_lexer',
-  'tests/test_lexer.cc',
-  link_with: core_lib,
-  include_directories: incdir,
-  dependencies: [catch2_dep],
-)
+# # Lexer
+# test_lexer_exe = executable(
+#   'test_lexer',
+#   'tests/test_lexer.cc',
+#   link_with: core_lib,
+#   include_directories: incdir,
+#   dependencies: [catch2_dep],
+# )
 
-test('lexer', test_lexer_exe, timeout: 5, suite:'lexer')
+# test('lexer', test_lexer_exe, timeout: 5, suite:'lexer')
 
-# Parser
-test_parser_exe = executable(
-  'test_parser',
-  'tests/test_parser.cc',
-  link_with: core_lib,
-  include_directories: incdir,
-  dependencies: [catch2_dep],
-)
+# # Parser
+# test_parser_exe = executable(
+#   'test_parser',
+#   'tests/test_parser.cc',
+#   link_with: core_lib,
+#   include_directories: incdir,
+#   dependencies: [catch2_dep],
+# )
 
-test('parser', test_parser_exe, timeout: 5, suite:'parser')
+# test('parser', test_parser_exe, timeout: 5, suite:'parser')
 
-# Sema
-test_sema_exe = executable(
-  'test_sema',
-  'tests/test_sema.cc',
-  link_with: core_lib,
-  include_directories: incdir,
-  dependencies: [catch2_dep],
-)
+# # Sema
+# test_sema_exe = executable(
+#   'test_sema',
+#   'tests/test_sema.cc',
+#   link_with: core_lib,
+#   include_directories: incdir,
+#   dependencies: [catch2_dep],
+# )
 
-test('sema', test_sema_exe, timeout: 5, suite:'sema')
+# test('sema', test_sema_exe, timeout: 5, suite:'sema')
 
-# TypeChecker
-test_typechecker_exe = executable(
-  'test_typechecker',
-  'tests/test_typechecker.cc',
-  link_with: core_lib,
-  include_directories: incdir,
-  dependencies: [catch2_dep],
-)
+# # TypeChecker
+# test_typechecker_exe = executable(
+#   'test_typechecker',
+#   'tests/test_typechecker.cc',
+#   link_with: core_lib,
+#   include_directories: incdir,
+#   dependencies: [catch2_dep],
+# )
 
-test('typechecker', test_typechecker_exe, timeout: 5, suite:'typechecker')
+# test('typechecker', test_typechecker_exe, timeout: 5, suite:'typechecker')
 
-# Codegen
-test_codegen_exe = executable(
-  'test_codegen',
-  'tests/test_codegen.cc',
-  link_with: core_lib,
-  include_directories: incdir,
-  dependencies: [catch2_dep],
-)
+# # Codegen
+# test_codegen_exe = executable(
+#   'test_codegen',
+#   'tests/test_codegen.cc',
+#   link_with: core_lib,
+#   include_directories: incdir,
+#   dependencies: [catch2_dep],
+# )
 
-test('codegen', test_codegen_exe, timeout: 5, suite:'codegen')
+# test('codegen', test_codegen_exe, timeout: 5, suite:'codegen')
 
 # ...

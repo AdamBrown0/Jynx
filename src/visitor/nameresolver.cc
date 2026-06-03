@@ -5,12 +5,12 @@
 
 const std::vector<Symbol> *NameResolver::find_method_overloads(
     const std::string &owner, const std::string &name) {
-  if (context.method_table.empty()) {
+  if (ctx.method_table.empty()) {
     LOG_FATAL("No methods in method table to find overload");
     return nullptr;
   }
 
-  return context.method_table.find_all(owner, name);
+  return ctx.method_table.find_all(owner, name);
 }
 
 void NameResolver::enter(BlockNode<NodeInfo> &) { push_scope(); }
@@ -94,16 +94,16 @@ void NameResolver::visit(ParamNode<NodeInfo> &node) {}
 
 void NameResolver::visit(MethodDeclNode<NodeInfo> &node) {
   const std::string name = node.identifier.getValue();
-  std::vector<TypeNode<NodeInfo> *> param_types;
+  std::vector<Type *> param_types;
   param_types.reserve(node.param_list.size());
   for (auto &param : node.param_list) {
     if (param) {
-      param_types.push_back(param->type.get());
+      param_types.push_back(param->type);
     }
   }
 
   const std::string owner = current_class.empty() ? "global" : current_class;
-  if (context.method_table.empty()) {
+  if (ctx.method_table.empty()) {
     report_error("Missing method table for resolver", node.location);
     return;
   }

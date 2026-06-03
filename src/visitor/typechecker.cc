@@ -1,367 +1,40 @@
 #include "visitor/typechecker.hh"
 
-#include "ast.hh"
-#include "ast_utils.hh"
-#include "log.hh"
-#include "token.hh"
-#include "token_utils.hh"
-
-void TypeCheckerVisitor::enter(BlockNode<NodeInfo>&) {
-  scope_starts.push_back(current_stack_offset);
-  push_scope();
+void TypeChecker::checkStatement(StmtNode<NodeInfo>& stmt) {
+  if (auto* node = dynamic_cast<BlockNode<NodeInfo>*>(&stmt))
+    checkBlock(*node);
+  else if (auto* node = dynamic_cast<VarDeclNode<NodeInfo>*>(&stmt))
+    checkVarDecl(*node);
+  else if (auto* node = dynamic_cast<IfStmtNode<NodeInfo>*>(&stmt))
+    checkIfStmt(*node);
+  else if (auto* node = dynamic_cast<WhileStmtNode<NodeInfo>*>(&stmt))
+    checkWhileStmt(*node);
+  else if (auto* node = dynamic_cast<ReturnStmtNode<NodeInfo>*>(&stmt))
+    checkReturn(*node);
+  else if (auto* node = dynamic_cast<ExprStmtNode<NodeInfo>*>(&stmt))
+    checkExprStmt(*node);
+  else if (auto* node = dynamic_cast<MethodDeclNode<NodeInfo>*>(&stmt))
+    checkMethodDecl(*node);
+  else
+    report_error("Unknown statment type", stmt.location);
 }
 
-void TypeCheckerVisitor::exit(BlockNode<NodeInfo>&) {
-  pop_scope();
-  current_stack_offset = scope_starts.back();
-  scope_starts.pop_back();
-}
+const Type* TypeChecker::checkExpression(ExprNode<NodeInfo>& expr) {
+  if (auto* node = dynamic_cast<BinaryExprNode<NodeInfo>*>(&expr))
+    return checkBinaryExpr(*node);
+  if (auto* node = dynamic_cast<UnaryExprNode<NodeInfo>*>(&expr))
+    return checkUnaryExpr(*node);
+  if (auto* node = dynamic_cast<LiteralExprNode<NodeInfo>*>(&expr))
+    return checkLiteralExpr(*node);
+  if (auto* node = dynamic_cast<IdentifierExprNode<NodeInfo>*>(&expr))
+    return checkIdentifierExpr(*node);
+  if (auto* node = dynamic_cast<AssignmentExprNode<NodeInfo>*>(&expr))
+    return checkAssignmentExpr(*node);
+  if (auto* node = dynamic_cast<MethodCallNode<NodeInfo>*>(&expr))
+    return checkMethodCall(*node);
+  if (auto* node = dynamic_cast<ArgumentNode<NodeInfo>*>(&expr))
+    return checkArgument(*node);
 
-void TypeCheckerVisitor::enter(ProgramNode<NodeInfo>&) { push_scope(); }
-
-void TypeCheckerVisitor::exit(ProgramNode<NodeInfo>&) { pop_scope(); }
-
-void TypeCheckerVisitor::enter(MethodDeclNode<NodeInfo>& node) {
-  enter_method(node.identifier.getValue(), node.type->name);
-
-  current_stack_offset = 0;
-  max_stack_offset = 0;
-  scope_starts.clear();
-  scope_starts.push_back(0);
-
-  push_scope();
-
-  size_t param_index = 0;
-  for (auto& param : node.param_list) {
-    if (param) {
-      param->extra.param_index = param_index;
-      add_param_symbol(*param);
-    }
-    param_index++;
-  }
-}
-
-void TypeCheckerVisitor::exit(MethodDeclNode<NodeInfo>& node) {
-  pop_scope();
-  exit_method();
-
-  node.extra.frame_size = align16(max_stack_offset);
-}
-
-void TypeCheckerVisitor::enter(ConstructorDeclNode<NodeInfo>& node) {
-  enter_method(node.identifier.getValue(), "constructor");
-  push_scope();
-
-  for (auto& param : node.param_list) {
-    if (param) {
-      add_param_symbol(*param);
-    }
-  }
-}
-
-void TypeCheckerVisitor::exit(ConstructorDeclNode<NodeInfo>&) {
-  pop_scope();
-  exit_method();
-}
-
-void TypeCheckerVisitor::add_param_symbol(ParamNode<NodeInfo>& node) {
-  if (check_symbol(node.identifier.getValue())) {
-    report_error(
-        "Redeclaration of parameter '" + node.identifier.getValue() + "'",
-        node.location);
-    return;
-  }
-
-  Symbol param_symbol;
-  param_symbol.name = node.identifier.getValue();
-  param_symbol.is_param = true;
-  param_symbol.decl_loc = node.location;
-
-  LOG_DEBUG("[TYPE] param_index: {}", node.extra.param_index);
-
-  int stack_offset_size = TokenUtils::token_type_to_bit_size(
-                              builtin_type_name_to_type(node.type->name)) /
-                          8;
-
-  if (node.extra.param_index < 6) {
-    current_stack_offset += stack_offset_size;
-    max_stack_offset = std::max(max_stack_offset, current_stack_offset);
-    param_symbol.stack_offset = -current_stack_offset;
-  } else {
-    param_symbol.stack_offset = 16 + 8 * (node.extra.param_index - 6);
-  }
-  param_symbol.has_stack_slot = true;
-
-  add_symbol(param_symbol);
-
-  node.extra.has_stack_slot = true;
-  node.extra.stack_offset = -current_stack_offset;
-}
-
-void TypeCheckerVisitor::visit(BinaryExprNode<NodeInfo>& node) {
-  TypeInfo left_type{node.left->extra.resolved_type,
-                     node.left->extra.type_name};
-  TypeInfo right_type{node.right->extra.resolved_type,
-                      node.right->extra.type_name};
-
-  if (left_type.token_type->kind == TypeNode<NodeInfo>::Kind::Unknown ||
-      right_type.token_type->kind == TypeNode<NodeInfo>::Kind::Unknown) {
-    report_error("BinaryExprNode left/right had unknown token type",
-                 node.location);
-    return;
-  }
-
-  TypeInfo result_type =
-      check_binary_op(node.op.getType(), left_type, right_type);
-  if (result_type.token_type->kind == TypeNode<NodeInfo>::Kind::Unknown) {
-    std::string error =
-        "Invalid binary operation: " + ASTStringBuilder::node_to_string(&node);
-    report_error(error, node.location);
-  }
-
-  // set_expr_type(&node, result_type);
-  node.extra.resolved_type = result_type.token_type;
-  node.extra.type_name = result_type.type_name;
-}
-
-void TypeCheckerVisitor::visit(IdentifierExprNode<NodeInfo>& node) {
-  std::string name = node.identifier.getValue();
-  Symbol* symbol = lookup_symbol(name);
-
-  if (!symbol) {
-    report_error("Undeclared identifier '" + name + "'", node.location);
-    // set_expr_type(&node, TokenType::TOKEN_UNKNOWN);
-    return;
-  }
-
-  if (symbol->is_class) {
-    // set_expr_type(&node, TokenType::TOKEN_DATA_TYPE, symbol->name);
-    node.extra.resolved_type = symbol->type;
-    node.extra.type_name = symbol->name;
-  } else {
-    if (symbol->type->kind == TypeNode<NodeInfo>::Primitive) {
-      TokenType resolved = resolve_type(symbol->type_name);
-      node.extra.resolved_type = resolved;
-      if (resolved == TokenType::TOKEN_DATA_TYPE) {
-        node.extra.type_name = symbol->type->name;
-      } else {
-        node.extra.type_name = get_type_name_from_token(resolved);
-      }
-    } else {
-      // set_expr_type(&node, symbol->type, type_name);
-      node.extra.resolved_type = symbol->type;
-      node.extra.type_name = symbol->type->name;
-    }
-  }
-
-  if (symbol->has_stack_slot) {
-    node.extra.stack_offset = symbol->stack_offset;
-    node.extra.has_stack_slot = true;
-  }
-}
-
-void TypeCheckerVisitor::visit(VarDeclNode<NodeInfo>& node) {
-  if (!scope_stack.empty()) {
-    if (check_symbol(node.identifier.getValue())) {
-      report_error(
-          "Redeclaration of variable '" + node.identifier.getValue() + "'",
-          node.location);
-    } else {
-      int size = TokenUtils::token_type_to_bit_size(
-                     builtin_type_name_to_type(node.type_token.getValue())) /
-                 8;
-      current_stack_offset += size;
-      max_stack_offset = std::max(max_stack_offset, current_stack_offset);
-
-      Symbol var_symbol;
-      var_symbol.name = node.identifier.getValue();
-      var_symbol.type = node.type.get();
-      var_symbol.decl_loc = node.location;
-      var_symbol.has_stack_slot = true;
-      var_symbol.stack_offset = -current_stack_offset;
-      add_symbol(var_symbol);
-
-      node.extra.stack_offset = -current_stack_offset;
-      node.extra.has_stack_slot = true;
-    }
-  }
-
-  std::string declared_type = node.type_token.getValue();
-
-  node.extra.resolved_type = resolve_type(node.type_token.getValue());
-  node.extra.type_name = node.type_token.getValue();
-
-  if (node.initializer) {
-    node.initializer->accept(*this);
-    TypeInfo initializer_type{node.initializer->extra.resolved_type,
-                              node.initializer->extra.type_name};
-
-    if (!types_compatible(declared_type, initializer_type)) {
-      report_error("Tried to assign type '" + initializer_type.type_name +
-                       "' to variable of type '" + declared_type + "'",
-                   node.location);
-    }
-  }
-}
-
-void TypeCheckerVisitor::visit(ArgumentNode<NodeInfo>& node) {
-  LOG_DEBUG("[TYPE] Arg node visit");
-  if (node.expr) {
-    node.expr->accept(*this);
-    node.extra.resolved_type = node.expr->extra.resolved_type;
-    node.extra.type_name = node.expr->extra.type_name;
-  } else {
-    node.extra.resolved_type = TokenType::TOKEN_UNKNOWN;
-  }
-}
-
-void TypeCheckerVisitor::visit(MethodDeclNode<NodeInfo>& node) {
-  std::string declared_type = node.type.getValue();
-  // oh i need a way to see what type its actually returning
-}
-
-void TypeCheckerVisitor::visit(MethodCallNode<NodeInfo>& node) {
-  LOG_DEBUG("[TYPE] Method call entering");
-
-  if (node.extra.overload_set.empty()) {
-    report_error("No overloads found for '" + node.identifier.getValue() + "'",
-                 node.location);
-    return;
-  }
-
-  // Collect argument types
-  std::vector<TokenType> arg_types;
-  std::vector<std::string> arg_type_names;
-  for (const auto& arg : node.arg_list) {
-    if (arg) {
-      arg_types.push_back(arg->extra.resolved_type);
-      arg_type_names.push_back(arg->extra.type_name);
-    }
-  }
-
-  LOG_DEBUG("OVERLOADS");
-  // Find the method overload that matches both parameter count and types
-  Symbol* matching_overload = nullptr;
-  for (auto& overload : node.extra.overload_set) {
-    if (overload.param_types.size() != arg_types.size()) continue;
-    bool types_match = true;
-    for (size_t i = 0; i < arg_types.size(); ++i) {
-      TokenType param_type = overload.param_types[i];
-      if (param_type == TokenType::TOKEN_DATA_TYPE) {
-        param_type = resolve_type(overload.param_type_names[i]);
-      }
-      TokenType arg_type = arg_types[i];
-      if (arg_type == TokenType::TOKEN_DATA_TYPE) {
-        arg_type = resolve_type(arg_type_names[i]);
-      }
-      if (param_type != arg_type) {
-        types_match = false;
-        break;
-      }
-    }
-    if (types_match) {
-      matching_overload = &overload;
-      break;
-    }
-  }
-
-  if (!matching_overload) {
-    std::string error_msg = "No matching overload found for '" +
-                            node.identifier.getValue() + "' with arguments (";
-    for (size_t i = 0; i < arg_types.size(); ++i) {
-      if (i > 0) error_msg += ", ";
-      error_msg += get_type_name_from_token(arg_types[i]);
-    }
-    error_msg += ")";
-    report_error(error_msg, node.location);
-    return;
-  }
-
-  node.extra.sym = std::make_unique<Symbol>(*matching_overload);
-
-  if (node.extra.sym->type == TokenType::TOKEN_DATA_TYPE) {
-    TokenType resolved = resolve_type(node.extra.sym->type_name);
-    node.extra.resolved_type = resolved;
-    if (resolved == TokenType::TOKEN_DATA_TYPE) {
-      node.extra.type_name = node.extra.sym->type_name;
-    } else {
-      node.extra.type_name = get_type_name_from_token(resolved);
-    }
-  } else {
-    node.extra.resolved_type = node.extra.sym->type;
-    node.extra.type_name = get_type_name_from_token(node.extra.sym->type);
-  }
-
-  // Arguments are already typed from the initial traversal, no need to re-visit
-}
-
-void TypeCheckerVisitor::visit(LiteralExprNode<NodeInfo>& node) {
-  TokenType literal_type = node.literal_token.getType();
-  std::string type_name = get_type_name_from_token(literal_type);
-  // set_expr_type(&node, literal_type, type_name);
-  node.extra.resolved_type = literal_type;
-  node.extra.type_name = type_name;
-}
-
-void TypeCheckerVisitor::visit(ExprStmtNode<NodeInfo>& node) { (void)node; }
-
-void TypeCheckerVisitor::visit(AssignmentExprNode<NodeInfo>& node) {
-  if (node.op.getType() == TokenType::TOKEN_EQUALS) {
-    if (auto* identifier =
-            dynamic_cast<IdentifierExprNode<NodeInfo>*>(node.left.get())) {
-      Symbol* symbol = lookup_symbol(identifier->identifier.getValue());
-      if (!symbol) {
-        report_error(
-            "Undeclared identifier '" + identifier->identifier.getValue() + "'",
-            node.location);
-        return;
-      }
-
-      TokenType left_type = symbol->type;
-      if (left_type == TokenType::TOKEN_DATA_TYPE) {
-        left_type = resolve_type(symbol->type_name);
-        if (left_type == TokenType::TOKEN_DATA_TYPE) {
-          if (symbol->type_name == node.right->extra.type_name) {
-            node.extra.resolved_type = node.right->extra.resolved_type;
-            node.extra.type_name = node.right->extra.type_name;
-            return;
-          }
-        }
-      }
-
-      if (left_type == node.right->extra.resolved_type) {
-        node.extra.resolved_type = node.right->extra.resolved_type;
-        node.extra.type_name = node.right->extra.type_name;
-      } else {
-        report_error("Tried to assign mismatching type", node.location);
-      }
-    }
-  }
-}
-
-void TypeCheckerVisitor::visit(UnaryExprNode<NodeInfo>& node) {
-  TokenType operand_type = node.operand->extra.resolved_type;
-
-  switch (node.op.getType()) {
-    case TokenType::TOKEN_MINUS: {
-      if (operand_type != TokenType::TOKEN_INT) {
-        report_error("Unary '-' requires numeric type", node.location);
-      }
-      // set_expr_type(&node, operand_type);
-      node.extra.resolved_type = operand_type;
-      break;
-    }
-    default:
-      report_error("Unknown unary operator", node.location);
-  }
-}
-
-void TypeCheckerVisitor::visit(ReturnStmtNode<NodeInfo>& node) {
-  if (node.ret) node.ret->accept(*this);
-
-  if (!TokenUtils::token_implicit_cast(node.ret->extra.resolved_type,
-                                       current_method_ret_type)) {
-    report_error("Return type does not match method type", node.location);
-    return;
-  }
+  report_error("Unknown expression type", expr.location);
+  return ctx.get_void_type();
 }

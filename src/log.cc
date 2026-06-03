@@ -7,9 +7,9 @@
 #include <system_error>
 
 #include "ast.hh"
-#include "token_utils.hh"
 #include "ast_utils.hh"
 #include "diagnostics.hh"
+#include "token_utils.hh"
 
 using namespace Log;
 
