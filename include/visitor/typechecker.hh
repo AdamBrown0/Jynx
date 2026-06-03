@@ -4,32 +4,32 @@
 #include "ast.hh"
 #include "visitor.hh"
 
-class TypeChecker : public ASTVisitor<NodeInfo> {
+class TypeChecker : public ASTVisitor {
  public:
-  TypeChecker(CompilerContext& ctx) : ASTVisitor<NodeInfo>(ctx) {}
+  TypeChecker(CompilerContext& ctx) : ASTVisitor(ctx) {}
 
-  void check(ProgramNode<NodeInfo>& program) { checkProgram(program); }
+  void check(ProgramNode& program) { checkProgram(program); }
 
  private:
-  void checkStatement(StmtNode<NodeInfo>& stmt);
-  const Type* checkExpression(ExprNode<NodeInfo>& expr);
+  void checkStatement(StmtNode& stmt);
+  const Type* checkExpression(ExprNode& expr);
 
-  void checkProgram(ProgramNode<NodeInfo>& node);
-  void checkBlock(BlockNode<NodeInfo>& node);
-  void checkVarDecl(VarDeclNode<NodeInfo>& node);
-  void checkIfStmt(IfStmtNode<NodeInfo>& node);
-  void checkWhileStmt(WhileStmtNode<NodeInfo>& node);
-  void checkReturn(ReturnStmtNode<NodeInfo>& node);
-  void checkExprStmt(ExprStmtNode<NodeInfo>& node);
-  void checkMethodDecl(MethodDeclNode<NodeInfo>& node);
+  void checkProgram(ProgramNode& node);
+  void checkBlock(BlockNode& node);
+  void checkVarDecl(VarDeclNode& node);
+  void checkIfStmt(IfStmtNode& node);
+  void checkWhileStmt(WhileStmtNode& node);
+  void checkReturn(ReturnStmtNode& node);
+  void checkExprStmt(ExprStmtNode& node);
+  void checkMethodDecl(MethodDeclNode& node);
 
-  const Type* checkBinaryExpr(BinaryExprNode<NodeInfo>& node);
-  const Type* checkUnaryExpr(UnaryExprNode<NodeInfo>& node);
-  const Type* checkLiteralExpr(LiteralExprNode<NodeInfo>& node);
-  const Type* checkIdentifierExpr(IdentifierExprNode<NodeInfo>& node);
-  const Type* checkAssignmentExpr(AssignmentExprNode<NodeInfo>& node);
-  const Type* checkMethodCall(MethodCallNode<NodeInfo>& node);
-  const Type* checkArgument(ArgumentNode<NodeInfo>& node);
+  const Type* checkBinaryExpr(BinaryExprNode& node);
+  const Type* checkUnaryExpr(UnaryExprNode& node);
+  const Type* checkLiteralExpr(LiteralExprNode& node);
+  const Type* checkIdentifierExpr(IdentifierExprNode& node);
+  const Type* checkAssignmentExpr(AssignmentExprNode& node);
+  const Type* checkMethodCall(MethodCallNode& node);
+  const Type* checkArgument(ArgumentNode& node);
 
   const Type* check_binary_op(TokenType op, const Type& left,
                               const Type& right) {

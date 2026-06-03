@@ -8,7 +8,7 @@
 class Sema {
  public:
   Sema(CompilerContext &ctx) : context(ctx) {}
-  ProgramNode<NodeInfo> *analyze(ProgramNode<NodeInfo> &);
+  ProgramNode *analyze(ProgramNode &);
 
  private:
   CompilerContext &context;

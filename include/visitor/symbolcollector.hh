@@ -4,32 +4,32 @@
 #include "ast.hh"
 #include "visitor.hh"
 
-class SymbolCollector : public ASTVisitor<NodeInfo> {
+class SymbolCollector : public ASTVisitor {
  public:
-  SymbolCollector(CompilerContext& ctx) : ASTVisitor<NodeInfo>(ctx) {}
+  SymbolCollector(CompilerContext& ctx) : ASTVisitor(ctx) {}
 
-  void collect(ProgramNode<NodeInfo>& program);
+  void collect(ProgramNode& program);
 
  private:
-  void collectStatement(StmtNode<NodeInfo>& stmt);
-  void collectExpression(ExprNode<NodeInfo>& expr);
+  void collectStatement(StmtNode& stmt);
+  void collectExpression(ExprNode& expr);
 
-  void collectProgram(ProgramNode<NodeInfo>& node);
-  void collectBlock(BlockNode<NodeInfo>& node);
-  void collectVarDecl(VarDeclNode<NodeInfo>& node);
-  void collectIfStmt(IfStmtNode<NodeInfo>& node);
-  void collectWhileStmt(WhileStmtNode<NodeInfo>& node);
-  void collectReturn(ReturnStmtNode<NodeInfo>& node);
-  void collectExprStmt(ExprStmtNode<NodeInfo>& node);
-  void collectMethodDecl(MethodDeclNode<NodeInfo>& node);
+  void collectProgram(ProgramNode& node);
+  void collectBlock(BlockNode& node);
+  void collectVarDecl(VarDeclNode& node);
+  void collectIfStmt(IfStmtNode& node);
+  void collectWhileStmt(WhileStmtNode& node);
+  void collectReturn(ReturnStmtNode& node);
+  void collectExprStmt(ExprStmtNode& node);
+  void collectMethodDecl(MethodDeclNode& node);
 
-  void collectBinaryExpr(BinaryExprNode<NodeInfo>& node);
-  void collectUnaryExpr(UnaryExprNode<NodeInfo>& node);
-  void collectLiteralExpr(LiteralExprNode<NodeInfo>& node);
-  void collectIdentifierExpr(IdentifierExprNode<NodeInfo>& node);
-  void collectAssignmentExpr(AssignmentExprNode<NodeInfo>& node);
-  void collectMethodCall(MethodCallNode<NodeInfo>& node);
-  void collectArgument(ArgumentNode<NodeInfo>& node);
+  void collectBinaryExpr(BinaryExprNode& node);
+  void collectUnaryExpr(UnaryExprNode& node);
+  void collectLiteralExpr(LiteralExprNode& node);
+  void collectIdentifierExpr(IdentifierExprNode& node);
+  void collectAssignmentExpr(AssignmentExprNode& node);
+  void collectMethodCall(MethodCallNode& node);
+  void collectArgument(ArgumentNode& node);
 
   TokenType resolve_param_type(const std::string& name);
 };

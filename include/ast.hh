@@ -10,9 +10,6 @@
 #include "token.hh"
 #include "type.hh"
 
-template <typename Extra>
-class ASTVisitor;
-
 template <typename T>
 using uptr = std::unique_ptr<T>;
 
@@ -20,97 +17,88 @@ template <typename T>
 using uptr_vector = std::vector<uptr<T>>;
 
 // Forward declarations
-template <typename Extra>
 struct ExprNode;
-template <typename Extra>
 struct StmtNode;
-template <typename Extra>
 struct ClassMemberNode;
-template <typename Extra>
 struct ParamNode;
-template <typename Extra>
 struct BlockNode;
-template <typename Extra>
 struct ArgumentNode;
-template <typename Extra>
 struct ElseStmtNode;
 
-template <typename Extra>
+struct SemanticInfo {};
+
+struct CodegenInfo {
+  int stack_offset = -1;
+};
+
 struct ASTNode {
   SourceLocation location;
-  Extra extra;
 
-  ASTNode(SourceLocation loc) : location(loc), extra() {}
+  SemanticInfo semantic;
+  CodegenInfo codegen;
+
+  ASTNode(SourceLocation loc) : location(loc) {}
   virtual ~ASTNode() = default;
 };
 
 /// ============
 /// Expressions
 /// ============
-template <typename Extra>
-struct ExprNode : ASTNode<Extra> {
+struct ExprNode : ASTNode {
   const Type* result_type = nullptr;
 
-  ExprNode(SourceLocation loc) : ASTNode<Extra>(loc) {}
+  ExprNode(SourceLocation loc) : ASTNode(loc) {}
 };
 
-template <typename Extra>
-struct BinaryExprNode : ExprNode<Extra> {
-  uptr<ExprNode<Extra>> left;
+struct BinaryExprNode : ExprNode {
+  uptr<ExprNode> left;
   Token op;
-  uptr<ExprNode<Extra>> right;
+  uptr<ExprNode> right;
 
-  BinaryExprNode(ExprNode<Extra>* left, Token op, ExprNode<Extra>* right,
-                 SourceLocation loc)
-      : ExprNode<Extra>(loc), left(left), op(op), right(right) {}
+  BinaryExprNode(ExprNode* left, Token op, ExprNode* right, SourceLocation loc)
+      : ExprNode(loc), left(left), op(op), right(right) {}
 };
 
-template <typename Extra>
-struct UnaryExprNode : ExprNode<Extra> {
+struct UnaryExprNode : ExprNode {
   Token op;
-  uptr<ExprNode<Extra>> operand;
+  uptr<ExprNode> operand;
 
-  UnaryExprNode(Token op, ExprNode<Extra>* operand, SourceLocation loc)
-      : ExprNode<Extra>(loc), op(op), operand(operand) {}
+  UnaryExprNode(Token op, ExprNode* operand, SourceLocation loc)
+      : ExprNode(loc), op(op), operand(operand) {}
 };
 
-template <typename Extra>
-struct LiteralExprNode : ExprNode<Extra> {
+struct LiteralExprNode : ExprNode {
   Token literal_token;
 
   LiteralExprNode(Token token, SourceLocation loc)
-      : ExprNode<Extra>(loc), literal_token(token) {}
+      : ExprNode(loc), literal_token(token) {}
 };
 
-template <typename Extra>
-struct IdentifierExprNode : ExprNode<Extra> {
+struct IdentifierExprNode : ExprNode {
   Token identifier;
 
   IdentifierExprNode(Token identifier, SourceLocation loc)
-      : ExprNode<Extra>(loc), identifier(identifier) {}
+      : ExprNode(loc), identifier(identifier) {}
 };
 
-template <typename Extra>
-struct AssignmentExprNode : ExprNode<Extra> {
-  uptr<ExprNode<Extra>> left;
+struct AssignmentExprNode : ExprNode {
+  uptr<ExprNode> left;
   Token op;
-  uptr<ExprNode<Extra>> right;
+  uptr<ExprNode> right;
 
-  AssignmentExprNode(ExprNode<Extra>* left, Token op, ExprNode<Extra>* right,
+  AssignmentExprNode(ExprNode* left, Token op, ExprNode* right,
                      SourceLocation loc)
-      : ExprNode<Extra>(loc), left(left), op(op), right(right) {}
+      : ExprNode(loc), left(left), op(op), right(right) {}
 };
 
-template <typename Extra>
-struct MethodCallNode : ExprNode<Extra> {
-  uptr<ExprNode<Extra>> expr;
+struct MethodCallNode : ExprNode {
+  uptr<ExprNode> expr;
   Token identifier;
-  uptr_vector<ArgumentNode<Extra>> arg_list;
+  uptr_vector<ArgumentNode> arg_list;
 
-  MethodCallNode(uptr<ExprNode<Extra>>&& expr, Token identifier,
-                 uptr_vector<ArgumentNode<Extra>>&& arg_list,
-                 SourceLocation loc)
-      : ExprNode<Extra>(loc),
+  MethodCallNode(uptr<ExprNode>&& expr, Token identifier,
+                 uptr_vector<ArgumentNode>&& arg_list, SourceLocation loc)
+      : ExprNode(loc),
         expr(std::move(expr)),
         identifier(identifier),
         arg_list(std::move(arg_list)) {}
@@ -119,172 +107,156 @@ struct MethodCallNode : ExprNode<Extra> {
 /// ============
 /// Supporting Nodes
 /// ============
-template <typename Extra>
-struct ArgumentNode : ASTNode<Extra> {
-  uptr<ExprNode<Extra>> expr;
 
-  ArgumentNode(uptr<ExprNode<Extra>> expr, SourceLocation loc)
-      : ASTNode<Extra>(loc), expr(std::move(expr)) {}
+struct ArgumentNode : ASTNode {
+  uptr<ExprNode> expr;
+
+  ArgumentNode(uptr<ExprNode> expr, SourceLocation loc)
+      : ASTNode(loc), expr(std::move(expr)) {}
 };
 
-template <typename Extra>
-struct ParamNode : ASTNode<Extra> {
-  const Type* type = nullptr;
+struct ParamNode : ASTNode {
+  const Type* declared_type = nullptr;
   Token identifier;  // might actually want to replace with something like
                      // vardecl or variable node
 
   ParamNode(const Type* type, Token identifier, SourceLocation loc)
-      : ASTNode<Extra>(loc), type(type), identifier(identifier) {}
+      : ASTNode(loc), declared_type(type), identifier(identifier) {}
 };
 
 /// ============
 /// Statements
 /// ============
-template <typename Extra>
-struct StmtNode : ASTNode<Extra> {
-  StmtNode(SourceLocation loc) : ASTNode<Extra>(loc) {}
+
+struct StmtNode : ASTNode {
+  StmtNode(SourceLocation loc) : ASTNode(loc) {}
 };
 
-template <typename Extra>
-struct ProgramNode : StmtNode<Extra> {
-  uptr_vector<StmtNode<Extra>> children;
+struct ProgramNode : StmtNode {
+  uptr_vector<StmtNode> children;
 
-  ProgramNode() : StmtNode<Extra>(SourceLocation()) {}
-  ProgramNode(uptr_vector<StmtNode<Extra>>&& children)
-      : StmtNode<Extra>(SourceLocation()), children(std::move(children)) {}
+  ProgramNode() : StmtNode(SourceLocation()) {}
+  ProgramNode(uptr_vector<StmtNode>&& children)
+      : StmtNode(SourceLocation()), children(std::move(children)) {}
 };
 
-template <typename Extra>
-struct BlockNode : StmtNode<Extra> {
-  uptr_vector<StmtNode<Extra>> statements;
+struct BlockNode : StmtNode {
+  uptr_vector<StmtNode> statements;
 
-  BlockNode(uptr_vector<StmtNode<Extra>>&& statements, SourceLocation loc)
-      : StmtNode<Extra>(loc), statements(std::move(statements)) {}
+  BlockNode(uptr_vector<StmtNode>&& statements, SourceLocation loc)
+      : StmtNode(loc), statements(std::move(statements)) {}
 };
 
-template <typename Extra>
-struct VarDeclNode : StmtNode<Extra> {
-  const Type* type = nullptr;
+struct VarDeclNode : StmtNode {
+  const Type* declared_type = nullptr;
   Token identifier;
-  uptr<ExprNode<Extra>> initializer;
+  uptr<ExprNode> initializer;
 
-  VarDeclNode(const Type* type, Token identifier, ExprNode<Extra>* initializer,
+  VarDeclNode(const Type* type, Token identifier, ExprNode* initializer,
               SourceLocation loc)
-      : StmtNode<Extra>(loc),
-        type(type),
+      : StmtNode(loc),
+        declared_type(type),
         identifier(identifier),
         initializer(initializer) {}
 };
 
-template <typename Extra>
-struct IfStmtNode : StmtNode<Extra> {
-  uptr<ExprNode<Extra>> condition;
-  uptr<StmtNode<Extra>> statement;
-  uptr<StmtNode<Extra>> else_stmt;
+struct IfStmtNode : StmtNode {
+  uptr<ExprNode> condition;
+  uptr<StmtNode> statement;
+  uptr<StmtNode> else_stmt;
 
-  IfStmtNode(ExprNode<Extra>* condition, StmtNode<Extra>* statement,
-             StmtNode<Extra>* else_stmt, SourceLocation loc)
-      : StmtNode<Extra>(loc),
+  IfStmtNode(ExprNode* condition, StmtNode* statement, StmtNode* else_stmt,
+             SourceLocation loc)
+      : StmtNode(loc),
         condition(std::move(condition)),
         statement(std::move(statement)),
         else_stmt(std::move(else_stmt)) {}
 };
 
-template <typename Extra>
-struct WhileStmtNode : StmtNode<Extra> {
-  uptr<ExprNode<Extra>> condition;
-  uptr<StmtNode<Extra>> statement;
+struct WhileStmtNode : StmtNode {
+  uptr<ExprNode> condition;
+  uptr<StmtNode> statement;
 
-  WhileStmtNode(ExprNode<Extra>* condition, StmtNode<Extra>* statement,
-                SourceLocation loc)
-      : StmtNode<Extra>(loc),
+  WhileStmtNode(ExprNode* condition, StmtNode* statement, SourceLocation loc)
+      : StmtNode(loc),
         condition(std::move(condition)),
         statement(std::move(statement)) {}
 };
 
-template <typename Extra>
-struct ReturnStmtNode : StmtNode<Extra> {
-  uptr<ExprNode<Extra>> ret;
+struct ReturnStmtNode : StmtNode {
+  uptr<ExprNode> ret;
 
-  ReturnStmtNode(ExprNode<Extra>* ret, SourceLocation loc)
-      : StmtNode<Extra>(loc), ret(std::move(ret)) {}
+  ReturnStmtNode(ExprNode* ret, SourceLocation loc)
+      : StmtNode(loc), ret(std::move(ret)) {}
 };
 
-template <typename Extra>
-struct ExprStmtNode : StmtNode<Extra> {
-  uptr<ExprNode<Extra>> expr;
+struct ExprStmtNode : StmtNode {
+  uptr<ExprNode> expr;
 
-  ExprStmtNode(ExprNode<Extra>* expr, SourceLocation loc)
-      : StmtNode<Extra>(loc), expr(expr) {}
+  ExprStmtNode(ExprNode* expr, SourceLocation loc)
+      : StmtNode(loc), expr(expr) {}
 };
 
 /// ============
 /// Class-related Nodes
 /// ============
-template <typename Extra>
-struct ClassMemberNode : StmtNode<Extra> {
-  ClassMemberNode(SourceLocation loc) : StmtNode<Extra>(loc) {}
+
+struct ClassMemberNode : StmtNode {
+  ClassMemberNode(SourceLocation loc) : StmtNode(loc) {}
 };
 
-template <typename Extra>
-struct ClassNode : StmtNode<Extra> {
+struct ClassNode : StmtNode {
   Token identifier;
-  uptr_vector<ClassMemberNode<Extra>> members;
+  uptr_vector<ClassMemberNode> members;
 
-  ClassNode(Token identifier, uptr_vector<ClassMemberNode<Extra>>&& members,
+  ClassNode(Token identifier, uptr_vector<ClassMemberNode>&& members,
             SourceLocation loc)
-      : StmtNode<Extra>(loc),
-        identifier(identifier),
-        members(std::move(members)) {}
+      : StmtNode(loc), identifier(identifier), members(std::move(members)) {}
 };
 
-template <typename Extra>
-struct FieldDeclNode : ClassMemberNode<Extra> {
+struct FieldDeclNode : ClassMemberNode {
   Token access_modifier;
   bool is_static;
-  const Type* type = nullptr;
+  const Type* declared_type = nullptr;
   Token identifier;
 
   FieldDeclNode(Token access_modifier, bool is_static, const Type* type,
                 Token identifier, SourceLocation loc)
-      : ClassMemberNode<Extra>(loc),
+      : ClassMemberNode(loc),
         access_modifier(access_modifier),
         is_static(is_static),
-        type(type),
+        declared_type(type),
         identifier(identifier) {}
 };
 
-template <typename Extra>
-struct MethodDeclNode : ClassMemberNode<Extra> {
+struct MethodDeclNode : ClassMemberNode {
   Token access_modifier;
   bool is_static;
-  const Type* type = nullptr;
+  const Type* declared_type = nullptr;
   Token identifier;
-  uptr_vector<ParamNode<Extra>> param_list;
-  uptr<BlockNode<Extra>> body;
+  uptr_vector<ParamNode> param_list;
+  uptr<BlockNode> body;
 
   MethodDeclNode(Token access_modifier, bool is_static, const Type* type,
-                 Token identifier, uptr_vector<ParamNode<Extra>>&& param_list,
-                 uptr<BlockNode<Extra>> body, SourceLocation loc)
-      : ClassMemberNode<Extra>(loc),
+                 Token identifier, uptr_vector<ParamNode>&& param_list,
+                 uptr<BlockNode> body, SourceLocation loc)
+      : ClassMemberNode(loc),
         access_modifier(access_modifier),
         is_static(is_static),
-        type(type),
+        declared_type(type),
         identifier(identifier),
         param_list(std::move(param_list)),
         body(std::move(body)) {}
 };
 
-template <typename Extra>
-struct ConstructorDeclNode : ClassMemberNode<Extra> {
+struct ConstructorDeclNode : ClassMemberNode {
   Token identifier;
-  uptr_vector<ParamNode<Extra>> param_list;
-  uptr<BlockNode<Extra>> body;
+  uptr_vector<ParamNode> param_list;
+  uptr<BlockNode> body;
 
-  ConstructorDeclNode(Token identifier,
-                      uptr_vector<ParamNode<Extra>>&& param_list,
-                      uptr<BlockNode<Extra>> body, SourceLocation loc)
-      : ClassMemberNode<Extra>(loc),
+  ConstructorDeclNode(Token identifier, uptr_vector<ParamNode>&& param_list,
+                      uptr<BlockNode> body, SourceLocation loc)
+      : ClassMemberNode(loc),
         identifier(identifier),
         param_list(std::move(param_list)),
         body(std::move(body)) {}

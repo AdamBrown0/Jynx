@@ -13,7 +13,7 @@ class Parser {
   explicit Parser(Lexer& lexer, CompilerContext& context)
       : lexer(lexer), current(Token()), ctx(context) {}
 
-  ProgramNode<NodeInfo>* parseProgram();
+  ProgramNode* parseProgram();
 
  private:
   /// @internal
@@ -68,6 +68,10 @@ class Parser {
   /// Returns true if current token type matches the one passed
   inline bool match(TokenType type) const { return current.getType() == type; }
 
+  bool match(const Type* type) {
+    return current.getValue() == type->to_string();
+  }
+
   /// Peek at the next token in the stream
   /// @return Next token
   Token peek(size_t count) {
@@ -98,9 +102,9 @@ class Parser {
   }
 
   /// @cond INTERNAL
-  using _StmtNode = StmtNode<NodeInfo>;
-  using _ExprNode = ExprNode<NodeInfo>;
-  using _ASTNode = ASTNode<NodeInfo>;
+  using _StmtNode = StmtNode;
+  using _ExprNode = ExprNode;
+  using _ASTNode = ASTNode;
   /// @endcond
 
   // statements
@@ -115,10 +119,10 @@ class Parser {
 
   // class related
   _StmtNode* parseClass();
-  ClassMemberNode<NodeInfo>* parseClassMember();
-  ClassMemberNode<NodeInfo>* parseFieldDecl(std::optional<Token>);
-  ClassMemberNode<NodeInfo>* parseMethodDecl(std::optional<Token>);
-  ClassMemberNode<NodeInfo>* parseConstructorDecl();
+  ClassMemberNode* parseClassMember();
+  ClassMemberNode* parseFieldDecl(std::optional<Token>);
+  ClassMemberNode* parseMethodDecl(std::optional<Token>);
+  ClassMemberNode* parseConstructorDecl();
 
   // expressions
   _ExprNode* parseExpr();

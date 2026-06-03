@@ -167,8 +167,8 @@ void semantic_error(const std::string& message, int line, int col) {
 }  // namespace Log::Compiler
 
 // AST printing functions using ast_utils
-template <typename Extra>
-void print_ast_templated(ASTNode<Extra>* root, std::string indent, bool isFirst,
+
+void print_ast_templated(ASTNode* root, std::string indent, bool isFirst,
                          bool isLast) {
   if (!root) {
     std::cout << indent << "null" << std::endl;
@@ -216,59 +216,58 @@ void print_ast_templated(ASTNode<Extra>* root, std::string indent, bool isFirst,
 
   // Print children based on node type
   std::string newIndent = indent + (isLast ? "    " : "│   ");
-  std::vector<ASTNode<Extra>*> children;
+  std::vector<ASTNode*> children;
 
   // Collect children based on node type
-  if (auto program = dynamic_cast<ProgramNode<Extra>*>(root)) {
+  if (auto program = dynamic_cast<ProgramNode*>(root)) {
     for (const auto& child : program->children) {
       if (child) children.push_back(child.get());
     }
-  } else if (auto varDecl = dynamic_cast<VarDeclNode<Extra>*>(root)) {
+  } else if (auto varDecl = dynamic_cast<VarDeclNode*>(root)) {
     if (varDecl->initializer) children.push_back(varDecl->initializer.get());
-  } else if (auto binaryExpr = dynamic_cast<BinaryExprNode<Extra>*>(root)) {
+  } else if (auto binaryExpr = dynamic_cast<BinaryExprNode*>(root)) {
     if (binaryExpr->left) children.push_back(binaryExpr->left.get());
     if (binaryExpr->right) children.push_back(binaryExpr->right.get());
-  } else if (auto unaryExpr = dynamic_cast<UnaryExprNode<Extra>*>(root)) {
+  } else if (auto unaryExpr = dynamic_cast<UnaryExprNode*>(root)) {
     if (unaryExpr->operand) children.push_back(unaryExpr->operand.get());
-  } else if (auto assignment = dynamic_cast<AssignmentExprNode<Extra>*>(root)) {
+  } else if (auto assignment = dynamic_cast<AssignmentExprNode*>(root)) {
     if (assignment->left) children.push_back(assignment->left.get());
     if (assignment->right) children.push_back(assignment->right.get());
-  } else if (auto methodCall = dynamic_cast<MethodCallNode<Extra>*>(root)) {
+  } else if (auto methodCall = dynamic_cast<MethodCallNode*>(root)) {
     if (methodCall->expr) children.push_back(methodCall->expr.get());
     for (const auto& arg : methodCall->arg_list) {
       if (arg) children.push_back(arg.get());
     }
-  } else if (auto block = dynamic_cast<BlockNode<Extra>*>(root)) {
+  } else if (auto block = dynamic_cast<BlockNode*>(root)) {
     for (const auto& stmt : block->statements) {
       if (stmt) children.push_back(stmt.get());
     }
-  } else if (auto ifStmt = dynamic_cast<IfStmtNode<Extra>*>(root)) {
+  } else if (auto ifStmt = dynamic_cast<IfStmtNode*>(root)) {
     if (ifStmt->condition) children.push_back(ifStmt->condition.get());
     if (ifStmt->statement) children.push_back(ifStmt->statement.get());
     if (ifStmt->else_stmt) children.push_back(ifStmt->else_stmt.get());
-  } else if (auto whileStmt = dynamic_cast<WhileStmtNode<Extra>*>(root)) {
+  } else if (auto whileStmt = dynamic_cast<WhileStmtNode*>(root)) {
     if (whileStmt->condition) children.push_back(whileStmt->condition.get());
     if (whileStmt->statement) children.push_back(whileStmt->statement.get());
-  } else if (auto returnStmt = dynamic_cast<ReturnStmtNode<Extra>*>(root)) {
+  } else if (auto returnStmt = dynamic_cast<ReturnStmtNode*>(root)) {
     if (returnStmt->ret) children.push_back(returnStmt->ret.get());
-  } else if (auto exprStmt = dynamic_cast<ExprStmtNode<Extra>*>(root)) {
+  } else if (auto exprStmt = dynamic_cast<ExprStmtNode*>(root)) {
     if (exprStmt->expr) children.push_back(exprStmt->expr.get());
-  } else if (auto classNode = dynamic_cast<ClassNode<Extra>*>(root)) {
+  } else if (auto classNode = dynamic_cast<ClassNode*>(root)) {
     for (const auto& member : classNode->members) {
       if (member) children.push_back(member.get());
     }
-  } else if (auto methodDecl = dynamic_cast<MethodDeclNode<Extra>*>(root)) {
+  } else if (auto methodDecl = dynamic_cast<MethodDeclNode*>(root)) {
     for (const auto& param : methodDecl->param_list) {
       if (param) children.push_back(param.get());
     }
     if (methodDecl->body) children.push_back(methodDecl->body.get());
-  } else if (auto constructorDecl =
-                 dynamic_cast<ConstructorDeclNode<Extra>*>(root)) {
+  } else if (auto constructorDecl = dynamic_cast<ConstructorDeclNode*>(root)) {
     for (const auto& param : constructorDecl->param_list) {
       if (param) children.push_back(param.get());
     }
     if (constructorDecl->body) children.push_back(constructorDecl->body.get());
-  } else if (auto arg = dynamic_cast<ArgumentNode<Extra>*>(root)) {
+  } else if (auto arg = dynamic_cast<ArgumentNode*>(root)) {
     if (arg->expr) children.push_back(arg->expr.get());
   }
 
@@ -280,17 +279,17 @@ void print_ast_templated(ASTNode<Extra>* root, std::string indent, bool isFirst,
 }
 
 // Wrapper functions for backwards compatibility
-void Log::print_ast(ASTNode<NodeInfo>* root) {
+void Log::print_ast(ASTNode* root) {
   print_ast_templated(root, "", true, false);
 }
 
-void Log::print_ast(ASTNode<NodeInfo>* root, std::string indent, bool isFirst,
+void Log::print_ast(ASTNode* root, std::string indent, bool isFirst,
                     bool isLast) {
   print_ast_templated(root, indent, isFirst, isLast);
 }
 
 // Simplified reflection-based AST Printer using ast_utils
-template <typename Extra>
+
 class SimpleASTPrinter {
  private:
   std::ostream& output;
@@ -307,8 +306,8 @@ class SimpleASTPrinter {
  public:
   SimpleASTPrinter(std::ostream& os = std::cout) : output(os) {}
 
-  void print(ASTNode<Extra>* root, const std::string& indent = "",
-             bool isFirst = true, bool isLast = true) {
+  void print(ASTNode* root, const std::string& indent = "", bool isFirst = true,
+             bool isLast = true) {
     if (!root) {
       output << indent << "null" << std::endl;
       return;
@@ -359,61 +358,60 @@ class SimpleASTPrinter {
     return RESET;  // Default
   }
 
-  std::vector<ASTNode<Extra>*> get_children(ASTNode<Extra>* node) {
-    std::vector<ASTNode<Extra>*> children;
+  std::vector<ASTNode*> get_children(ASTNode* node) {
+    std::vector<ASTNode*> children;
 
-    if (auto program = dynamic_cast<ProgramNode<Extra>*>(node)) {
+    if (auto program = dynamic_cast<ProgramNode*>(node)) {
       for (const auto& child : program->children) {
         if (child) children.push_back(child.get());
       }
-    } else if (auto varDecl = dynamic_cast<VarDeclNode<Extra>*>(node)) {
+    } else if (auto varDecl = dynamic_cast<VarDeclNode*>(node)) {
       if (varDecl->initializer) children.push_back(varDecl->initializer.get());
-    } else if (auto binaryExpr = dynamic_cast<BinaryExprNode<Extra>*>(node)) {
+    } else if (auto binaryExpr = dynamic_cast<BinaryExprNode*>(node)) {
       if (binaryExpr->left) children.push_back(binaryExpr->left.get());
       if (binaryExpr->right) children.push_back(binaryExpr->right.get());
-    } else if (auto unaryExpr = dynamic_cast<UnaryExprNode<Extra>*>(node)) {
+    } else if (auto unaryExpr = dynamic_cast<UnaryExprNode*>(node)) {
       if (unaryExpr->operand) children.push_back(unaryExpr->operand.get());
-    } else if (auto assignment =
-                   dynamic_cast<AssignmentExprNode<Extra>*>(node)) {
+    } else if (auto assignment = dynamic_cast<AssignmentExprNode*>(node)) {
       if (assignment->left) children.push_back(assignment->left.get());
       if (assignment->right) children.push_back(assignment->right.get());
-    } else if (auto methodCall = dynamic_cast<MethodCallNode<Extra>*>(node)) {
+    } else if (auto methodCall = dynamic_cast<MethodCallNode*>(node)) {
       if (methodCall->expr) children.push_back(methodCall->expr.get());
       for (const auto& arg : methodCall->arg_list) {
         if (arg) children.push_back(arg.get());
       }
-    } else if (auto block = dynamic_cast<BlockNode<Extra>*>(node)) {
+    } else if (auto block = dynamic_cast<BlockNode*>(node)) {
       for (const auto& stmt : block->statements) {
         if (stmt) children.push_back(stmt.get());
       }
-    } else if (auto ifStmt = dynamic_cast<IfStmtNode<Extra>*>(node)) {
+    } else if (auto ifStmt = dynamic_cast<IfStmtNode*>(node)) {
       if (ifStmt->condition) children.push_back(ifStmt->condition.get());
       if (ifStmt->statement) children.push_back(ifStmt->statement.get());
       if (ifStmt->else_stmt) children.push_back(ifStmt->else_stmt.get());
-    } else if (auto whileStmt = dynamic_cast<WhileStmtNode<Extra>*>(node)) {
+    } else if (auto whileStmt = dynamic_cast<WhileStmtNode*>(node)) {
       if (whileStmt->condition) children.push_back(whileStmt->condition.get());
       if (whileStmt->statement) children.push_back(whileStmt->statement.get());
-    } else if (auto returnStmt = dynamic_cast<ReturnStmtNode<Extra>*>(node)) {
+    } else if (auto returnStmt = dynamic_cast<ReturnStmtNode*>(node)) {
       if (returnStmt->ret) children.push_back(returnStmt->ret.get());
-    } else if (auto exprStmt = dynamic_cast<ExprStmtNode<Extra>*>(node)) {
+    } else if (auto exprStmt = dynamic_cast<ExprStmtNode*>(node)) {
       if (exprStmt->expr) children.push_back(exprStmt->expr.get());
-    } else if (auto classNode = dynamic_cast<ClassNode<Extra>*>(node)) {
+    } else if (auto classNode = dynamic_cast<ClassNode*>(node)) {
       for (const auto& member : classNode->members) {
         if (member) children.push_back(member.get());
       }
-    } else if (auto methodDecl = dynamic_cast<MethodDeclNode<Extra>*>(node)) {
+    } else if (auto methodDecl = dynamic_cast<MethodDeclNode*>(node)) {
       for (const auto& param : methodDecl->param_list) {
         if (param) children.push_back(param.get());
       }
       if (methodDecl->body) children.push_back(methodDecl->body.get());
     } else if (auto constructorDecl =
-                   dynamic_cast<ConstructorDeclNode<Extra>*>(node)) {
+                   dynamic_cast<ConstructorDeclNode*>(node)) {
       for (const auto& param : constructorDecl->param_list) {
         if (param) children.push_back(param.get());
       }
       if (constructorDecl->body)
         children.push_back(constructorDecl->body.get());
-    } else if (auto arg = dynamic_cast<ArgumentNode<Extra>*>(node)) {
+    } else if (auto arg = dynamic_cast<ArgumentNode*>(node)) {
       if (arg->expr) children.push_back(arg->expr.get());
     }
 
@@ -422,24 +420,24 @@ class SimpleASTPrinter {
 };
 
 // Static color definitions
-template <typename Extra>
-const std::string SimpleASTPrinter<Extra>::RESET = "\033[0m";
-template <typename Extra>
-const std::string SimpleASTPrinter<Extra>::VAR_DECL_COLOR = "\033[1;34m";
-template <typename Extra>
-const std::string SimpleASTPrinter<Extra>::BINARY_EXPR_COLOR = "\033[1;32m";
-template <typename Extra>
-const std::string SimpleASTPrinter<Extra>::UNARY_EXPR_COLOR = "\033[1;33m";
-template <typename Extra>
-const std::string SimpleASTPrinter<Extra>::LITERAL_COLOR = "\033[1;36m";
-template <typename Extra>
-const std::string SimpleASTPrinter<Extra>::TREE_COLOR = "\033[90m";
-template <typename Extra>
-const std::string SimpleASTPrinter<Extra>::PROGRAM_COLOR = "\033[1;35m";
+
+const std::string SimpleASTPrinter::RESET = "\033[0m";
+
+const std::string SimpleASTPrinter::VAR_DECL_COLOR = "\033[1;34m";
+
+const std::string SimpleASTPrinter::BINARY_EXPR_COLOR = "\033[1;32m";
+
+const std::string SimpleASTPrinter::UNARY_EXPR_COLOR = "\033[1;33m";
+
+const std::string SimpleASTPrinter::LITERAL_COLOR = "\033[1;36m";
+
+const std::string SimpleASTPrinter::TREE_COLOR = "\033[90m";
+
+const std::string SimpleASTPrinter::PROGRAM_COLOR = "\033[1;35m";
 
 // New simplified reflection-based print function
-void Log::print_ast_reflection(ASTNode<NodeInfo>* root) {
-  SimpleASTPrinter<NodeInfo> printer;
+void Log::print_ast_reflection(ASTNode* root) {
+  SimpleASTPrinter printer;
   printer.print(root);
 }
 

@@ -32,9 +32,9 @@ int main(const int argc, char** argv) {
 
   Lexer lexer(file, ctx);
 
-  Parser parser(lexer);
+  Parser parser(lexer, ctx);
 
-  ProgramNode<NodeInfo>* ast = parser.parseProgram();
+  ProgramNode* ast = parser.parseProgram();
   if (ast != nullptr) {
     Log::print_ast_reflection(ast);
   } else {
@@ -47,22 +47,22 @@ int main(const int argc, char** argv) {
     return 1;
   }
 
-  Sema sema(ctx);
-  ProgramNode<NodeInfo>* sema_tree = sema.analyze(*ast);
+  // Sema sema(ctx);
+  // ProgramNode<NodeInfo>* sema_tree = sema.analyze(*ast);
 
-  if (!sema_tree) {
-    LOG_ERROR("Semantic analysis failed; skipping code generation");
-    delete ast;
-    return 1;
-  }
+  // if (!sema_tree) {
+  //   LOG_ERROR("Semantic analysis failed; skipping code generation");
+  //   delete ast;
+  //   return 1;
+  // }
 
-  CodeGenerator gen(ctx);
-  std::string code = gen.generate(*sema_tree);
-  LOG_INFO("\n{}", code);
+  // CodeGenerator gen(ctx);
+  // std::string code = gen.generate(*sema_tree);
+  // LOG_INFO("\n{}", code);
 
-  std::ofstream out("program.s");
-  out << code;
-  out.close();
+  // std::ofstream out("program.s");
+  // out << code;
+  // out.close();
 
   delete ast;
 }

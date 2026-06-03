@@ -11,7 +11,6 @@
 
 // Forward declarations to avoid circular includes
 class Token;
-template <typename Extra>
 struct ASTNode;
 struct NodeInfo;
 
@@ -134,12 +133,11 @@ void semantic_error(const std::string& message, int line, int col);
 }  // namespace Compiler
 
 // AST printing functions (updated for templated AST)
-void print_ast(ASTNode<NodeInfo>* root);
-void print_ast(ASTNode<NodeInfo>* root, std::string indent, bool isFirst,
-               bool isLast);
-void print_ast_new(ASTNode<NodeInfo>* root, std::string indent, bool isFirst,
+void print_ast(ASTNode* root);
+void print_ast(ASTNode* root, std::string indent, bool isFirst, bool isLast);
+void print_ast_new(ASTNode* root, std::string indent, bool isFirst,
                    bool isLast);
-void print_ast_reflection(ASTNode<NodeInfo>* root);
+void print_ast_reflection(ASTNode* root);
 
 // Utility functions
 void print_separator(const std::string& title = "");

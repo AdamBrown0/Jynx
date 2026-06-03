@@ -21,35 +21,35 @@ typedef struct Scope {
   std::unordered_map<std::string, std::pair<int, int>> string_var_slots;
 } Scope;
 
-class CodeGenerator : public ASTVisitor<NodeInfo> {
+class CodeGenerator : public ASTVisitor {
  public:
-  explicit CodeGenerator(CompilerContext &ctx) : ASTVisitor<NodeInfo>(ctx) {
+  explicit CodeGenerator(CompilerContext &ctx) : ASTVisitor(ctx) {
     setupRegisters();
   }
   virtual ~CodeGenerator() = default;
 
-  std::string generate(const ProgramNode<NodeInfo> &root);
+  std::string generate(const ProgramNode &root);
 
  private:
-  void generateStatement(StmtNode<NodeInfo> &stmt);
-  void generateExpression(ExprNode<NodeInfo> &expr);
+  void generateStatement(StmtNode &stmt);
+  void generateExpression(ExprNode &expr);
 
-  void generateProgram(ProgramNode<NodeInfo> &node);
-  void generateBlock(BlockNode<NodeInfo> &node);
-  void generateVarDecl(VarDeclNode<NodeInfo> &node);
-  void generateIfStmt(IfStmtNode<NodeInfo> &node);
-  void generateWhileStmt(WhileStmtNode<NodeInfo> &node);
-  void generateReturn(ReturnStmtNode<NodeInfo> &node);
-  void generateExprStmt(ExprStmtNode<NodeInfo> &node);
-  void generateMethodDecl(MethodDeclNode<NodeInfo> &node);
+  void generateProgram(ProgramNode &node);
+  void generateBlock(BlockNode &node);
+  void generateVarDecl(VarDeclNode &node);
+  void generateIfStmt(IfStmtNode &node);
+  void generateWhileStmt(WhileStmtNode &node);
+  void generateReturn(ReturnStmtNode &node);
+  void generateExprStmt(ExprStmtNode &node);
+  void generateMethodDecl(MethodDeclNode &node);
 
-  void generateBinaryExpr(BinaryExprNode<NodeInfo> &node);
-  void generateUnaryExpr(UnaryExprNode<NodeInfo> &node);
-  void generateLiteralExpr(LiteralExprNode<NodeInfo> &node);
-  void generateIdentifierExpr(IdentifierExprNode<NodeInfo> &node);
-  void generateAssignmentExpr(AssignmentExprNode<NodeInfo> &node);
-  void generateMethodCall(MethodCallNode<NodeInfo> &node);
-  void generateArgument(ArgumentNode<NodeInfo> &node);
+  void generateBinaryExpr(BinaryExprNode &node);
+  void generateUnaryExpr(UnaryExprNode &node);
+  void generateLiteralExpr(LiteralExprNode &node);
+  void generateIdentifierExpr(IdentifierExprNode &node);
+  void generateAssignmentExpr(AssignmentExprNode &node);
+  void generateMethodCall(MethodCallNode &node);
+  void generateArgument(ArgumentNode &node);
 
   struct IfContext {
     std::string false_label;
@@ -222,17 +222,16 @@ class CodeGenerator : public ASTVisitor<NodeInfo> {
     return "[rbp-" + std::to_string(offset) + "]";
   }
 
-  static inline std::string formatSlot(const VarDeclNode<NodeInfo> &node) {
-    return "[rbp" + formatSlotOffset(node.extra.stack_offset) + "]";
+  static inline std::string formatSlot(const VarDeclNode &node) {
+    return "[rbp" + formatSlotOffset(node.codegen.stack_offset) + "]";
   }
 
-  static inline std::string formatSlot(
-      const IdentifierExprNode<NodeInfo> &node) {
-    return "[rbp" + formatSlotOffset(node.extra.stack_offset) + "]";
+  static inline std::string formatSlot(const IdentifierExprNode &node) {
+    return "[rbp" + formatSlotOffset(node.codegen.stack_offset) + "]";
   }
 
-  static inline std::string formatSlot(const ParamNode<NodeInfo> &node) {
-    return "[rbp" + formatSlotOffset(node.extra.stack_offset) + "]";
+  static inline std::string formatSlot(const ParamNode &node) {
+    return "[rbp" + formatSlotOffset(node.codegen.stack_offset) + "]";
   }
 
   static inline std::string formatStringLabel(std::string label) {

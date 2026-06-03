@@ -30,14 +30,15 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 set(CORE_SOURCES
     src/lexer.cc
     src/parser.cc
-    src/sema.cc
+    # src/sema.cc
     src/log.cc
     src/token.cc
-    src/gen.cc
+    src/context.cc
+    # src/gen.cc
     src/primitive_type.cc
     src/visitor/typechecker.cc
     src/visitor/symbolcollector.cc
-    src/visitor/nameresolver.cc
+    # src/visitor/nameresolver.cc
 )
 
 set(MAIN_SOURCES

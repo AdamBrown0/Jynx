@@ -9,48 +9,46 @@
 #include "symbol.hh"
 #include "token.hh"
 
-template <typename Extra>
 struct ASTNode;
-template <typename Extra>
+
 struct BinaryExprNode;
-template <typename Extra>
+
 struct UnaryExprNode;
-template <typename Extra>
+
 struct LiteralExprNode;
-template <typename Extra>
+
 struct IdentifierExprNode;
-template <typename Extra>
+
 struct AssignmentExprNode;
-template <typename Extra>
+
 struct MethodCallNode;
-template <typename Extra>
+
 struct ArgumentNode;
-template <typename Extra>
+
 struct ParamNode;
-template <typename Extra>
+
 struct ProgramNode;
-template <typename Extra>
+
 struct BlockNode;
-template <typename Extra>
+
 struct VarDeclNode;
-template <typename Extra>
+
 struct IfStmtNode;
-template <typename Extra>
+
 struct WhileStmtNode;
-template <typename Extra>
+
 struct ReturnStmtNode;
-template <typename Extra>
+
 struct ClassNode;
-template <typename Extra>
+
 struct FieldDeclNode;
-template <typename Extra>
+
 struct MethodDeclNode;
-template <typename Extra>
+
 struct ConstructorDeclNode;
-template <typename Extra>
+
 struct ExprStmtNode;
 
-template <typename Extra>
 class ASTVisitor {
  public:
   ASTVisitor() = delete;

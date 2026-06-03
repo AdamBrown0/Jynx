@@ -13,21 +13,21 @@ const std::vector<Symbol> *NameResolver::find_method_overloads(
   return ctx.method_table.find_all(owner, name);
 }
 
-void NameResolver::enter(BlockNode<NodeInfo> &) { push_scope(); }
-void NameResolver::exit(BlockNode<NodeInfo> &) { pop_scope(); }
+void NameResolver::enter(BlockNode &) { push_scope(); }
+void NameResolver::exit(BlockNode &) { pop_scope(); }
 
-void NameResolver::enter(ProgramNode<NodeInfo> &) { push_scope(); }
-void NameResolver::exit(ProgramNode<NodeInfo> &) { pop_scope(); }
+void NameResolver::enter(ProgramNode &) { push_scope(); }
+void NameResolver::exit(ProgramNode &) { pop_scope(); }
 
-void NameResolver::enter(MethodDeclNode<NodeInfo> &node) {
-  enter_method(node.identifier.getValue(), node.type.get()->name);
+void NameResolver::enter(MethodDeclNode &node) {
+  enter_method(node.identifier.getValue(), node.declared_type.get()->name);
   push_scope();
 
   for (auto &param : node.param_list) {
     if (!param) continue;
     Symbol param_sym;
     param_sym.name = param->identifier.getValue();
-    param_sym.type = param->type.get();
+    param_sym.type = param->declared_type.get();
     param_sym.is_param = true;
     param_sym.decl_loc = param->location;
 
@@ -39,12 +39,12 @@ void NameResolver::enter(MethodDeclNode<NodeInfo> &node) {
   }
 }
 
-void NameResolver::exit(MethodDeclNode<NodeInfo> &) {
+void NameResolver::exit(MethodDeclNode &) {
   pop_scope();
   exit_method();
 }
 
-void NameResolver::enter(ConstructorDeclNode<NodeInfo> &node) {
+void NameResolver::enter(ConstructorDeclNode &node) {
   enter_method(node.identifier.getValue(), "void");
   push_scope();
 
@@ -52,7 +52,7 @@ void NameResolver::enter(ConstructorDeclNode<NodeInfo> &node) {
     if (!param) continue;
     Symbol param_sym;
     param_sym.name = param->identifier.getValue();
-    param_sym.type = param->type.get();
+    param_sym.type = param->declared_type.get();
     param_sym.is_param = true;
     param_sym.decl_loc = param->location;
 
@@ -63,18 +63,18 @@ void NameResolver::enter(ConstructorDeclNode<NodeInfo> &node) {
       add_symbol(param_sym);
   }
 }
-void NameResolver::exit(ConstructorDeclNode<NodeInfo> &) {
+void NameResolver::exit(ConstructorDeclNode &) {
   pop_scope();
   exit_method();
 }
 
-void NameResolver::enter(ClassNode<NodeInfo> &node) {
+void NameResolver::enter(ClassNode &node) {
   enter_class(node.identifier.getValue());
 }
 
-void NameResolver::exit(ClassNode<NodeInfo> &) { exit_class(); }
+void NameResolver::exit(ClassNode &) { exit_class(); }
 
-void NameResolver::visit(VarDeclNode<NodeInfo> &node) {
+void NameResolver::visit(VarDeclNode &node) {
   const std::string name = node.identifier.getValue();
   if (check_symbol(name)) {
     report_error("Redeclaration of variable '" + name + "'", node.location);
@@ -90,9 +90,9 @@ void NameResolver::visit(VarDeclNode<NodeInfo> &node) {
   node.extra.sym = std::make_unique<Symbol>(scope_stack.back()[name]);
 }
 
-void NameResolver::visit(ParamNode<NodeInfo> &node) {}
+void NameResolver::visit(ParamNode &node) {}
 
-void NameResolver::visit(MethodDeclNode<NodeInfo> &node) {
+void NameResolver::visit(MethodDeclNode &node) {
   const std::string name = node.identifier.getValue();
   std::vector<Type *> param_types;
   param_types.reserve(node.param_list.size());
@@ -118,7 +118,7 @@ void NameResolver::visit(MethodDeclNode<NodeInfo> &node) {
   node.extra.overload_set = overloads;
 }
 
-void NameResolver::visit(IdentifierExprNode<NodeInfo> &node) {
+void NameResolver::visit(IdentifierExprNode &node) {
   const std::string name = node.identifier.getValue();
   Symbol *symbol = lookup_symbol(name);
   if (!symbol) {
@@ -128,13 +128,13 @@ void NameResolver::visit(IdentifierExprNode<NodeInfo> &node) {
   node.extra.sym = std::make_unique<Symbol>(*symbol);
 }
 
-void NameResolver::visit(ClassNode<NodeInfo> &node) {}
+void NameResolver::visit(ClassNode &node) {}
 
-void NameResolver::visit(ArgumentNode<NodeInfo> &node) {
+void NameResolver::visit(ArgumentNode &node) {
   if (node.expr) node.expr->accept(*this);
 }
 
-void NameResolver::visit(MethodCallNode<NodeInfo> &node) {
+void NameResolver::visit(MethodCallNode &node) {
   LOG_DEBUG("[NAME] visiting method call");
   if (node.expr) node.expr->accept(*this);
 
@@ -144,8 +144,7 @@ void NameResolver::visit(MethodCallNode<NodeInfo> &node) {
   if (node.expr == nullptr)
     owner = "global";  // temp i think?
 
-  else if (auto *ident =
-               dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.expr.get())) {
+  else if (auto *ident = dynamic_cast<IdentifierExprNode *>(node.expr.get())) {
     Symbol *base_sym = ident->extra.sym.get();
     if (!base_sym) {
       report_error("Unresolved method base", node.location);
@@ -181,4 +180,4 @@ void NameResolver::visit(MethodCallNode<NodeInfo> &node) {
   node.extra.overload_set = overloads;
 }
 
-void NameResolver::visit(AssignmentExprNode<NodeInfo> &node) {}
+void NameResolver::visit(AssignmentExprNode &node) {}
