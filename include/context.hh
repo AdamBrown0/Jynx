@@ -5,6 +5,7 @@
 #include "methodtable.hh"
 #include "pointer_type.hh"
 #include "primitive_type.hh"
+#include "scope.hh"
 #include "trie.hh"
 #include "type.hh"
 
@@ -25,12 +26,26 @@ class CompilerContext {
   const Type* make_array_type(const Type* element, size_t length = 0);
   const Type* make_class_type(const std::string& class_name);
 
-  void report_error(const std::string& message, const SourceLocation& location);
-  void report_warning(const std::string& message,
+  void report_error(const std::string& error_kind, const std::string& message,
+                    SourceLocation location);
+  void report_warning(const std::string& warning_kind,
+                      const std::string& message,
                       const SourceLocation& location);
 
+  void push_scope();
+  void pop_scope();
+  Scope* get_current_scope() const { return current_scope; }
+  Symbol* declare(const std::string& name, const Type* type,
+                  SourceLocation loc);
+  Symbol* lookup(const std::string& name, bool walkParent = true);
+
  private:
+  std::vector<std::string> errors;
+
   std::vector<std::unique_ptr<Type>> type_storage;
+  std::vector<std::unique_ptr<Scope>> scope_storage;
+
+  Scope* current_scope = nullptr;
 
   const PrimitiveType* int32_type = nullptr;
   const PrimitiveType* bool_type = nullptr;

@@ -1,183 +1,48 @@
 #include "visitor/nameresolver.hh"
 
-#include "ast.hh"
-#include "log.hh"
-
-const std::vector<Symbol> *NameResolver::find_method_overloads(
-    const std::string &owner, const std::string &name) {
-  if (ctx.method_table.empty()) {
-    LOG_FATAL("No methods in method table to find overload");
-    return nullptr;
-  }
-
-  return ctx.method_table.find_all(owner, name);
+void NameResolver::resolveStatement(StmtNode& stmt) {
+  if (auto* node = dynamic_cast<BlockNode*>(&stmt))
+    resolveBlock(*node);
+  else if (auto* node = dynamic_cast<VarDeclNode*>(&stmt))
+    resolveVarDecl(*node);
+  else if (auto* node = dynamic_cast<IfStmtNode*>(&stmt))
+    resolveIfStmt(*node);
+  else if (auto* node = dynamic_cast<WhileStmtNode*>(&stmt))
+    resolveWhileStmt(*node);
+  else if (auto* node = dynamic_cast<ReturnStmtNode*>(&stmt))
+    resolveReturn(*node);
+  else if (auto* node = dynamic_cast<ExprStmtNode*>(&stmt))
+    resolveExprStmt(*node);
+  else if (auto* node = dynamic_cast<MethodDeclNode*>(&stmt))
+    resolveMethodDecl(*node);
+  else
+    report_error("Unknown statment type", stmt.location);
 }
 
-void NameResolver::enter(BlockNode &) { push_scope(); }
-void NameResolver::exit(BlockNode &) { pop_scope(); }
+const Type* NameResolver::resolveExpression(ExprNode& expr) {
+  if (auto* node = dynamic_cast<BinaryExprNode*>(&expr))
+    return resolveBinaryExpr(*node);
+  if (auto* node = dynamic_cast<UnaryExprNode*>(&expr))
+    return resolveUnaryExpr(*node);
+  if (auto* node = dynamic_cast<LiteralExprNode*>(&expr))
+    return resolveLiteralExpr(*node);
+  if (auto* node = dynamic_cast<IdentifierExprNode*>(&expr))
+    return resolveIdentifierExpr(*node);
+  if (auto* node = dynamic_cast<AssignmentExprNode*>(&expr))
+    return resolveAssignmentExpr(*node);
+  if (auto* node = dynamic_cast<MethodCallNode*>(&expr))
+    return resolveMethodCall(*node);
+  if (auto* node = dynamic_cast<ArgumentNode*>(&expr))
+    return resolveArgument(*node);
 
-void NameResolver::enter(ProgramNode &) { push_scope(); }
-void NameResolver::exit(ProgramNode &) { pop_scope(); }
-
-void NameResolver::enter(MethodDeclNode &node) {
-  enter_method(node.identifier.getValue(), node.declared_type.get()->name);
-  push_scope();
-
-  for (auto &param : node.param_list) {
-    if (!param) continue;
-    Symbol param_sym;
-    param_sym.name = param->identifier.getValue();
-    param_sym.type = param->declared_type.get();
-    param_sym.is_param = true;
-    param_sym.decl_loc = param->location;
-
-    if (check_symbol(param_sym.name))
-      report_error("Redeclaration of parameter '" + param_sym.name + "'",
-                   param->location);
-    else
-      add_symbol(param_sym);
-  }
+  report_error("Unknown expression type", expr.location);
+  return ctx.get_void_type();
 }
 
-void NameResolver::exit(MethodDeclNode &) {
-  pop_scope();
-  exit_method();
+void NameResolver::resolveProgram(ProgramNode& node) {
+  for (auto& stmt : node.children) resolveStatement(*stmt);
 }
 
-void NameResolver::enter(ConstructorDeclNode &node) {
-  enter_method(node.identifier.getValue(), "void");
-  push_scope();
-
-  for (auto &param : node.param_list) {
-    if (!param) continue;
-    Symbol param_sym;
-    param_sym.name = param->identifier.getValue();
-    param_sym.type = param->declared_type.get();
-    param_sym.is_param = true;
-    param_sym.decl_loc = param->location;
-
-    if (check_symbol(param_sym.name))
-      report_error("Redeclaration of parameter '" + param_sym.name + "'",
-                   param->location);
-    else
-      add_symbol(param_sym);
-  }
+void NameResolver::resolveBlock(BlockNode& node) {
+  for (auto& stmt : node.statements) resolveStatement(*stmt);
 }
-void NameResolver::exit(ConstructorDeclNode &) {
-  pop_scope();
-  exit_method();
-}
-
-void NameResolver::enter(ClassNode &node) {
-  enter_class(node.identifier.getValue());
-}
-
-void NameResolver::exit(ClassNode &) { exit_class(); }
-
-void NameResolver::visit(VarDeclNode &node) {
-  const std::string name = node.identifier.getValue();
-  if (check_symbol(name)) {
-    report_error("Redeclaration of variable '" + name + "'", node.location);
-    return;
-  }
-
-  Symbol var_sym;
-  var_sym.name = name;
-  var_sym.type = node.type.get();
-  var_sym.decl_loc = node.location;
-
-  add_symbol(var_sym);
-  node.extra.sym = std::make_unique<Symbol>(scope_stack.back()[name]);
-}
-
-void NameResolver::visit(ParamNode &node) {}
-
-void NameResolver::visit(MethodDeclNode &node) {
-  const std::string name = node.identifier.getValue();
-  std::vector<Type *> param_types;
-  param_types.reserve(node.param_list.size());
-  for (auto &param : node.param_list) {
-    if (param) {
-      param_types.push_back(param->type);
-    }
-  }
-
-  const std::string owner = current_class.empty() ? "global" : current_class;
-  if (ctx.method_table.empty()) {
-    report_error("Missing method table for resolver", node.location);
-    return;
-  }
-
-  std::vector<Symbol> overloads = *find_method_overloads(owner, name);
-  if (overloads.empty()) {
-    report_error("Missing method declaration for '" + name + "'",
-                 node.location);
-    return;
-  }
-
-  node.extra.overload_set = overloads;
-}
-
-void NameResolver::visit(IdentifierExprNode &node) {
-  const std::string name = node.identifier.getValue();
-  Symbol *symbol = lookup_symbol(name);
-  if (!symbol) {
-    report_error("Undeclared identifier '" + name + "'", node.location);
-    return;
-  }
-  node.extra.sym = std::make_unique<Symbol>(*symbol);
-}
-
-void NameResolver::visit(ClassNode &node) {}
-
-void NameResolver::visit(ArgumentNode &node) {
-  if (node.expr) node.expr->accept(*this);
-}
-
-void NameResolver::visit(MethodCallNode &node) {
-  LOG_DEBUG("[NAME] visiting method call");
-  if (node.expr) node.expr->accept(*this);
-
-  std::string owner;
-  bool is_static = false;
-
-  if (node.expr == nullptr)
-    owner = "global";  // temp i think?
-
-  else if (auto *ident = dynamic_cast<IdentifierExprNode *>(node.expr.get())) {
-    Symbol *base_sym = ident->extra.sym.get();
-    if (!base_sym) {
-      report_error("Unresolved method base", node.location);
-      return;
-    }
-
-    if (base_sym->is_class) {
-      owner = base_sym->name;
-      is_static = true;
-    } else {
-      owner = base_sym->type->name;
-    }
-  } else {
-    owner = node.expr->extra.type_name;
-  }
-
-  if (owner.empty()) {
-    report_error("Method call target is not a class type", node.location);
-    return;
-  }
-
-  const std::vector<Symbol> overloads =
-      *find_method_overloads(owner, node.identifier.getValue());
-
-  LOG_DEBUG("[NAME] method overloads size {}", overloads.size());
-  if (overloads.empty()) {
-    report_error("Method '" + node.identifier.getValue() + "' not found on '" +
-                     owner + "'",
-                 node.location);
-    return;
-  }
-
-  node.extra.overload_set = overloads;
-}
-
-void NameResolver::visit(AssignmentExprNode &node) {}

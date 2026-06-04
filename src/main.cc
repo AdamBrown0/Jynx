@@ -47,8 +47,8 @@ int main(const int argc, char** argv) {
     return 1;
   }
 
-  // Sema sema(ctx);
-  // ProgramNode<NodeInfo>* sema_tree = sema.analyze(*ast);
+  Sema sema(ctx);
+  ProgramNode* sema_tree = sema.analyze(*ast);
 
   // if (!sema_tree) {
   //   LOG_ERROR("Semantic analysis failed; skipping code generation");

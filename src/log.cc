@@ -1,10 +1,10 @@
 #include "log.hh"
 
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
-#include <system_error>
 
 #include "ast.hh"
 #include "ast_utils.hh"
@@ -121,6 +121,13 @@ std::string Logger::format_message(const std::string& format) { return format; }
 
 // Compiler-specific logging functions
 namespace Log::Compiler {
+void generic_error(const std::string& error_kind, const std::string& message,
+                   SourceLocation& loc) {
+  std::stringstream ss;
+  ss << error_kind << " error at " << loc.to_string() << ": " << message;
+  Logger::debug(ss.str());
+}
+
 void lexer_token(const Token& token) {
   if (Logger::get_level() <= Level::DEBUG) {
     std::stringstream ss;

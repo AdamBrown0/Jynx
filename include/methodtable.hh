@@ -29,11 +29,11 @@ struct MethodKeyHash {
 class MethodTable {
  public:
   bool add_method(const Symbol &method, std::string *error = nullptr) {
-    MethodKey key{method.owner_class, method.name};
+    MethodKey key{method.name, method.name};
     auto &bucket = methods[key];
 
     for (const auto &existing : bucket) {
-      if (existing.param_types == method.param_types) {
+      if (existing.name == method.name) {
         if (error) *error = "duplicate overload";
         return false;
       }
@@ -44,10 +44,10 @@ class MethodTable {
   }
 
   static std::string make_method_key(const Symbol &method) {
-    std::string key = method.owner_class + "_" + method.name + "_";
-    for (size_t i = 0; i < method.param_types.size(); ++i) {
+    std::string key = method.name + "_" + method.name + "_";
+    for (size_t i = 0; i < method.name.size(); ++i) {
       if (i > 0) key += "_";
-      key += method.param_types[i]->to_string();
+      // key += method.param_types[i]->to_string();
     }
     return key;
   }
@@ -59,7 +59,7 @@ class MethodTable {
     if (it == methods.end()) return nullptr;
 
     for (const auto &method : it->second) {
-      if (method.param_types == param_types) return &method;
+      if (method.name == name) return &method;
     }
     return nullptr;
   }

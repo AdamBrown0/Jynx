@@ -22,13 +22,18 @@ struct StmtNode;
 struct ClassMemberNode;
 struct ParamNode;
 struct BlockNode;
-struct ArgumentNode;
 struct ElseStmtNode;
 
-struct SemanticInfo {};
+struct SemanticInfo {
+  const Type* declared_type = nullptr;
+  Symbol* symbol = nullptr;
+  bool is_mutable = true;
+};
 
 struct CodegenInfo {
   int stack_offset = -1;
+  int temp_id = -1;  // for expression temps
+  bool is_lvalue = false;
 };
 
 struct ASTNode {
@@ -91,6 +96,13 @@ struct AssignmentExprNode : ExprNode {
       : ExprNode(loc), left(left), op(op), right(right) {}
 };
 
+struct ArgumentNode : ExprNode {
+  uptr<ExprNode> expr;
+
+  ArgumentNode(uptr<ExprNode> expr, SourceLocation loc)
+      : ExprNode(loc), expr(std::move(expr)) {}
+};
+
 struct MethodCallNode : ExprNode {
   uptr<ExprNode> expr;
   Token identifier;
@@ -108,17 +120,9 @@ struct MethodCallNode : ExprNode {
 /// Supporting Nodes
 /// ============
 
-struct ArgumentNode : ASTNode {
-  uptr<ExprNode> expr;
-
-  ArgumentNode(uptr<ExprNode> expr, SourceLocation loc)
-      : ASTNode(loc), expr(std::move(expr)) {}
-};
-
 struct ParamNode : ASTNode {
   const Type* declared_type = nullptr;
-  Token identifier;  // might actually want to replace with something like
-                     // vardecl or variable node
+  Token identifier;
 
   ParamNode(const Type* type, Token identifier, SourceLocation loc)
       : ASTNode(loc), declared_type(type), identifier(identifier) {}
@@ -147,14 +151,14 @@ struct BlockNode : StmtNode {
       : StmtNode(loc), statements(std::move(statements)) {}
 };
 
-struct VarDeclNode : StmtNode {
+struct VarDeclNode : ExprNode {
   const Type* declared_type = nullptr;
   Token identifier;
   uptr<ExprNode> initializer;
 
   VarDeclNode(const Type* type, Token identifier, ExprNode* initializer,
               SourceLocation loc)
-      : StmtNode(loc),
+      : ExprNode(loc),
         declared_type(type),
         identifier(identifier),
         initializer(initializer) {}

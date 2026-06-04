@@ -23,6 +23,10 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_compile_definitions(
+    JYNX_LOG_LEVEL=Log::Level::DEBUG
+)
+
 # ========================== Directories ==========================
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
@@ -30,13 +34,14 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 set(CORE_SOURCES
     src/lexer.cc
     src/parser.cc
-    # src/sema.cc
+    src/sema.cc
     src/log.cc
     src/token.cc
+    src/scope.cc
     src/context.cc
     # src/gen.cc
     src/primitive_type.cc
-    src/visitor/typechecker.cc
+    # src/visitor/typechecker.cc
     src/visitor/symbolcollector.cc
     # src/visitor/nameresolver.cc
 )

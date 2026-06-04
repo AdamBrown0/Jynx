@@ -15,11 +15,11 @@
 #include "token.hh"
 #include "visitor/visitor.hh"
 
-typedef struct Scope {
+typedef struct Scope_ {
   int stack_offset_start;
   std::unordered_map<std::string, int> stack_offsets;
   std::unordered_map<std::string, std::pair<int, int>> string_var_slots;
-} Scope;
+} Scope_;
 
 class CodeGenerator : public ASTVisitor {
  public:
@@ -379,7 +379,7 @@ class CodeGenerator : public ASTVisitor {
   std::stringstream text_section;
   std::stringstream rodata_section;
 
-  std::vector<Scope> scope_stack;
+  std::vector<Scope_> scope_stack;
   int current_stack_offset = 0;
 
   std::vector<std::string> caller_saved_registers_abi32;

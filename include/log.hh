@@ -1,7 +1,6 @@
 #ifndef LOG_H_
 #define LOG_H_
 
-#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -124,6 +123,8 @@ std::string Logger::format_message(const std::string& format, T&& value,
 
 // Specialized logging functions for compiler components
 namespace Compiler {
+void generic_error(const std::string& error_kind, const std::string& message,
+                   SourceLocation loc);
 void lexer_token(const Token& token);
 void lexer_error(const std::string& message, SourceLocation loc);
 void parser_enter(const std::string& rule);

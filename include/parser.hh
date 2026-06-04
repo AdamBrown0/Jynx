@@ -32,6 +32,8 @@ class Parser {
   int getBinaryPrecedence(TokenType type) {
     using Tk = TokenType;
     switch (type) {
+      case Tk::TOKEN_DATA_TYPE:
+        return 5;
       case Tk::TOKEN_MULTIPLY:
       case Tk::TOKEN_DIVIDE:
         return 4;
@@ -59,7 +61,7 @@ class Parser {
     switch (type) {
       case Tk::TOKEN_PLUS:
       case Tk::TOKEN_MINUS:
-        return 5;  // Higher precedence than binary operators
+        return 100;  // Higher precedence than binary operators
       default:
         return -1;
     }
@@ -101,42 +103,36 @@ class Parser {
     return ret;
   }
 
-  /// @cond INTERNAL
-  using _StmtNode = StmtNode;
-  using _ExprNode = ExprNode;
-  using _ASTNode = ASTNode;
-  /// @endcond
-
   // statements
-  _StmtNode* parseStatement();
-  _StmtNode* parseBlock();
-  _StmtNode* parseVarDecl();
-  _StmtNode* parseIfStmt();
-  // _StmtNode* parseElseStmt();
-  _StmtNode* parseReturnStmt();
-  _StmtNode* parseWhileStmt();
-  _StmtNode* parseExprStmt();
+  StmtNode* parseStatement();
+  StmtNode* parseBlock();
+  StmtNode* parseIfStmt();
+  // StmtNode* parseElseStmt();
+  StmtNode* parseReturnStmt();
+  StmtNode* parseWhileStmt();
+  StmtNode* parseExprStmt();
 
   // class related
-  _StmtNode* parseClass();
+  StmtNode* parseClass();
   ClassMemberNode* parseClassMember();
   ClassMemberNode* parseFieldDecl(std::optional<Token>);
   ClassMemberNode* parseMethodDecl(std::optional<Token>);
   ClassMemberNode* parseConstructorDecl();
 
   // expressions
-  _ExprNode* parseExpr();
-  _ExprNode* parseBinaryExpr();
-  _ExprNode* parseBinaryExpr(int);
-  _ExprNode* parseUnaryExpr();
-  _ExprNode* parseLiteralExpr();
-  _ExprNode* parseIdentifierExpr();
-  // _StmtNode* parseAssignmentExpr(); // fairly sure ts isnt needed
-  _ExprNode* parseMethodCall();
+  ExprNode* parseExpr();
+  ExprNode* parseBinaryExpr();
+  ExprNode* parseBinaryExpr(int);
+  ExprNode* parseUnaryExpr();
+  ExprNode* parseLiteralExpr();
+  ExprNode* parseIdentifierExpr();
+  // StmtNode* parseAssignmentExpr(); // fairly sure ts isnt needed
+  ExprNode* parseMethodCall();
+  ExprNode* parseVarDecl();
 
   // supporting
-  _ASTNode* parseArgument();
-  _ASTNode* parseParam();
+  ASTNode* parseArgument();
+  ASTNode* parseParam();
   const Type* parseType();
 };
 

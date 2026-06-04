@@ -8,7 +8,7 @@ class SymbolCollector : public ASTVisitor {
  public:
   SymbolCollector(CompilerContext& ctx) : ASTVisitor(ctx) {}
 
-  void collect(ProgramNode& program);
+  void collect(ProgramNode& program) { collectProgram(program); }
 
  private:
   void collectStatement(StmtNode& stmt);
@@ -16,22 +16,20 @@ class SymbolCollector : public ASTVisitor {
 
   void collectProgram(ProgramNode& node);
   void collectBlock(BlockNode& node);
-  void collectVarDecl(VarDeclNode& node);
+  void collectMethodDecl(MethodDeclNode& node);
   void collectIfStmt(IfStmtNode& node);
   void collectWhileStmt(WhileStmtNode& node);
-  void collectReturn(ReturnStmtNode& node);
-  void collectExprStmt(ExprStmtNode& node);
-  void collectMethodDecl(MethodDeclNode& node);
 
   void collectBinaryExpr(BinaryExprNode& node);
-  void collectUnaryExpr(UnaryExprNode& node);
-  void collectLiteralExpr(LiteralExprNode& node);
-  void collectIdentifierExpr(IdentifierExprNode& node);
   void collectAssignmentExpr(AssignmentExprNode& node);
   void collectMethodCall(MethodCallNode& node);
   void collectArgument(ArgumentNode& node);
+  void collectVarDecl(VarDeclNode& node);
 
-  TokenType resolve_param_type(const std::string& name);
+  // void report_error(const std::string& message,
+  //                   const SourceLocation& location) {
+  //   ctx.report_error("Symbol Collector", message, location);
+  // }
 };
 
 #endif  // SYMBOLCOLLECTOR_H_

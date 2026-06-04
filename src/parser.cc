@@ -19,7 +19,7 @@ ProgramNode* Parser::parseProgram() {
     LOG_DEBUG("PARSING PROGRAM");
     current.print();
     std::optional<Token> access_modifier;
-    _StmtNode* statement = Parser::parseStatement();
+    StmtNode* statement = Parser::parseStatement();
     if (!statement) LOG_PARSER_ERROR("Method declaration required", current);
 
     program->children.emplace_back(statement);
@@ -41,18 +41,37 @@ StmtNode* Parser::parseStatement() {
         std::optional<Token> access_modifier;
         return Parser::parseMethodDecl(access_modifier);
       }
-      return Parser::parseVarDecl();
+      SourceLocation loc;
+      loc.col = current.getCol();
+      loc.line = current.getLine();
+      ExprNode* ret = Parser::parseVarDecl();
+      if (current.getType() != TokenType::TOKEN_SEMICOLON)
+        LOG_PARSER_ERROR("Expected semicolon after variable declaration",
+                         current);
+      advance();
+      return new ExprStmtNode(ret, loc);
     }
     case TokenType::KW_IF:
       return Parser::parseIfStmt();
     case TokenType::KW_WHILE:
       return Parser::parseWhileStmt();
-    case TokenType::KW_RETURN:
-      return Parser::parseReturnStmt();
+    case TokenType::KW_RETURN: {
+      StmtNode* ret = Parser::parseReturnStmt();
+      if (current.getType() != TokenType::TOKEN_SEMICOLON)
+        LOG_PARSER_ERROR("Expected semicolon after return statement", current);
+      advance();
+      return ret;
+    }
     case TokenType::KW_CLASS:
       return Parser::parseClass();
-    default:
-      return Parser::parseExprStmt();
+    default: {
+      StmtNode* ret = Parser::parseExprStmt();
+      if (current.getType() != TokenType::TOKEN_SEMICOLON)
+        LOG_PARSER_ERROR("Expected semicolon after expression statement",
+                         current);
+      advance();
+      return ret;
+    }
   }
 }
 
@@ -202,10 +221,6 @@ ClassMemberNode* Parser::parseFieldDecl(std::optional<Token> access_modifier) {
   if (identifier.getType() != TokenType::TOKEN_ID)
     LOG_PARSER_ERROR("Expected field identifier", identifier);
 
-  if (current.getType() != TokenType::TOKEN_SEMICOLON)
-    LOG_PARSER_ERROR("Expected semicolon after field declaration", current);
-  advance();  // consume semicolon
-
   if (!access_modifier.has_value())
     access_modifier =
         Token(TokenType::KW_ACCESS_MODIFIER, "public", lexer.getLocation());
@@ -227,7 +242,7 @@ StmtNode* Parser::parseBlock() {
     LOG_PARSER_ERROR("Expected opening brace '{'", current);
   }
 
-  std::vector<std::unique_ptr<_StmtNode>> statements;
+  std::vector<std::unique_ptr<StmtNode>> statements;
   advance();  // consume '{'
   while (current.getType() != TokenType::TOKEN_RBRACE) {
     if (current.getType() == TokenType::TOKEN_EOF) {
@@ -251,11 +266,11 @@ StmtNode* Parser::parseIfStmt() {
   if (advance().getType() != TokenType::TOKEN_LPAREN)
     LOG_PARSER_ERROR("Expected opening parenthesis", current);
 
-  _ExprNode* condition = Parser::parseBinaryExpr();
+  ExprNode* condition = Parser::parseBinaryExpr();
 
   LOG_DEBUG("PARSING IFSTMT STMT, current");
   current.print();
-  _StmtNode* statement = Parser::parseStatement();
+  StmtNode* statement = Parser::parseStatement();
   LOG_DEBUG("AFTER STMT");
   current.print();
 
@@ -271,7 +286,7 @@ StmtNode* Parser::parseIfStmt() {
   return new IfStmtNode(condition, statement, else_statement, if_loc);
 }
 
-StmtNode* Parser::parseVarDecl() {
+ExprNode* Parser::parseVarDecl() {
   LOG_PARSER_ENTER("VarDecl");
   // current must be the keyword
   if (current.getType() != TokenType::TOKEN_DATA_TYPE)
@@ -293,20 +308,12 @@ StmtNode* Parser::parseVarDecl() {
   if (identifier.getType() != TokenType::TOKEN_ID)
     LOG_PARSER_ERROR("Expected identifier", identifier);
 
-  // current must either be an equals, in which case we parseExpr, or a semi
-  // colon, in which case we consume and move on
-  if (current.getType() == TokenType::TOKEN_SEMICOLON) {
-    advance();  // consume semicolon
-    return new VarDeclNode(type, identifier, nullptr, decl_loc);
-  } else if (current.getType() == TokenType::TOKEN_EQUALS) {
+  if (current.getType() == TokenType::TOKEN_EQUALS) {
     advance();  // skip equals
-    _ExprNode* init = parseBinaryExpr();
-    if (current.getType() != TokenType::TOKEN_SEMICOLON)
-      LOG_PARSER_ERROR("Expected semicolon after declaration", current);
-    advance();  // consume semicolon
+    ExprNode* init = parseBinaryExpr();
     return new VarDeclNode(type, identifier, init, decl_loc);
   } else {
-    LOG_PARSER_ERROR("Expected semi-colon or initializer", current);
+    return new VarDeclNode(type, identifier, nullptr, decl_loc);
   }
 
   return nullptr;
@@ -322,9 +329,9 @@ StmtNode* Parser::parseWhileStmt() {
   if (advance().getType() != TokenType::TOKEN_LPAREN)
     LOG_PARSER_ERROR("Expected opening parenthesis", current);
 
-  _ExprNode* condition = Parser::parseBinaryExpr();
+  ExprNode* condition = Parser::parseBinaryExpr();
 
-  _StmtNode* statement = Parser::parseStatement();
+  StmtNode* statement = Parser::parseStatement();
 
   return new WhileStmtNode(condition, statement, while_loc);
 }
@@ -336,10 +343,8 @@ StmtNode* Parser::parseReturnStmt() {
   return_loc.col = current.getCol();
 
   advance();
-  _ExprNode* expression = Parser::parseBinaryExpr();
-  if (current.getType() != TokenType::TOKEN_SEMICOLON)
-    LOG_PARSER_ERROR("Expected semicolon after return", current);
-  advance();
+  ExprNode* expression = Parser::parseBinaryExpr();
+
   return new ReturnStmtNode(expression, return_loc);
 }
 
@@ -355,9 +360,7 @@ StmtNode* Parser::parseExprStmt() {
   else {
     expr = new ExprStmtNode(parseBinaryExpr(), expr_loc);
   }
-  if (current.getType() != TokenType::TOKEN_SEMICOLON)
-    LOG_PARSER_ERROR("Expected semicolon after expression", current);
-  advance();
+
   return expr;
 }
 
@@ -366,7 +369,7 @@ ExprNode* Parser::parseExpr() {
   switch (current.getType()) {
     case Tk::TOKEN_LPAREN: {
       advance();  // gobble up open parenthesis
-      _ExprNode* expr =
+      ExprNode* expr =
           parseBinaryExpr();  // parse the expression inside parentheses
       // current should now be the closing parenthesis
       if (current.getType() == Tk::TOKEN_RPAREN) {
@@ -374,6 +377,8 @@ ExprNode* Parser::parseExpr() {
       }
       return expr;
     }
+    case Tk::TOKEN_DATA_TYPE:
+      return parseVarDecl();
     case Tk::TOKEN_ID:
       return parseIdentifierExpr();
     default:
@@ -386,7 +391,7 @@ ExprNode* Parser::parseExpr() {
 ExprNode* Parser::parseBinaryExpr() { return parseBinaryExpr(0); }
 
 ExprNode* Parser::parseBinaryExpr(int parent_precedence) {
-  _ExprNode* left;
+  ExprNode* left;
   int unary_precedence = getUnaryPrecedence(current.getType());
   if (unary_precedence != -1 && unary_precedence > parent_precedence) {
     left = parseUnaryExpr();
@@ -395,6 +400,7 @@ ExprNode* Parser::parseBinaryExpr(int parent_precedence) {
   }
 
   int precedence;
+  LOG_DEBUG("Current: {}", current.to_string());
   while ((precedence = getBinaryPrecedence(current.getType())) != -1 &&
          precedence > parent_precedence) {
     Token op_token = ret_advance();
@@ -406,7 +412,7 @@ ExprNode* Parser::parseBinaryExpr(int parent_precedence) {
       expr_loc = lexer.getLocation();
     }
 
-    _ExprNode* right = parseBinaryExpr(precedence);
+    ExprNode* right = parseBinaryExpr(precedence);
 
     if (op_token.getType() == TokenType::TOKEN_EQUALS) {
       left = new AssignmentExprNode(left, op_token, right, expr_loc);
@@ -427,7 +433,7 @@ ExprNode* Parser::parseUnaryExpr() {
   expr_loc.col = unary_op.getCol();
 
   advance();
-  _ExprNode* operand = parseBinaryExpr(unary_prec);
+  ExprNode* operand = parseBinaryExpr(unary_prec);
 
   return new UnaryExprNode(unary_op, operand, expr_loc);
 }
@@ -437,7 +443,7 @@ ExprNode* Parser::parseLiteralExpr() {
   expr_loc.line = current.getLine();
   expr_loc.col = current.getCol();
 
-  _ExprNode* node = new LiteralExprNode(current, expr_loc);
+  ExprNode* node = new LiteralExprNode(current, expr_loc);
   advance();
   return node;
 }
@@ -453,7 +459,7 @@ ExprNode* Parser::parseIdentifierExpr() {
   expr_loc.line = current.getLine();
   expr_loc.col = current.getCol();
 
-  _ExprNode* node = new IdentifierExprNode(current, expr_loc);
+  ExprNode* node = new IdentifierExprNode(current, expr_loc);
   advance();
   return node;
 }
@@ -463,7 +469,7 @@ ExprNode* Parser::parseMethodCall() {
   // <method_call> ::= <expression> "." <identifier> "(" [ <argument_list> ] ")"
   // <function_call> ::= <identifier> "(" [ <argument_list> ] ")"
 
-  _ExprNode* expr = nullptr;
+  ExprNode* expr = nullptr;
   Token identifier;
   SourceLocation call_loc;
 
@@ -503,7 +509,7 @@ ExprNode* Parser::parseMethodCall() {
       continue;
     }
 
-    _ExprNode* arg_expr = Parser::parseExpr();
+    ExprNode* arg_expr = Parser::parseExpr();
 
     SourceLocation arg_loc;
     if (arg_expr) {
