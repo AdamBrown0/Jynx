@@ -26,6 +26,8 @@ class SymbolCollector : public ASTVisitor {
   void collectArgument(ArgumentNode& node);
   void collectVarDecl(VarDeclNode& node);
 
+  void collectParamNode(ParamNode& node);
+
   // void report_error(const std::string& message,
   //                   const SourceLocation& location) {
   //   ctx.report_error("Symbol Collector", message, location);

@@ -1,8 +1,10 @@
-int cond = 5;
-int ret = 0;
-if (cond >= 6) {
-  ret = 1;
-} else {
-  ret = 2;
+int main() {
+  int cond = 5;
+  int ret = 0;
+  if (cond >= 6) {
+    ret = 1;
+  } else {
+    ret = 2;
+  }
+  return ret;
 }
-return ret;

@@ -1,5 +1,7 @@
 #include "context.hh"
 
+#include <cassert>
+
 #include "log.hh"
 
 CompilerContext::CompilerContext() {
@@ -67,16 +69,30 @@ void CompilerContext::push_scope() {
 }
 
 void CompilerContext::pop_scope() {
-  if (current_scope) current_scope = current_scope->get_parent();
+  if (Scope* parent = current_scope->get_parent()) current_scope = parent;
 }
 
 Symbol* CompilerContext::declare(const std::string& name, const Type* type,
                                  SourceLocation loc) {
-  if (!current_scope) return nullptr;
+  assert(current_scope);
   return current_scope->declare(name, type, loc);
 }
 
+VariableSymbol* CompilerContext::declare(const std::string& name,
+                                         const Type* type, bool is_mutable,
+                                         SourceLocation loc) {
+  assert(current_scope);
+  return current_scope->declare(name, type, is_mutable, loc);
+}
+
+FunctionSymbol* CompilerContext::declare(
+    const std::string& name, const Type* type,
+    const std::vector<const Type*> param_types, SourceLocation loc) {
+  assert(current_scope);
+  return current_scope->declare(name, type, param_types, loc);
+}
+
 Symbol* CompilerContext::lookup(const std::string& name, bool walkParent) {
-  if (!current_scope) return nullptr;
+  assert(current_scope);
   return current_scope->lookup(name);
 }

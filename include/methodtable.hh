@@ -4,11 +4,7 @@
 #include <functional>
 #include <unordered_map>
 
-#include "ast.hh"
-#include "log.hh"
 #include "symbol.hh"
-#include "token.hh"
-#include "token_utils.hh"
 
 struct MethodKey {
   std::string owner;
@@ -29,11 +25,11 @@ struct MethodKeyHash {
 class MethodTable {
  public:
   bool add_method(const Symbol &method, std::string *error = nullptr) {
-    MethodKey key{method.name, method.name};
+    MethodKey key{method.owner_class, method.name};
     auto &bucket = methods[key];
 
     for (const auto &existing : bucket) {
-      if (existing.name == method.name) {
+      if (existing.fields == method.fields) {
         if (error) *error = "duplicate overload";
         return false;
       }
@@ -44,22 +40,22 @@ class MethodTable {
   }
 
   static std::string make_method_key(const Symbol &method) {
-    std::string key = method.name + "_" + method.name + "_";
-    for (size_t i = 0; i < method.name.size(); ++i) {
+    std::string key = method.owner_class + "_" + method.name + "_";
+    for (size_t i = 0; i < method.fields.size(); ++i) {
       if (i > 0) key += "_";
-      // key += method.param_types[i]->to_string();
+      key += method.fields[i]->type->to_string();
     }
     return key;
   }
 
   const Symbol *find_overload(const std::string &owner, const std::string &name,
-                              const std::vector<Type *> &param_types) const {
+                              const std::vector<Symbol *> &param_types) const {
     MethodKey key{owner, name};
     auto it = methods.find(key);
     if (it == methods.end()) return nullptr;
 
     for (const auto &method : it->second) {
-      if (method.name == name) return &method;
+      if (method.fields == param_types) return &method;
     }
     return nullptr;
   }

@@ -1,5 +1,8 @@
 int main() {
-  if ((int a = 5) == 5) return 5;
+  if ((int a = 5) == 5) {
+    a = 2;
+    return a;
+  }
   else return 67;
 }
 

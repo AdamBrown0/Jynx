@@ -35,8 +35,15 @@ class CompilerContext {
   void push_scope();
   void pop_scope();
   Scope* get_current_scope() const { return current_scope; }
+
   Symbol* declare(const std::string& name, const Type* type,
                   SourceLocation loc);
+  VariableSymbol* declare(const std::string& name, const Type* type,
+                          bool is_mutable, SourceLocation loc);
+  FunctionSymbol* declare(const std::string& name, const Type* type,
+                          const std::vector<const Type*> param_types,
+                          SourceLocation loc);
+
   Symbol* lookup(const std::string& name, bool walkParent = true);
 
  private:

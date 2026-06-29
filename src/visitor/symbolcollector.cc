@@ -11,8 +11,6 @@ void SymbolCollector::collectStatement(StmtNode& stmt) {
     collectExpression(*node->expr);
   else if (auto* node = dynamic_cast<MethodDeclNode*>(&stmt))
     collectMethodDecl(*node);
-  else
-    report_error("Unknown statment type", stmt.location);
 }
 
 void SymbolCollector::collectProgram(ProgramNode& node) {
@@ -33,16 +31,66 @@ void SymbolCollector::collectMethodDecl(MethodDeclNode& node) {
     return;
   }
 
-  // replace this with method key stuff
-  auto symbol = ctx.declare(node.identifier.getValue(), node.declared_type,
-                            node.location);
-  if (!symbol) {
-    report_error("Redeclaration of method '" + node.identifier.getValue() + "'",
-                 node.location);
+  auto func = std::make_unique<FunctionSymbol>();
+  func->name = node.identifier.getValue();
+  func->location = node.location;
+  func->type = node.declared_type;
+  // func-> type = ;
+
+  for (const auto& param : node.param_list) {
+    func->param_types.push_back(param->declared_type);
+  }
+
+  Symbol* existing = ctx.lookup(node.identifier.getValue(), false);
+
+  if (!existing) {
+    FunctionSymbol* symbol = ctx.declare(node.identifier.getValue(), func->type,
+                                         func->param_types, node.location);
+    if (!symbol) {
+      report_error("Cannot declare method " + node.identifier.getValue(),
+                   node.location);
+      return;
+    }
+
+    auto* func_sym = static_cast<FunctionSymbol*>(symbol);
+    func_sym->type = func->type;
+    func_sym->param_types = std::move(func->param_types);
+    func_sym->overloads.push_back(func.get());
+  } else if (auto* func_sym = static_cast<FunctionSymbol*>(existing)) {
+    func_sym->overloads.push_back(func.get());
+  }
+
+  node.semantic.data.variable.symbol =
+      ctx.lookup(node.identifier.getValue(), false);
+
+  ctx.push_scope();
+
+  for (auto& param : node.param_list) {
+    collectParamNode(*param);
+  }
+
+  if (node.body) collectBlock(*node.body);
+
+  ctx.pop_scope();
+}
+
+void SymbolCollector::collectParamNode(ParamNode& node) {
+  if (!node.declared_type) {
+    report_error("Missing type in parameter declaration", node.location);
     return;
   }
 
-  node.semantic.symbol = symbol;
+  auto symbol = ctx.declare(node.identifier.getValue(), node.declared_type,
+                            node.location);
+
+  if (!symbol) {
+    report_error(
+        "Redeclaration of parameter '" + node.identifier.getValue() + "'",
+        node.location);
+    return;
+  }
+
+  node.semantic.data.variable.symbol = symbol;
 }
 
 void SymbolCollector::collectIfStmt(IfStmtNode& node) {
@@ -97,14 +145,14 @@ void SymbolCollector::collectVarDecl(VarDeclNode& node) {
     return;
   }
 
-  auto symbol = ctx.declare(node.identifier.getValue(), node.declared_type,
-                            node.location);
-  if (!symbol) {
+  if (ctx.lookup(node.identifier.getValue(), true)) {
     report_error(
         "Redeclaration of variable '" + node.identifier.getValue() + "'",
         node.location);
     return;
   }
 
-  node.semantic.symbol = symbol;
+  auto symbol = ctx.declare(node.identifier.getValue(), node.declared_type,
+                            node.location);
+  node.semantic.data.variable.symbol = symbol;
 }

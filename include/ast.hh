@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "log.hh"
+#include "scope.hh"
 #include "symbol.hh"
 #include "token.hh"
 #include "type.hh"
@@ -24,10 +25,38 @@ struct ParamNode;
 struct BlockNode;
 struct ElseStmtNode;
 
+union NodeSemanticData {
+  struct {
+    Symbol* symbol;
+  } variable;
+
+  struct {
+    union {
+      int int_val;
+      float float_val;
+      char* string_val;
+    } value;
+  } literal;
+
+  struct {
+    Symbol* callee;  // make FunctionSymbol
+    int argument_count;
+  } call;
+
+  struct {
+    const Type* source_type;
+    const Type* target_type;
+  } cast;
+};
+
 struct SemanticInfo {
   const Type* declared_type = nullptr;
-  Symbol* symbol = nullptr;
-  bool is_mutable = true;
+  bool is_lvalue;
+  bool is_constant;
+
+  Scope* scope;
+
+  NodeSemanticData data;
 };
 
 struct CodegenInfo {

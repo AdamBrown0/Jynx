@@ -14,22 +14,54 @@ Symbol* Scope::declare(const std::string& name, const Type* type,
   symbol->type = type;
   symbol->location = loc;
 
-  Symbol* sym_ptr = symbol.get();
-  symbols[name] = sym_ptr;
+  Symbol* raw = symbol.get();
+  symbols[name] = std::move(symbol);
+  return raw;
+}
 
-  return sym_ptr;
+VariableSymbol* Scope::declare(const std::string& name, const Type* type,
+                               bool is_mutable, SourceLocation loc) {
+  if (symbols.find(name) != symbols.end()) return nullptr;
+
+  auto var = std::make_unique<VariableSymbol>();
+  var->name = name;
+  var->type = type;
+  var->location = loc;
+  var->is_mutable = is_mutable;
+
+  VariableSymbol* ptr = var.get();
+  symbols[name] = std::move(var);
+  return ptr;
+}
+
+FunctionSymbol* Scope::declare(const std::string& name, const Type* return_type,
+                               const std::vector<const Type*> param_types,
+                               SourceLocation loc) {
+  if (symbols.find(name) != symbols.end()) {
+    return nullptr;
+  }
+
+  auto func = std::make_unique<FunctionSymbol>();
+  func->name = name;
+  func->type = return_type;
+  func->param_types = param_types;
+  func->location = loc;
+
+  FunctionSymbol* ptr = func.get();
+  symbols[name] = std::move(func);
+  return ptr;
 }
 
 Symbol* Scope::lookup(const std::string& name, bool walkParent) {
   Scope* scope = this;
   if (!walkParent) {
     auto it = scope->symbols.find(name);
-    return (it != symbols.end()) ? it->second : nullptr;
+    return (it != symbols.end()) ? it->second.get() : nullptr;
   }
 
   while (scope != nullptr) {
     auto it = scope->symbols.find(name);
-    if (it != scope->symbols.end()) return it->second;
+    if (it != scope->symbols.end()) return it->second.get();
     scope = scope->parent;
   }
 

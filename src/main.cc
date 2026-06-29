@@ -50,11 +50,11 @@ int main(const int argc, char** argv) {
   Sema sema(ctx);
   ProgramNode* sema_tree = sema.analyze(*ast);
 
-  // if (!sema_tree) {
-  //   LOG_ERROR("Semantic analysis failed; skipping code generation");
-  //   delete ast;
-  //   return 1;
-  // }
+  if (!sema_tree) {
+    LOG_ERROR("Semantic analysis failed; skipping code generation");
+    delete ast;
+    return 1;
+  }
 
   // CodeGenerator gen(ctx);
   // std::string code = gen.generate(*sema_tree);
