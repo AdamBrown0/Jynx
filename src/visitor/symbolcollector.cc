@@ -130,7 +130,7 @@ void SymbolCollector::collectAssignmentExpr(AssignmentExprNode& node) {
 }
 
 void SymbolCollector::collectMethodCall(MethodCallNode& node) {
-  collectExpression(*node.expr);  // uhh no idea?
+  if (node.expr) collectExpression(*node.expr);
 
   for (auto& arg : node.arg_list) collectExpression(*arg.get());
 }

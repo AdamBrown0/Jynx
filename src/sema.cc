@@ -18,16 +18,16 @@ ProgramNode* Sema::analyze(ProgramNode& root) {
     return nullptr;
   }
 
-  // {
-  //   const std::vector<Type*> no_params;
-  //   const Symbol* main_method =
-  //       context.method_table.find_overload("global", "main", no_params);
-  //   if (!main_method || !main_method->type ||
-  //       main_method->type->to_string() != "int") {
-  //     LOG_ERROR("Missing required entry point: int main() with no
-  //     parameters"); return nullptr;
-  //   }
-  // }
+  {
+    const std::vector<Type*> no_params;
+    const Symbol* main_method =
+        context.method_table.find_overload("global", "main", no_params);
+    if (!main_method || !main_method->type ||
+        main_method->type->to_string() != "int") {
+      LOG_ERROR("Missing required entry point: int main() with no
+      parameters"); return nullptr;
+    }
+  }
 
   // LOG_DEBUG("Resolving names");
   // NameResolver name_resolver(context);

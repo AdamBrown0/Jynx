@@ -62,5 +62,5 @@ file(GLOB TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.jx")
 foreach(test_file IN LISTS TEST_FILES)
   get_filename_component(test_name "${test_file}" NAME_WE)
 
-  add_test(NAME "parse_${test_name}" COMMAND jynxc "${test_file}")
+  add_test(NAME "full_${test_name}" COMMAND jynxc "${test_file}")
 endforeach()

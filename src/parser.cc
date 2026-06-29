@@ -546,6 +546,10 @@ const Type* Parser::parseType() {
   if (current.getType() != TokenType::TOKEN_DATA_TYPE)
     LOG_PARSER_ERROR("Expected type token", current);
 
+  if (current.getValue() == "string")
+    return ctx.make_pointer_type(ctx.get_char_type());
+  if (current.getValue() == "void")
+    return ctx.get_void_type();
   if (match(ctx.get_int32_type()))
     return ctx.get_int32_type();
   else if (match(ctx.get_bool_type()))
