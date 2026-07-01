@@ -28,6 +28,8 @@ class Lexer {
     context.keywords.insert("return", TokenType::KW_RETURN);
     context.keywords.insert("while", TokenType::KW_WHILE);
     context.keywords.insert("constructor", TokenType::KW_CONSTRUCTOR);
+    context.keywords.insert("true", TokenType::TOKEN_INT);
+    context.keywords.insert("false", TokenType::TOKEN_INT);
   }
 
   /// Returns the next token from the source file

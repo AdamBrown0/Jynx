@@ -96,3 +96,11 @@ Symbol* CompilerContext::lookup(const std::string& name, bool walkParent) {
   assert(current_scope);
   return current_scope->lookup(name);
 }
+
+Symbol* CompilerContext::lookup(const std::string& name, Scope* startingScope,
+                                bool walkParent) {
+  Scope* scope = startingScope ? startingScope : current_scope;
+
+  assert(scope);
+  return scope->lookup(name, scope, walkParent);
+}

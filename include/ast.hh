@@ -47,6 +47,8 @@ union NodeSemanticData {
     const Type* source_type;
     const Type* target_type;
   } cast;
+
+  Scope* scope;
 };
 
 struct SemanticInfo {

@@ -1,0 +1,15 @@
+int main() {
+  return func(6, 7);
+}
+
+int func() {
+  return 1;
+}
+
+int func(int a) {
+  return func() + a;
+}
+
+int func(int a, int b) {
+  return func(a) + func(b);
+}

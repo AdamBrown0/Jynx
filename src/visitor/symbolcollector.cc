@@ -15,12 +15,16 @@ void SymbolCollector::collectStatement(StmtNode& stmt) {
 
 void SymbolCollector::collectProgram(ProgramNode& node) {
   ctx.push_scope();
+  node.semantic.scope = ctx.get_current_scope();
+
   for (auto& stmt : node.children) collectStatement(*stmt);
   ctx.pop_scope();
 }
 
 void SymbolCollector::collectBlock(BlockNode& node) {
   ctx.push_scope();
+  node.semantic.scope = ctx.get_current_scope();
+
   for (auto& stmt : node.statements) collectStatement(*stmt);
   ctx.pop_scope();
 }
@@ -65,6 +69,7 @@ void SymbolCollector::collectMethodDecl(MethodDeclNode& node) {
       ctx.lookup(node.identifier.getValue(), false);
 
   ctx.push_scope();
+  node.semantic.scope = ctx.get_current_scope();
 
   for (auto& param : node.param_list) {
     collectParamNode(*param);

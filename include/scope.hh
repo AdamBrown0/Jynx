@@ -22,6 +22,8 @@ class Scope {
                           SourceLocation loc);
 
   Symbol* lookup(const std::string& name, bool walkParent = true);
+  Symbol* lookup(const std::string& name, Scope* startingScope,
+                 bool walkParent = true);
 
   Scope* get_parent() const { return parent; }
 

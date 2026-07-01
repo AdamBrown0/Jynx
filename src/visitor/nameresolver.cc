@@ -19,40 +19,90 @@ void NameResolver::resolveStatement(StmtNode& stmt) {
     report_error("Unknown statment type", stmt.location);
 }
 
-const Type* NameResolver::resolveExpression(ExprNode& expr) {
+void NameResolver::resolveExpression(ExprNode& expr) {
   if (auto* node = dynamic_cast<BinaryExprNode*>(&expr))
-    return resolveBinaryExpr(*node);
-  if (auto* node = dynamic_cast<UnaryExprNode*>(&expr))
-    return resolveUnaryExpr(*node);
-  if (auto* node = dynamic_cast<LiteralExprNode*>(&expr))
-    return resolveLiteralExpr(*node);
+    resolveBinaryExpr(*node);
+  if (auto* node = dynamic_cast<UnaryExprNode*>(&expr)) resolveUnaryExpr(*node);
+  // if (auto* node = dynamic_cast<LiteralExprNode*>(&expr))
+  //   resolveLiteralExpr(*node);
   if (auto* node = dynamic_cast<IdentifierExprNode*>(&expr))
-    return resolveIdentifierExpr(*node);
+    resolveIdentifierExpr(*node);
   if (auto* node = dynamic_cast<AssignmentExprNode*>(&expr))
-    return resolveAssignmentExpr(*node);
+    resolveAssignmentExpr(*node);
   if (auto* node = dynamic_cast<MethodCallNode*>(&expr))
-    return resolveMethodCall(*node);
-  if (auto* node = dynamic_cast<ArgumentNode*>(&expr))
-    return resolveArgument(*node);
-
-  report_error("Unknown expression type", expr.location);
-  return ctx.get_void_type();
+    resolveMethodCall(*node);
+  // if (auto* node = dynamic_cast<ArgumentNode*>(&expr))
+  // resolveArgument(*node);
 }
 
 void NameResolver::resolveProgram(ProgramNode& node) {
-  ctx.push_scope();
+  ctx.set_current_scope(node.semantic.scope);
   for (auto& stmt : node.children) resolveStatement(*stmt);
-  ctx.pop_scope();
+  ctx.set_current_scope(node.semantic.scope->get_parent());
 }
 
 void NameResolver::resolveBlock(BlockNode& node) {
-  ctx.push_scope();
+  ctx.set_current_scope(node.semantic.scope);
   for (auto& stmt : node.statements) resolveStatement(*stmt);
-  ctx.pop_scope();
+  ctx.set_current_scope(node.semantic.scope->get_parent());
 }
 
 void NameResolver::resolveVarDecl(VarDeclNode& node) {
   if (node.initializer) resolveExpression(*node.initializer);
 }
 
-void NameResolver::resolveIfStmt(IfStmtNode& node) {}
+void NameResolver::resolveIfStmt(IfStmtNode& node) {
+  if (node.condition) resolveExpression(*node.condition);
+  if (node.statement) resolveStatement(*node.statement);
+  if (node.else_stmt) resolveStatement(*node.else_stmt);
+}
+
+void NameResolver::resolveWhileStmt(WhileStmtNode& node) {
+  if (node.condition) resolveExpression(*node.condition);
+  if (node.statement) resolveStatement(*node.statement);
+}
+
+void NameResolver::resolveReturn(ReturnStmtNode& node) {
+  if (node.ret) resolveExpression(*node.ret);
+}
+
+void NameResolver::resolveExprStmt(ExprStmtNode& node) {
+  if (node.expr) resolveExpression(*node.expr);
+}
+
+void NameResolver::resolveMethodDecl(MethodDeclNode& node) {
+  if (node.body) resolveStatement(*node.body);
+}
+
+void NameResolver::resolveBinaryExpr(BinaryExprNode& node) {
+  if (node.left) resolveExpression(*node.left);
+  if (node.right) resolveExpression(*node.right);
+}
+
+void NameResolver::resolveUnaryExpr(UnaryExprNode& node) {
+  if (node.operand) resolveExpression(*node.operand);
+}
+
+void NameResolver::resolveIdentifierExpr(IdentifierExprNode& node) {
+  Symbol* sym = ctx.lookup(node.identifier.getValue());
+
+  if (!sym) {
+    report_error(
+        "Variable '" + node.identifier.getValue() + "' not found in scope",
+        node.location);
+    return;
+  }
+
+  node.semantic.data.variable.symbol = sym;
+}
+
+void NameResolver::resolveAssignmentExpr(AssignmentExprNode& node) {
+  if (node.left) resolveExpression(*node.left);
+  if (node.right) resolveExpression(*node.right);
+}
+
+void NameResolver::resolveMethodCall(MethodCallNode& node) {
+  if (node.expr) resolveExpression(*node.expr);
+
+  for (auto& arg : node.arg_list) resolveExpression(*arg->expr);
+}

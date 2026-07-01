@@ -35,6 +35,7 @@ class CompilerContext {
   void push_scope();
   void pop_scope();
   Scope* get_current_scope() const { return current_scope; }
+  void set_current_scope(Scope* scope) { current_scope = scope; }
 
   Symbol* declare(const std::string& name, const Type* type,
                   SourceLocation loc);
@@ -45,6 +46,8 @@ class CompilerContext {
                           SourceLocation loc);
 
   Symbol* lookup(const std::string& name, bool walkParent = true);
+  Symbol* lookup(const std::string& name, Scope* startingScope,
+                 bool walkParent = true);
 
  private:
   std::vector<std::string> errors;

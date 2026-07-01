@@ -38,7 +38,7 @@ set(CORE_SOURCES
     src/primitive_type.cc
     # src/visitor/typechecker.cc
     src/visitor/symbolcollector.cc
-    # src/visitor/nameresolver.cc
+    src/visitor/nameresolver.cc
 )
 
 set(MAIN_SOURCES

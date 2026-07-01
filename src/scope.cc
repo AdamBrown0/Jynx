@@ -68,6 +68,19 @@ Symbol* Scope::lookup(const std::string& name, bool walkParent) {
   return nullptr;
 }
 
+Symbol* Scope::lookup(const std::string& name, Scope* startingScope,
+                      bool walkParent) {
+  Scope* scope = startingScope;
+  while (scope) {
+    Symbol* sym = scope->lookup(name, walkParent);
+    if (sym) return sym;
+
+    if (walkParent) scope = scope->get_parent();
+  }
+
+  return nullptr;
+}
+
 void Scope::dump() const {
   std::cout << "Scope contents:\n";
   for (const auto& [name, symbol] : symbols) {

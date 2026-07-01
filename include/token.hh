@@ -24,6 +24,7 @@
   X(TOKEN_NEQ)          \
   X(TOKEN_ARROW_RIGHT)  \
   X(TOKEN_INT)          \
+  X(TOKEN_BOOL)         \
   X(TOKEN_STRING)       \
   X(TOKEN_CHAR)         \
   X(TOKEN_ARRAY)        \
