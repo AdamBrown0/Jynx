@@ -58,6 +58,8 @@ class TypeChecker : public ASTVisitor {
         if (left.equals(*ctx.get_int32_type()) &&
             right.equals(*ctx.get_int32_type()))
           return ctx.get_bool_type();
+      case TokenType::TOKEN_EQUALS:
+        return left.equals(right) ? ctx.get_bool_type() : ctx.get_void_type();
       default:
         return ctx.get_void_type();
     }

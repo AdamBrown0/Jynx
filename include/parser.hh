@@ -78,7 +78,7 @@ class Parser {
     if (current.getType() == TokenType::TOKEN_INT) return ctx.get_int32_type();
     if (current.getType() == TokenType::TOKEN_BOOL) return ctx.get_bool_type();
     if (current.getType() == TokenType::TOKEN_STRING)
-      return ctx.get_void_type();
+      return ctx.make_pointer_type(ctx.get_char_type());
     if (current.getType() == TokenType::TOKEN_CHAR) return ctx.get_char_type();
     return ctx.get_void_type();
   }

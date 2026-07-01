@@ -56,8 +56,8 @@ void TypeChecker::checkBlock(BlockNode& node) {
 const Type* TypeChecker::checkVarDecl(VarDeclNode& node) {
   if (node.initializer) checkExpression(*node.initializer);
 
-  if (!node.declared_type->is_compatible_with(
-          *node.initializer->semantic.declared_type)) {
+  if (node.initializer && !node.declared_type->is_compatible_with(
+                              *node.initializer->semantic.declared_type)) {
     report_error("Type '" + node.declared_type->to_string() +
                      "' does not match initializer type '" +
                      node.initializer->semantic.declared_type->to_string() +

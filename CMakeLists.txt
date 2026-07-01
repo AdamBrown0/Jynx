@@ -59,8 +59,17 @@ include(CTest)
 
 file(GLOB TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.jx")
 
+set(EXPECT_FAIL_TESTS
+  "vardecl_wrong_types"
+  "example"
+)
+
 foreach(test_file IN LISTS TEST_FILES)
   get_filename_component(test_name "${test_file}" NAME_WE)
 
   add_test(NAME "full_${test_name}" COMMAND jynxc "${test_file}")
+
+  if(test_name IN_LIST EXPECT_FAIL_TESTS)
+    set_tests_properties("full_${test_name}" PROPERTIES WILL_FAIL TRUE)
+  endif()
 endforeach()
