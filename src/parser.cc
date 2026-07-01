@@ -444,6 +444,7 @@ ExprNode* Parser::parseLiteralExpr() {
   expr_loc.col = current.getCol();
 
   ExprNode* node = new LiteralExprNode(current, expr_loc);
+  node->result_type = get_current_type();
   advance();
   return node;
 }

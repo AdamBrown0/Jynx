@@ -4,6 +4,7 @@
 #include <functional>
 #include <unordered_map>
 
+#include "log.hh"
 #include "symbol.hh"
 
 struct MethodKey {
@@ -24,12 +25,17 @@ struct MethodKeyHash {
 
 class MethodTable {
  public:
-  bool add_method(const Symbol& method, std::string* error = nullptr) {
-    MethodKey key{method.owner_class, method.name};
+  bool add_method(FunctionSymbol* method, std::string* error = nullptr) {
+    if (!method) return false;
+
+    MethodKey key{method->owner_class, method->name};
+
+    LOG_INFO("owner_class: {}", method->owner_class);
+
     auto& bucket = methods[key];
 
     for (const auto& existing : bucket) {
-      if (existing.fields == method.fields) {
+      if (existing->param_types == method->param_types) {
         if (error) *error = "duplicate overload";
         return false;
       }
@@ -39,7 +45,7 @@ class MethodTable {
     return true;
   }
 
-  static std::string make_method_key(const Symbol& method) {
+  static std::string make_method_key(const FunctionSymbol& method) {
     std::string key = method.owner_class + "_" + method.name + "_";
     for (size_t i = 0; i < method.fields.size(); ++i) {
       if (i > 0) key += "_";
@@ -48,30 +54,34 @@ class MethodTable {
     return key;
   }
 
-  const Symbol* find_overload(const std::string& owner, const std::string& name,
-                              const std::vector<Symbol*>& param_types) const {
+  const FunctionSymbol* find_overload(
+      const std::string& owner, const std::string& name,
+      const std::vector<const Type*>& param_types) const {
     MethodKey key{owner, name};
     auto it = methods.find(key);
     if (it == methods.end()) return nullptr;
 
-    for (const auto& method : it->second) {
-      if (method.fields == param_types) return &method;
+    for (const auto* method : it->second) {
+      if (method->param_types == param_types) return method;
     }
+
     return nullptr;
   }
 
-  const std::vector<Symbol>* find_all(const std::string& owner,
-                                      const std::string& name) const {
+  const std::vector<FunctionSymbol*> find_all(const std::string& owner,
+                                              const std::string& name) const {
     MethodKey key{owner, name};
     auto it = methods.find(key);
-    if (it == methods.end()) return nullptr;
-    return &it->second;
+    if (it == methods.end()) return {};
+
+    return it->second;
   }
 
   bool empty() const { return methods.empty(); }
 
  private:
-  std::unordered_map<MethodKey, std::vector<Symbol>, MethodKeyHash> methods;
+  std::unordered_map<MethodKey, std::vector<FunctionSymbol*>, MethodKeyHash>
+      methods;
 };
 
 #endif  // METHODTABLE_H_

@@ -19,9 +19,12 @@ ProgramNode* Sema::analyze(ProgramNode& root) {
   }
 
   {
-    const std::vector<Type*> no_params;
-    const Symbol* main_method = ctx.lookup("main", true);
-    if (!main_method || main_method->type != ctx.get_int32_type()) {
+    const std::vector<const Type*> no_params;
+    const Symbol* main_method =
+        ctx.method_table.find_overload("", "main", no_params);
+
+    if (!main_method || !main_method->type ||
+        main_method->type != ctx.get_int32_type()) {
       LOG_ERROR("Missing required entry point: int main()");
       return nullptr;
     }
@@ -36,15 +39,15 @@ ProgramNode* Sema::analyze(ProgramNode& root) {
     return nullptr;
   }
 
-  // LOG_DEBUG("Type/decl checking");
-  // TypeChecker type_checker(context);
-  // type_checker.check(root);
+  LOG_DEBUG("Type/decl checking");
+  TypeChecker type_checker(ctx);
+  type_checker.check(root);
 
-  // if (type_checker.has_errors()) {
-  //   LOG_ERROR("Type checker has failed with {} errors",
-  //             type_checker.error_count());
-  //   return nullptr;
-  // }
+  if (type_checker.has_errors()) {
+    LOG_ERROR("Type checker has failed with {} errors",
+              type_checker.error_count());
+    return nullptr;
+  }
 
   return &root;
 }

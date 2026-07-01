@@ -36,7 +36,7 @@ set(CORE_SOURCES
     src/context.cc
     # src/gen.cc
     src/primitive_type.cc
-    # src/visitor/typechecker.cc
+    src/visitor/typechecker.cc
     src/visitor/symbolcollector.cc
     src/visitor/nameresolver.cc
 )

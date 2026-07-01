@@ -29,53 +29,101 @@ void SymbolCollector::collectBlock(BlockNode& node) {
   ctx.pop_scope();
 }
 
+// void SymbolCollector::collectMethodDecl(MethodDeclNode& node) {
+//   if (!node.declared_type) {
+//     report_error("Missing type in method declaration", node.location);
+//     return;
+//   }
+
+//   auto func = std::make_unique<FunctionSymbol>();
+//   func->name = node.identifier.getValue();
+//   func->location = node.location;
+//   func->type = node.declared_type;
+//   // func-> type = ;
+
+//   for (const auto& param : node.param_list) {
+//     func->param_types.push_back(param->declared_type);
+//   }
+
+//   Symbol* existing = ctx.lookup(node.identifier.getValue(), false);
+
+//   if (!existing) {
+//     FunctionSymbol* symbol = ctx.declare(node.identifier.getValue(),
+//     func->type,
+//                                          func->param_types, node.location);
+//     if (!symbol) {
+//       report_error("Cannot declare method " + node.identifier.getValue(),
+//                    node.location);
+//       return;
+//     }
+
+//     auto* func_sym = static_cast<FunctionSymbol*>(symbol);
+//     func_sym->type = func->type;
+//     func_sym->param_types = std::move(func->param_types);
+//     func_sym->overloads.push_back(std::move(func));
+//     node.semantic.data.variable.symbol = func_sym;
+//   } else if (auto* func_sym = static_cast<FunctionSymbol*>(existing)) {
+//     func_sym->overloads.push_back(std::move(func));
+//   }
+
+//   node.semantic.data.variable.symbol =
+//       ctx.lookup(node.identifier.getValue(), false);
+
+//   ctx.push_scope();
+//   node.semantic.scope = ctx.get_current_scope();
+
+//   for (auto& param : node.param_list) {
+//     collectParamNode(*param);
+//   }
+
+//   if (node.body) collectBlock(*node.body);
+
+//   ctx.pop_scope();
+// }
+
 void SymbolCollector::collectMethodDecl(MethodDeclNode& node) {
   if (!node.declared_type) {
-    report_error("Missing type in method declaration", node.location);
+    report_error("Missing return type in method declaration", node.location);
     return;
   }
 
-  auto func = std::make_unique<FunctionSymbol>();
-  func->name = node.identifier.getValue();
-  func->location = node.location;
-  func->type = node.declared_type;
-  // func-> type = ;
-
-  for (const auto& param : node.param_list) {
-    func->param_types.push_back(param->declared_type);
-  }
-
-  Symbol* existing = ctx.lookup(node.identifier.getValue(), false);
-
-  if (!existing) {
-    FunctionSymbol* symbol = ctx.declare(node.identifier.getValue(), func->type,
-                                         func->param_types, node.location);
-    if (!symbol) {
-      report_error("Cannot declare method " + node.identifier.getValue(),
-                   node.location);
-      return;
-    }
-
-    auto* func_sym = static_cast<FunctionSymbol*>(symbol);
-    func_sym->type = func->type;
-    func_sym->param_types = std::move(func->param_types);
-    func_sym->overloads.push_back(std::move(func));
-    node.semantic.data.variable.symbol = func_sym;
-  } else if (auto* func_sym = static_cast<FunctionSymbol*>(existing)) {
-    func_sym->overloads.push_back(std::move(func));
-  }
-
-  node.semantic.data.variable.symbol =
-      ctx.lookup(node.identifier.getValue(), false);
-
   ctx.push_scope();
-  node.semantic.scope = ctx.get_current_scope();
+
+  std::vector<const Type*> param_types;
 
   for (auto& param : node.param_list) {
-    collectParamNode(*param);
+    if (!param->declared_type) {
+      report_error("Missing type in parameter", param->location);
+      continue;
+    }
+
+    Symbol* param_sym = ctx.declare(param->identifier.getValue(),
+                                    param->declared_type, param->location);
+
+    if (param_sym) {
+      param->semantic.data.variable.symbol = param_sym;
+    }
+
+    param_types.push_back(param->declared_type);
   }
 
-  if (node.body) collectBlock(*node.body);
+  FunctionSymbol* func_sym =
+      ctx.declare(node.identifier.getValue(), node.declared_type, param_types,
+                  node.location);
+
+  if (func_sym) {
+    node.semantic.data.variable.symbol = func_sym;
+    std::string error;
+    if (!ctx.method_table.add_method(func_sym, &error))
+      report_error(error, node.location);
+  } else {
+    report_error("Failed to declare method " + node.identifier.getValue(),
+                 node.location);
+  }
+
+  if (node.body) {
+    collectBlock(*node.body);
+  }
 
   ctx.pop_scope();
 }

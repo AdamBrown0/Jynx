@@ -32,6 +32,7 @@ size_t PrimitiveType::size_in_bytes() const {
 
 bool PrimitiveType::equals(const Type& other) const {
   if (auto* p = dynamic_cast<const PrimitiveType*>(&other)) {
+    if (this->kind == Kind::Int32 && p->kind == Kind::Bool) return true;
     return this->kind == p->kind;
   }
   return false;

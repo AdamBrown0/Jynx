@@ -70,8 +70,17 @@ class Parser {
   /// Returns true if current token type matches the one passed
   inline bool match(TokenType type) const { return current.getType() == type; }
 
-  bool match(const Type* type) {
+  inline bool match(const Type* type) {
     return current.getValue() == type->to_string();
+  }
+
+  const Type* get_current_type() {
+    if (current.getType() == TokenType::TOKEN_INT) return ctx.get_int32_type();
+    if (current.getType() == TokenType::TOKEN_BOOL) return ctx.get_bool_type();
+    if (current.getType() == TokenType::TOKEN_STRING)
+      return ctx.get_void_type();
+    if (current.getType() == TokenType::TOKEN_CHAR) return ctx.get_char_type();
+    return ctx.get_void_type();
   }
 
   /// Peek at the next token in the stream

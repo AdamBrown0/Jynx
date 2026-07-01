@@ -11,12 +11,14 @@ class TypeChecker : public ASTVisitor {
   void check(ProgramNode& program) { checkProgram(program); }
 
  private:
+  FunctionSymbol* current_function = nullptr;
+
   void checkStatement(StmtNode& stmt);
   const Type* checkExpression(ExprNode& expr);
 
   void checkProgram(ProgramNode& node);
   void checkBlock(BlockNode& node);
-  void checkVarDecl(VarDeclNode& node);
+  const Type* checkVarDecl(VarDeclNode& node);
   void checkIfStmt(IfStmtNode& node);
   void checkWhileStmt(WhileStmtNode& node);
   void checkReturn(ReturnStmtNode& node);
@@ -58,33 +60,6 @@ class TypeChecker : public ASTVisitor {
           return ctx.get_bool_type();
       default:
         return ctx.get_void_type();
-    }
-  }
-
-  // TokenType resolve_type(const std::string& name) {
-  //   if (name == "int") return TokenType::TOKEN_INT;
-  //   if (name == "string") return TokenType::TOKEN_STRING;
-  //   if (name == "bool") return TokenType::TOKEN_INT;
-  //   if (name == "char") return TokenType::TOKEN_CHAR;
-
-  //   Symbol* symbol = lookup_symbol(name);
-  //   if (symbol && symbol->is_class) {
-  //     return TokenType::TOKEN_DATA_TYPE;
-  //   }
-
-  //   return TokenType::TOKEN_UNKNOWN;
-  // }
-
-  std::string get_type_name_from_token(TokenType type) {
-    switch (type) {
-      case TokenType::TOKEN_INT:
-        return "int";
-      case TokenType::TOKEN_STRING:
-        return "string";
-      case TokenType::TOKEN_CHAR:
-        return "char";
-      default:
-        return "unknown";
     }
   }
 };
