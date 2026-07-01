@@ -1,11 +1,13 @@
-if (true) {
-  int bob = 5;
-  int parenthesis = ( ( 6 + 7 ) / 2131 ) * 5;
-  string str = "string";
-} else if (false){
-    string inside = "we inside else if";
-} else {
-    string inside = "we inside else";
-}
+int main() {
+  if (true) {
+    int bob = 5;
+    int parenthesis = ( ( 6 + 7 ) / 2131 ) * 5;
+    string str = "string";
+  } else if (false){
+      string inside = "we inside else if";
+  } else {
+      string inside = "we inside else";
+  }
 
-// string outside = "outside if";
+  // string outside = "outside if";
+}

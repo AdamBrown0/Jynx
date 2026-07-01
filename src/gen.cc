@@ -9,7 +9,7 @@
 #include "token.hh"
 #include "token_utils.hh"
 
-std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
+std::string CodeGenerator::generate(const ProgramNode<NodeInfo>& root) {
   LOG_DEBUG("[GEN] Resetting areas");
   // reset
   text_section.str("");
@@ -28,7 +28,7 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   enter_scope();
 
   LOG_DEBUG("[GEN] Accepting nodes");
-  auto &root_noconst = const_cast<ProgramNode<NodeInfo> &>(root);
+  auto& root_noconst = const_cast<ProgramNode<NodeInfo>&>(root);
   // root_noconst.accept(*this);
 
   // Exit main function scope
@@ -62,7 +62,7 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   out << text_section.str();
   if (!literal_pool_emission.empty()) {
     out << ".section .rodata\n";
-    for (auto &p : literal_pool_emission) {
+    for (auto& p : literal_pool_emission) {
       emitRodataLiteral(p.first, p.second);
     }
     out << rodata_section.str();
@@ -72,14 +72,14 @@ std::string CodeGenerator::generate(const ProgramNode<NodeInfo> &root) {
   return out.str();
 }
 
-void CodeGenerator::visit(ProgramNode<NodeInfo> &node) {
+void CodeGenerator::visit(ProgramNode<NodeInfo>& node) {
   LOG_DEBUG("Code generator: Visiting ProgramNode with {} children",
             node.children.size());
   // nop
   // this is handled in the programnode struct
 }
 
-void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
+void CodeGenerator::visit(VarDeclNode<NodeInfo>& node) {
   std::string name = node.identifier.getValue();
   // If this is a string variable, allocate two slots and store descriptor.
   bool isStringDecl = (node.extra.resolved_type == TokenType::TOKEN_STRING) ||
@@ -114,7 +114,7 @@ void CodeGenerator::visit(VarDeclNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(BinaryExprNode<NodeInfo> &node) {
+void CodeGenerator::visit(BinaryExprNode<NodeInfo>& node) {
   std::string right = eval_stack.back();
   eval_stack.pop_back();
   std::string left = eval_stack.back();
@@ -131,7 +131,7 @@ void CodeGenerator::visit(BinaryExprNode<NodeInfo> &node) {
   freeRegister(right);
 }
 
-void CodeGenerator::visit(LiteralExprNode<NodeInfo> &node) {
+void CodeGenerator::visit(LiteralExprNode<NodeInfo>& node) {
   if (TokenUtils::token_implicit_cast(node.literal_token.getType(),
                                       TokenType::TOKEN_INT)) {
     eval_stack.push_back(node.literal_token.getValue());
@@ -148,7 +148,7 @@ void CodeGenerator::visit(LiteralExprNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(IdentifierExprNode<NodeInfo> &node) {
+void CodeGenerator::visit(IdentifierExprNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited ident");
 
   std::string name = node.identifier.getValue();
@@ -165,12 +165,12 @@ void CodeGenerator::visit(IdentifierExprNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(IfStmtNode<NodeInfo> &node) {
+void CodeGenerator::visit(IfStmtNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited ifstmt");
   if (if_stack.empty()) return;
-  const auto &ctx = if_stack.back();
-  if (auto *cond =
-          dynamic_cast<BinaryExprNode<NodeInfo> *>(node.condition.get())) {
+  const auto& ctx = if_stack.back();
+  if (auto* cond =
+          dynamic_cast<BinaryExprNode<NodeInfo>*>(node.condition.get())) {
     switch (cond->op.getType()) {
       case TokenType::TOKEN_DEQ:
         emitConditionalJump("ne", ctx.false_label);
@@ -197,12 +197,12 @@ void CodeGenerator::visit(IfStmtNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(WhileStmtNode<NodeInfo> &node) {
+void CodeGenerator::visit(WhileStmtNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited whilestmt");
   if (while_stack.empty()) return;
-  const auto &ctx = while_stack.back();
-  if (auto *cond =
-          dynamic_cast<BinaryExprNode<NodeInfo> *>(node.condition.get())) {
+  const auto& ctx = while_stack.back();
+  if (auto* cond =
+          dynamic_cast<BinaryExprNode<NodeInfo>*>(node.condition.get())) {
     switch (cond->op.getType()) {
       case TokenType::TOKEN_DEQ:
         emitConditionalJump("ne", ctx.end_label);
@@ -226,9 +226,9 @@ void CodeGenerator::visit(WhileStmtNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(BlockNode<NodeInfo> &node) { (void)node; }
+void CodeGenerator::visit(BlockNode<NodeInfo>& node) { (void)node; }
 
-void CodeGenerator::visit(AssignmentExprNode<NodeInfo> &node) {
+void CodeGenerator::visit(AssignmentExprNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited assignmentExpr");
   std::string rhs_marker = eval_stack.back();
   eval_stack.pop_back();
@@ -241,8 +241,8 @@ void CodeGenerator::visit(AssignmentExprNode<NodeInfo> &node) {
     }
   }
 
-  if (auto *identifier =
-          dynamic_cast<IdentifierExprNode<NodeInfo> *>(node.left.get())) {
+  if (auto* identifier =
+          dynamic_cast<IdentifierExprNode<NodeInfo>*>(node.left.get())) {
     std::string var_name = identifier->identifier.getValue();
     if (isStringVariable(var_name)) {
       // RAX/RDX already hold the RHS string if rhs_marker == "$str"
@@ -265,11 +265,11 @@ void CodeGenerator::visit(AssignmentExprNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(ASTNode<NodeInfo> &node) {
+void CodeGenerator::visit(ASTNode<NodeInfo>& node) {
   ASTVisitor<NodeInfo>::visit(node);
 }
 
-void CodeGenerator::visit(UnaryExprNode<NodeInfo> &node) {
+void CodeGenerator::visit(UnaryExprNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited unary expr");
   std::string operand = eval_stack.back();
   eval_stack.pop_back();
@@ -280,7 +280,7 @@ void CodeGenerator::visit(UnaryExprNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
+void CodeGenerator::visit(MethodCallNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited MethodCall");
 
   if (node.expr) node.expr->accept(*this);
@@ -334,7 +334,7 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
                           ? "global"
                           : node.extra.sym->owner_class;
 
-  const Symbol *overload = ctx.method_table.find_overload(
+  const Symbol* overload = ctx.method_table.find_overload(
       owner, node.extra.sym->name, node.extra.sym->param_types);
 
   emitCall(overload->method_key);
@@ -357,15 +357,15 @@ void CodeGenerator::visit(MethodCallNode<NodeInfo> &node) {
   // eval_stack.push_back("rax");
 }
 
-void CodeGenerator::visit(ArgumentNode<NodeInfo> &node) {
+void CodeGenerator::visit(ArgumentNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited ArgumentNode");
 }
 
-void CodeGenerator::visit(ParamNode<NodeInfo> &node) {
+void CodeGenerator::visit(ParamNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited ParamNode");
 }
 
-void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
+void CodeGenerator::visit(ReturnStmtNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited returnstmt");
   std::string marker = eval_stack.back();
   eval_stack.pop_back();
@@ -379,23 +379,23 @@ void CodeGenerator::visit(ReturnStmtNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::visit(ClassNode<NodeInfo> &node) {
+void CodeGenerator::visit(ClassNode<NodeInfo>& node) {
   // Stub: not implemented yet
 }
 
-void CodeGenerator::visit(FieldDeclNode<NodeInfo> &node) {
+void CodeGenerator::visit(FieldDeclNode<NodeInfo>& node) {
   // Stub: not implemented yet
 }
 
-void CodeGenerator::visit(MethodDeclNode<NodeInfo> &node) {
+void CodeGenerator::visit(MethodDeclNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Generating method: {}", node.identifier.getValue());
   (void)node;
 }
 
-void CodeGenerator::visit(ConstructorDeclNode<NodeInfo> &node) {
+void CodeGenerator::visit(ConstructorDeclNode<NodeInfo>& node) {
   // Stub: not implemented yet
 }
-void CodeGenerator::visit(ExprStmtNode<NodeInfo> &node) {
+void CodeGenerator::visit(ExprStmtNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Visited exprstmt");
   (void)node;
   if (!eval_stack.empty() && eval_stack.back() == "$str") {
@@ -404,11 +404,11 @@ void CodeGenerator::visit(ExprStmtNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::enter(BlockNode<NodeInfo> &) { enter_scope(); }
+void CodeGenerator::enter(BlockNode<NodeInfo>&) { enter_scope(); }
 
-void CodeGenerator::exit(BlockNode<NodeInfo> &) { exit_scope(); }
+void CodeGenerator::exit(BlockNode<NodeInfo>&) { exit_scope(); }
 
-void CodeGenerator::enter(IfStmtNode<NodeInfo> &node) {
+void CodeGenerator::enter(IfStmtNode<NodeInfo>& node) {
   IfContext ctx;
   ctx.false_label = generateUniqueLabel("if_false");
   ctx.end_label = generateUniqueLabel("if_end");
@@ -416,16 +416,16 @@ void CodeGenerator::enter(IfStmtNode<NodeInfo> &node) {
   if_stack.push_back(ctx);
 }
 
-void CodeGenerator::before_else(IfStmtNode<NodeInfo> &) {
+void CodeGenerator::before_else(IfStmtNode<NodeInfo>&) {
   if (if_stack.empty()) return;
-  const auto &ctx = if_stack.back();
+  const auto& ctx = if_stack.back();
   emitJump(ctx.end_label);
   emitLabel(ctx.false_label);
 }
 
-void CodeGenerator::exit(IfStmtNode<NodeInfo> &) {
+void CodeGenerator::exit(IfStmtNode<NodeInfo>&) {
   if (if_stack.empty()) return;
-  const auto &ctx = if_stack.back();
+  const auto& ctx = if_stack.back();
   if (ctx.has_else) {
     emitLabel(ctx.end_label);
   } else {
@@ -434,7 +434,7 @@ void CodeGenerator::exit(IfStmtNode<NodeInfo> &) {
   if_stack.pop_back();
 }
 
-void CodeGenerator::enter(WhileStmtNode<NodeInfo> &) {
+void CodeGenerator::enter(WhileStmtNode<NodeInfo>&) {
   WhileContext ctx;
   ctx.start_label = generateUniqueLabel("loop_start");
   ctx.end_label = generateUniqueLabel("loop_end");
@@ -442,15 +442,15 @@ void CodeGenerator::enter(WhileStmtNode<NodeInfo> &) {
   emitLabel(ctx.start_label);
 }
 
-void CodeGenerator::exit(WhileStmtNode<NodeInfo> &) {
+void CodeGenerator::exit(WhileStmtNode<NodeInfo>&) {
   if (while_stack.empty()) return;
-  const auto &ctx = while_stack.back();
+  const auto& ctx = while_stack.back();
   emitJump(ctx.start_label);
   emitLabel(ctx.end_label);
   while_stack.pop_back();
 }
 
-void CodeGenerator::enter(MethodDeclNode<NodeInfo> &node) {
+void CodeGenerator::enter(MethodDeclNode<NodeInfo>& node) {
   LOG_DEBUG("[GEN] Generating method: {}", node.identifier.getValue());
   emitLabel(node.extra.sym->method_key);
   emit("push rbp");
@@ -470,7 +470,7 @@ void CodeGenerator::enter(MethodDeclNode<NodeInfo> &node) {
   }
 }
 
-void CodeGenerator::exit(MethodDeclNode<NodeInfo> &) {
+void CodeGenerator::exit(MethodDeclNode<NodeInfo>&) {
   // emit("pop rbp");
   emitReturn();
 }

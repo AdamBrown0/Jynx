@@ -1,2 +1,4 @@
-string my_str = "string";
-return my_str;
+int main() {
+  string my_str = "string";
+  return my_str;
+}

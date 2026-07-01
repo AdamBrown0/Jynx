@@ -1,6 +1,7 @@
 #ifndef SYMBOL_H_
 #define SYMBOL_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -26,7 +27,7 @@ struct VariableSymbol final : Symbol {
 
 struct FunctionSymbol final : Symbol {
   std::vector<const Type*> param_types;
-  std::vector<FunctionSymbol*> overloads;
+  std::vector<std::unique_ptr<FunctionSymbol>> overloads;
 };
 
 class Scope;

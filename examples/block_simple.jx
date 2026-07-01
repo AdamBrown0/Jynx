@@ -1,4 +1,4 @@
-{
+int main() {
     int test = 6;
     return test;
 }

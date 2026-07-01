@@ -2,16 +2,15 @@
 #define SEMA_H_
 
 #include "ast.hh"
-#include "methodtable.hh"
 #include "visitor/visitor.hh"
 
 class Sema {
  public:
-  Sema(CompilerContext &ctx) : context(ctx) {}
-  ProgramNode *analyze(ProgramNode &);
+  Sema(CompilerContext& ctx) : ctx(ctx) {}
+  ProgramNode* analyze(ProgramNode&);
 
  private:
-  CompilerContext &context;
+  CompilerContext& ctx;
 };
 
 #endif  // SEMA_H_

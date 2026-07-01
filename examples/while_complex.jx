@@ -1,10 +1,12 @@
-int cond = 0;
-int other = 5;
-while (cond == 0) {
-  if (other == 10) {
-    cond = 1;
+int main() {
+  int cond = 0;
+  int other = 5;
+  while (cond == 0) {
+    if (other == 10) {
+      cond = 1;
+    }
+    other = other + 1;
   }
-  other = other + 1;
-}
 
-return other;
+  return other;
+}

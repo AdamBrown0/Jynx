@@ -1,9 +1,11 @@
-int cond = 6;
+int main() {
+  int cond = 6;
 
-if ( cond < 7 ) {
-   cond = 19;
-} else {
-  cond = 1;
+  if ( cond < 7 ) {
+     cond = 19;
+  } else {
+    cond = 1;
+  }
+
+  return cond;
 }
-
-return cond;

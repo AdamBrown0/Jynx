@@ -1,10 +1,12 @@
-string test = "test";
-int ret = 0;
+int main() {
+  string test = "test";
+  int ret = 0;
 
-if (test == "test") {
-  ret = 1;
-} else {
-  ret = 2;
+  if (test == "test") {
+    ret = 1;
+  } else {
+    ret = 2;
+  }
+
+  return ret;
 }
-
-return ret;

@@ -10,13 +10,13 @@ struct MethodKey {
   std::string owner;
   std::string name;
 
-  bool operator==(const MethodKey &other) const {
+  bool operator==(const MethodKey& other) const {
     return owner == other.owner && name == other.name;
   }
 };
 
 struct MethodKeyHash {
-  size_t operator()(const MethodKey &key) const {
+  size_t operator()(const MethodKey& key) const {
     return std::hash<std::string>()(key.owner) ^
            (std::hash<std::string>()(key.name) << 1);
   }
@@ -24,11 +24,11 @@ struct MethodKeyHash {
 
 class MethodTable {
  public:
-  bool add_method(const Symbol &method, std::string *error = nullptr) {
+  bool add_method(const Symbol& method, std::string* error = nullptr) {
     MethodKey key{method.owner_class, method.name};
-    auto &bucket = methods[key];
+    auto& bucket = methods[key];
 
-    for (const auto &existing : bucket) {
+    for (const auto& existing : bucket) {
       if (existing.fields == method.fields) {
         if (error) *error = "duplicate overload";
         return false;
@@ -39,7 +39,7 @@ class MethodTable {
     return true;
   }
 
-  static std::string make_method_key(const Symbol &method) {
+  static std::string make_method_key(const Symbol& method) {
     std::string key = method.owner_class + "_" + method.name + "_";
     for (size_t i = 0; i < method.fields.size(); ++i) {
       if (i > 0) key += "_";
@@ -48,20 +48,20 @@ class MethodTable {
     return key;
   }
 
-  const Symbol *find_overload(const std::string &owner, const std::string &name,
-                              const std::vector<Symbol *> &param_types) const {
+  const Symbol* find_overload(const std::string& owner, const std::string& name,
+                              const std::vector<Symbol*>& param_types) const {
     MethodKey key{owner, name};
     auto it = methods.find(key);
     if (it == methods.end()) return nullptr;
 
-    for (const auto &method : it->second) {
+    for (const auto& method : it->second) {
       if (method.fields == param_types) return &method;
     }
     return nullptr;
   }
 
-  const std::vector<Symbol> *find_all(const std::string &owner,
-                                      const std::string &name) const {
+  const std::vector<Symbol>* find_all(const std::string& owner,
+                                      const std::string& name) const {
     MethodKey key{owner, name};
     auto it = methods.find(key);
     if (it == methods.end()) return nullptr;

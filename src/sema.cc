@@ -10,7 +10,7 @@
 ProgramNode* Sema::analyze(ProgramNode& root) {
   // pass 1: symbol table and scopes
   LOG_DEBUG("Collecting symbols");
-  SymbolCollector symbol_collector(context);
+  SymbolCollector symbol_collector(ctx);
   symbol_collector.collect(root);
   if (symbol_collector.has_errors()) {
     LOG_ERROR("Symbol collector has failed with {} errors",
@@ -20,23 +20,21 @@ ProgramNode* Sema::analyze(ProgramNode& root) {
 
   {
     const std::vector<Type*> no_params;
-    const Symbol* main_method =
-        context.method_table.find_overload("global", "main", no_params);
-    if (!main_method || !main_method->type ||
-        main_method->type->to_string() != "int") {
-      LOG_ERROR("Missing required entry point: int main() with no
-      parameters"); return nullptr;
+    const Symbol* main_method = ctx.lookup("main", true);
+    if (!main_method || main_method->type != ctx.get_int32_type()) {
+      LOG_ERROR("Missing required entry point: int main()");
+      return nullptr;
     }
   }
 
-  // LOG_DEBUG("Resolving names");
-  // NameResolver name_resolver(context);
-  // name_resolver.resolve(root);
-  // if (name_resolver.has_errors()) {
-  //   LOG_ERROR("Name resolver has failed with {} errors",
-  //             name_resolver.error_count());
-  //   return nullptr;
-  // }
+  LOG_DEBUG("Resolving names");
+  NameResolver name_resolver(ctx);
+  name_resolver.resolve(root);
+  if (name_resolver.has_errors()) {
+    LOG_ERROR("Name resolver has failed with {} errors",
+              name_resolver.error_count());
+    return nullptr;
+  }
 
   // LOG_DEBUG("Type/decl checking");
   // TypeChecker type_checker(context);

@@ -40,9 +40,19 @@ const Type* NameResolver::resolveExpression(ExprNode& expr) {
 }
 
 void NameResolver::resolveProgram(ProgramNode& node) {
+  ctx.push_scope();
   for (auto& stmt : node.children) resolveStatement(*stmt);
+  ctx.pop_scope();
 }
 
 void NameResolver::resolveBlock(BlockNode& node) {
+  ctx.push_scope();
   for (auto& stmt : node.statements) resolveStatement(*stmt);
+  ctx.pop_scope();
 }
+
+void NameResolver::resolveVarDecl(VarDeclNode& node) {
+  if (node.initializer) resolveExpression(*node.initializer);
+}
+
+void NameResolver::resolveIfStmt(IfStmtNode& node) {}

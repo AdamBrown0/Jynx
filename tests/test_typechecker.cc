@@ -17,7 +17,8 @@
 //   program->accept(type_checker);
 //   REQUIRE_FALSE(type_checker.has_errors());
 
-//   auto* decl = dynamic_cast<VarDeclNode<NodeInfo>*>(program->children[0].get());
+//   auto* decl =
+//   dynamic_cast<VarDeclNode<NodeInfo>*>(program->children[0].get());
 //   REQUIRE(decl);
 //   REQUIRE(decl->initializer);
 

@@ -1,1 +1,3 @@
-int not_string = "string";
+int main() {
+  int not_string = "string";
+}

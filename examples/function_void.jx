@@ -1,3 +1,5 @@
+int main() {}
+
 void my_func() {
      int test = 5;
 }

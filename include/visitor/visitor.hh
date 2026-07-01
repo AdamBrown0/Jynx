@@ -52,15 +52,15 @@ struct ExprStmtNode;
 class ASTVisitor {
  public:
   ASTVisitor() = delete;
-  explicit ASTVisitor(CompilerContext &ctx) : ctx(ctx) {}
+  explicit ASTVisitor(CompilerContext& ctx) : ctx(ctx) {}
   virtual ~ASTVisitor() = default;
 
   bool has_errors() const { return !errors.empty(); }
-  const std::vector<std::string> &get_errors() const { return errors; }
+  const std::vector<std::string>& get_errors() const { return errors; }
   size_t error_count() const { return errors.size(); }
 
  protected:
-  CompilerContext &ctx;
+  CompilerContext& ctx;
 
   std::vector<std::unordered_map<std::string, Symbol>> scope_stack;
   std::vector<std::string> errors;
@@ -76,7 +76,7 @@ class ASTVisitor {
     }
   }
 
-  Symbol *lookup_symbol(const std::string &name) {
+  Symbol* lookup_symbol(const std::string& name) {
     for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
       auto found = it->find(name);
       if (found != it->end()) {
@@ -103,7 +103,7 @@ class ASTVisitor {
     return TokenType::TOKEN_UNKNOWN;
   }
 
-  Symbol *add_symbol(const Symbol &symbol) {
+  Symbol* add_symbol(const Symbol& symbol) {
     if (!scope_stack.empty()) {
       scope_stack.back()[symbol.name] = symbol;
       return &scope_stack.back()[symbol.name];
@@ -114,7 +114,7 @@ class ASTVisitor {
     return nullptr;
   }
 
-  bool check_symbol(const std::string &name) const {
+  bool check_symbol(const std::string& name) const {
     if (!scope_stack.empty()) {
       return scope_stack.back().find(name) != scope_stack.back().end();
     }
@@ -122,13 +122,13 @@ class ASTVisitor {
     return ctx.symbol_table.find(name) != ctx.symbol_table.end();
   }
 
-  void report_error(const std::string &message, SourceLocation loc) {
+  void report_error(const std::string& message, SourceLocation loc) {
     errors.push_back(message);
     Log::Compiler::semantic_error(message, loc.line, loc.col);
     Diagnostics::instance().report_error(message);
   }
 
-  void report_error(const std::string &message, int line, int col) {
+  void report_error(const std::string& message, int line, int col) {
     errors.push_back(message);
     Log::Compiler::semantic_error(message, line, col);
     Diagnostics::instance().report_error(message);

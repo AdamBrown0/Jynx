@@ -23,33 +23,33 @@ typedef struct Scope_ {
 
 class CodeGenerator : public ASTVisitor {
  public:
-  explicit CodeGenerator(CompilerContext &ctx) : ASTVisitor(ctx) {
+  explicit CodeGenerator(CompilerContext& ctx) : ASTVisitor(ctx) {
     setupRegisters();
   }
   virtual ~CodeGenerator() = default;
 
-  std::string generate(const ProgramNode &root);
+  std::string generate(const ProgramNode& root);
 
  private:
-  void generateStatement(StmtNode &stmt);
-  void generateExpression(ExprNode &expr);
+  void generateStatement(StmtNode& stmt);
+  void generateExpression(ExprNode& expr);
 
-  void generateProgram(ProgramNode &node);
-  void generateBlock(BlockNode &node);
-  void generateVarDecl(VarDeclNode &node);
-  void generateIfStmt(IfStmtNode &node);
-  void generateWhileStmt(WhileStmtNode &node);
-  void generateReturn(ReturnStmtNode &node);
-  void generateExprStmt(ExprStmtNode &node);
-  void generateMethodDecl(MethodDeclNode &node);
+  void generateProgram(ProgramNode& node);
+  void generateBlock(BlockNode& node);
+  void generateVarDecl(VarDeclNode& node);
+  void generateIfStmt(IfStmtNode& node);
+  void generateWhileStmt(WhileStmtNode& node);
+  void generateReturn(ReturnStmtNode& node);
+  void generateExprStmt(ExprStmtNode& node);
+  void generateMethodDecl(MethodDeclNode& node);
 
-  void generateBinaryExpr(BinaryExprNode &node);
-  void generateUnaryExpr(UnaryExprNode &node);
-  void generateLiteralExpr(LiteralExprNode &node);
-  void generateIdentifierExpr(IdentifierExprNode &node);
-  void generateAssignmentExpr(AssignmentExprNode &node);
-  void generateMethodCall(MethodCallNode &node);
-  void generateArgument(ArgumentNode &node);
+  void generateBinaryExpr(BinaryExprNode& node);
+  void generateUnaryExpr(UnaryExprNode& node);
+  void generateLiteralExpr(LiteralExprNode& node);
+  void generateIdentifierExpr(IdentifierExprNode& node);
+  void generateAssignmentExpr(AssignmentExprNode& node);
+  void generateMethodCall(MethodCallNode& node);
+  void generateArgument(ArgumentNode& node);
 
   struct IfContext {
     std::string false_label;
@@ -65,10 +65,10 @@ class CodeGenerator : public ASTVisitor {
   std::vector<IfContext> if_stack;
   std::vector<WhileContext> while_stack;
 
-  void emit(const std::string &instruction) {
+  void emit(const std::string& instruction) {
     text_section << "    " << instruction << "\n";
   }
-  void emitMove(const std::string &dst, const std::string &src) {
+  void emitMove(const std::string& dst, const std::string& src) {
     if ((contains(function_arg_registers64, dst) &&
          contains(function_arg_registers32, src)) ||
         (contains(caller_saved_registers64, dst) &&
@@ -77,8 +77,8 @@ class CodeGenerator : public ASTVisitor {
     else
       emit("mov " + dst + ", " + src);
   }
-  void emitArithmetic(const TokenType op, const std::string &left,
-                      const std::string &right, const std::string &dest) {
+  void emitArithmetic(const TokenType op, const std::string& left,
+                      const std::string& right, const std::string& dest) {
     if (dest != left) emitMove(left, dest);
 
     switch (op) {
@@ -101,24 +101,24 @@ class CodeGenerator : public ASTVisitor {
         break;
     }
   }
-  void emitCompare(const std::string &left, const std::string &right) {
+  void emitCompare(const std::string& left, const std::string& right) {
     emit("cmp " + left + ", " + right);
   }
-  void emitJump(const std::string &label) { emit("jmp " + label); }
-  void emitConditionalJump(const std::string &condition,
-                           const std::string &label) {
+  void emitJump(const std::string& label) { emit("jmp " + label); }
+  void emitConditionalJump(const std::string& condition,
+                           const std::string& label) {
     emit("j" + condition + " " + label);
   }
-  void emitCall(const std::string &function) { emit("call " + function); }
+  void emitCall(const std::string& function) { emit("call " + function); }
   void emitReturn() {
     emit("leave");
     emit("ret");
   }
-  void emitLabel(const std::string &label) { text_section << label << ":\n"; }
+  void emitLabel(const std::string& label) { text_section << label << ":\n"; }
 
   // Emit a string literal into the rodata pool (deduplicated).
   // contents are assumed to be already lexer-unescaped.
-  void poolStringLiteral(const std::string &contents) {
+  void poolStringLiteral(const std::string& contents) {
     if (literal_pool_labels.find(contents) != literal_pool_labels.end()) return;
     std::string label = generateLiteralLabel();
     literal_pool_labels[contents] = label;
@@ -126,8 +126,8 @@ class CodeGenerator : public ASTVisitor {
   }
 
   // Write a single literal into the rodata section stream.
-  void emitRodataLiteral(const std::string &label,
-                         const std::string &contents) {
+  void emitRodataLiteral(const std::string& label,
+                         const std::string& contents) {
     rodata_section << label << ":\n";
     rodata_section << "   .ascii \"" << contents << "\"\n";
     rodata_section << "   .byte 0\n";
@@ -147,7 +147,7 @@ class CodeGenerator : public ASTVisitor {
   // Allocate 16 bytes on the stack for a string descriptor (ptr,len) for
   // variable 'name'. Returns pair of offsets: {ptrOffset, lenOffset} relative
   // to rbp (positive integers used as [rbp-offset]).
-  std::pair<int, int> ensureStringVarSlots(const std::string &name) {
+  std::pair<int, int> ensureStringVarSlots(const std::string& name) {
     // First check if variable already exists in any scope
     for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
       auto found = it->string_var_slots.find(name);
@@ -174,7 +174,7 @@ class CodeGenerator : public ASTVisitor {
 
   std::string allocateRegister(bool local, bool _32bit) {
     std::string r;
-    std::vector<std::string> &regs =
+    std::vector<std::string>& regs =
         _32bit ? caller_saved_registers32 : caller_saved_registers64;
     if (local) {
       if (regs.empty()) return "";
@@ -188,7 +188,7 @@ class CodeGenerator : public ASTVisitor {
     return r;
   }
 
-  void freeRegister(const std::string &reg) {
+  void freeRegister(const std::string& reg) {
     if (contains(caller_saved_registers_abi32, reg) &&
         !contains(caller_saved_registers32, reg)) {
       caller_saved_registers32.push_back(reg);
@@ -222,15 +222,15 @@ class CodeGenerator : public ASTVisitor {
     return "[rbp-" + std::to_string(offset) + "]";
   }
 
-  static inline std::string formatSlot(const VarDeclNode &node) {
+  static inline std::string formatSlot(const VarDeclNode& node) {
     return "[rbp" + formatSlotOffset(node.codegen.stack_offset) + "]";
   }
 
-  static inline std::string formatSlot(const IdentifierExprNode &node) {
+  static inline std::string formatSlot(const IdentifierExprNode& node) {
     return "[rbp" + formatSlotOffset(node.codegen.stack_offset) + "]";
   }
 
-  static inline std::string formatSlot(const ParamNode &node) {
+  static inline std::string formatSlot(const ParamNode& node) {
     return "[rbp" + formatSlotOffset(node.codegen.stack_offset) + "]";
   }
 
@@ -240,22 +240,22 @@ class CodeGenerator : public ASTVisitor {
 
   // Load a string literal into RAX (ptr) and RDX (len). Ensures the literal
   // exists in rodata pool.
-  void loadStringLiteral(const std::string &contents) {
+  void loadStringLiteral(const std::string& contents) {
     poolStringLiteral(contents);
-    const std::string &label = literal_pool_labels[contents];
+    const std::string& label = literal_pool_labels[contents];
     emit("lea rax, " + formatStringLabel(label));
     emit("mov rdx, " + std::to_string(contents.size()));
   }
 
   // Store the current string in RAX/RDX to a named local variable slots.
-  void storeCurrentStringToVar(const std::string &name) {
+  void storeCurrentStringToVar(const std::string& name) {
     auto [ptrOff, lenOff] = ensureStringVarSlots(name);
     emit("mov QWORD PTR " + formatSlot(ptrOff) + ", rax");
     emit("mov QWORD PTR " + formatSlot(lenOff) + ", rdx");
   }
 
   // Load a string from a named local variable slots into RAX/RDX.
-  void loadStringFromVar(const std::string &name) {
+  void loadStringFromVar(const std::string& name) {
     // Search for string variable in scopes
     for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
       auto found = it->string_var_slots.find(name);
@@ -271,7 +271,7 @@ class CodeGenerator : public ASTVisitor {
     loadStringLiteral("");
   }
 
-  std::string getVariableLocation(const Token &var) {
+  std::string getVariableLocation(const Token& var) {
     // First check if variable already exists in any scope
     for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
       auto found = it->stack_offsets.find(var.getValue());
@@ -312,7 +312,7 @@ class CodeGenerator : public ASTVisitor {
   }
 
   // Check if a variable is a string type by searching scopes
-  bool isStringVariable(const std::string &name) {
+  bool isStringVariable(const std::string& name) {
     for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
       if (it->string_var_slots.find(name) != it->string_var_slots.end()) {
         return true;
@@ -322,7 +322,7 @@ class CodeGenerator : public ASTVisitor {
   }
 
   // Allocate a new scalar variable in current scope (for declarations)
-  std::string allocateVariableInCurrentScope(const std::string &name) {
+  std::string allocateVariableInCurrentScope(const std::string& name) {
     if (scope_stack.empty()) {
       throw std::runtime_error("No scope available for variable: " + name);
     }
@@ -333,26 +333,26 @@ class CodeGenerator : public ASTVisitor {
     return formatSlot(current_stack_offset);
   }
 
-  inline static bool contains(const std::vector<std::string> &v,
-                              const std::string &item) {
+  inline static bool contains(const std::vector<std::string>& v,
+                              const std::string& item) {
     return std::find(v.begin(), v.end(), item) != v.end();
   }
 
-  bool isCallerSaved(const std::string &r) {
+  bool isCallerSaved(const std::string& r) {
     return contains(caller_saved_registers32, r) ||
            contains(caller_saved_registers64, r);
   }
 
-  void spill_live_regs(std::vector<std::string> &spilled) {
+  void spill_live_regs(std::vector<std::string>& spilled) {
     LOG_DEBUG("[gen] live regs count {}", live_regs.size());
-    for (const auto &reg : live_regs) {
+    for (const auto& reg : live_regs) {
       if (reg == "rax" || !isCallerSaved(reg)) continue;
       emit("push " + reg);
       spilled.push_back(reg);
     }
   }
 
-  void restore_spilled(std::vector<std::string> &spilled) {
+  void restore_spilled(std::vector<std::string>& spilled) {
     for (auto it = spilled.rbegin(); it != spilled.rend(); ++it)
       emit("pop " + *it);
   }
@@ -401,7 +401,7 @@ class CodeGenerator : public ASTVisitor {
   std::vector<std::string> eval_stack;
   int label_counter = 0;
 
-  inline std::string generateUniqueLabel(const std::string &prefix = "L") {
+  inline std::string generateUniqueLabel(const std::string& prefix = "L") {
     return prefix + std::to_string(++label_counter);
   }
 

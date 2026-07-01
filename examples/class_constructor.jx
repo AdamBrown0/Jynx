@@ -1,3 +1,7 @@
 class myClass {
   constructor(int a) {}
 }
+
+class program {
+  int main() {}
+}

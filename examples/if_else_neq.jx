@@ -1,6 +1,8 @@
-int test = 5;
-if (test != 2) {
-   test = 67;
-}
+int main() {
+  int test = 5;
+  if (test != 2) {
+     test = 67;
+  }
 
-return test;
+  return test;
+}

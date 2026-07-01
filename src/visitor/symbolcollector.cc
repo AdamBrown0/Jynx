@@ -55,9 +55,10 @@ void SymbolCollector::collectMethodDecl(MethodDeclNode& node) {
     auto* func_sym = static_cast<FunctionSymbol*>(symbol);
     func_sym->type = func->type;
     func_sym->param_types = std::move(func->param_types);
-    func_sym->overloads.push_back(func.get());
+    func_sym->overloads.push_back(std::move(func));
+    node.semantic.data.variable.symbol = func_sym;
   } else if (auto* func_sym = static_cast<FunctionSymbol*>(existing)) {
-    func_sym->overloads.push_back(func.get());
+    func_sym->overloads.push_back(std::move(func));
   }
 
   node.semantic.data.variable.symbol =
