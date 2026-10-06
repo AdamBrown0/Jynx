@@ -39,7 +39,8 @@ set(CORE_SOURCES
     src/visitor/typechecker.cc
     src/visitor/symbolcollector.cc
     src/visitor/nameresolver.cc
-    src/ir/printer.cc
+  src/ir/printer.cc
+  src/ir/gen.cc
 )
 
 set(MAIN_SOURCES

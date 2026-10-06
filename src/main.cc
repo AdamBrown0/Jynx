@@ -55,16 +55,20 @@ int main(const int argc, char** argv) {
     if (Diagnostics::instance().has_errors()) {
       Diagnostics::instance().print_errors();
       LOG_ERROR("Semantic analysis failed; skipping code generation");
-      return 1;
+      // return 1;
     }
   }
 
-  // IRGenerator gen(CompilerContext::instance());
-  // ir::Function* func =
-  //     new ir::Function("main", CompilerContext::instance().get_int32_type());
-  // func->createBlock("entry")->appendInstruction(gen.generateProgram(sema_tree));
+  IRGenerator generator(CompilerContext::instance());
 
-  // IRPrinter::print(func);
+  ir::Module* module = generator.generateIR(*sema_tree);
 
+  for (const auto& function : module->get_functions()) {
+    IRPrinter::print(*function);
+  }
+
+  if (Diagnostics::instance().has_errors()) {
+    Diagnostics::instance().print_errors();
+  }
   return 0;
 }

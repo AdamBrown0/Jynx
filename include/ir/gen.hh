@@ -11,22 +11,26 @@ class IRGenerator {
  public:
   static constexpr const char* LOG_KIND = "IRGenerator";
 
-  IRGenerator(CompilerContext& ctx) : ctx(ctx) {}
+  explicit IRGenerator(CompilerContext& ctx) : ctx(ctx) {}
 
-  ir::Module* generateIR(ProgramNode& program) {
-    generateProgram(program);
-    return current_module;
-  }
+  ir::Module* generateIR(ProgramNode& program);
 
  private:
   CompilerContext& ctx;
+
   ir::Module* current_module = nullptr;
+  ir::Function* current_function = nullptr;
   ir::BasicBlock* current_block = nullptr;
 
-  void generateStatement(StmtNode& stmt);
+  std::unordered_map<const Symbol*, ir::Value*> locals;
+
+  unsigned temp_counter = 0;
+  unsigned block_counter = 0;
+
+  ir::Value* generateStatement(StmtNode& stmt);
   ir::Value* generateExpression(ExprNode& expr);
 
-  void generateExprStmt(ExprStmtNode& node);
+  ir::Value* generateExprStmt(ExprStmtNode& node);
 
   // blocks
   void generateProgram(ProgramNode& node);
@@ -34,31 +38,40 @@ class IRGenerator {
 
   // methods
   void generateMethodDecl(MethodDeclNode& node);
-  void generateMethodCall(MethodCallNode& node);
+  ir::Value* generateMethodCall(MethodCallNode& node);
   void generateParam(ParamNode& node);
-  void generateArgument(ArgumentNode& node);
+  ir::Value* generateArgument(ArgumentNode& node);
   void generateReturnStmt(ReturnStmtNode& node);
 
   // control flow
   void generateIfStmt(IfStmtNode& node);
-  void generateElseStmt(ElseStmtNode& node);
   void generateWhileStmt(WhileStmtNode& node);
 
   // expressions
-  void generateBinaryExpr(BinaryExprNode& node);
-  void generateUnaryExpr(UnaryExprNode& node);
+  ir::Value* generateBinaryExpr(BinaryExprNode& node);
+  ir::Value* generateUnaryExpr(UnaryExprNode& node);
   ir::Value* generateLiteralExpr(LiteralExprNode& node);
 
   // variables
-  void generateAssignmentExpr(AssignmentExprNode& node);
-  void generateVarDecl(VarDeclNode& node);
-  void generateIdentifierExpr(IdentifierExprNode& node);
+  ir::Value* generateAssignmentExpr(AssignmentExprNode& node);
+  ir::Value* generateVarDecl(VarDeclNode& node);
+  ir::Value* generateIdentifierExpr(IdentifierExprNode& node);
 
   // classes
   void generateClassMember(ClassMemberNode& node);
   void generateClass(ClassNode& node);
   void generateFieldDecl(FieldDeclNode& node);
   void generateConstructorDecl(ConstructorDeclNode& node);
+
+  ir::Instruction* emit(ir::Opcode opcode, const Type* type,
+                        std::string name = "");
+
+  ir::BasicBlock* createBlock(const std::string& prefix);
+  void setBlock(ir::BasicBlock* block);
+
+  ir::Value* makeConstant(const Type* type, const std::string& value);
+
+  std::string nextTemp();
 };
 
 #endif  // GEN_H_
