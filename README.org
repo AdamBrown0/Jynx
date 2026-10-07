@@ -1,17 +1,17 @@
-# Jynx Compiler
+* Jynx Compiler
 
-## Setup
+** Setup
 
-``` sh
+#+begin_src shell 
 cmake . -B build
 cmake --build build
-```
+#+end_src
 
 Output is located at `build/jynxc`
 
-## Testing
+** Testing
 
-``` sh
+#+begin_src shell
 ctest --test-dir build
-```
+#+end_src
 This runs every example in `examples/`
