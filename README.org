@@ -7,7 +7,7 @@ cmake . -B build
 cmake --build build
 #+end_src
 
-Output is located at src_shell{build/jynxc}
+Output is located at =build/jynxc=
 
 
 ** Testing
