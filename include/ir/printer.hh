@@ -42,6 +42,8 @@ class IRPrinter {
         return "condbr";
       case ir::Opcode::Ret:
         return "ret";
+      case ir::Opcode::Call:
+        return "call";
       case ir::Opcode::Phi:
         return "phi";
       case ir::Opcode::Upsilon:
@@ -90,7 +92,8 @@ class IRPrinter {
     }
 
     // 2. Non-void instructions get a LHS variable destination
-    if (inst.type != CompilerContext::instance().get_void_type()) {
+    if (inst.op != ir::Opcode::Ret &&
+        inst.type != CompilerContext::instance().get_void_type()) {
       os << formatValueRef(&inst) << " = ";
     }
 

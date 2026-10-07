@@ -1,4 +1,5 @@
 #ifndef BASIC_BLOCK_H_
+#define BASIC_BLOCK_H_
 
 #include <memory>
 #include <vector>

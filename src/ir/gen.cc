@@ -54,12 +54,12 @@ ir::Value* IRGenerator::generateStatement(StmtNode& stmt) {
   }
 
   if (auto* node = dynamic_cast<ReturnStmtNode*>(&stmt)) {
-    // generateReturnStmt(*node);
+    generateReturnStmt(*node);
     return nullptr;
   }
 
   if (auto* node = dynamic_cast<IfStmtNode*>(&stmt)) {
-    // generateIfStmt(*node);
+    generateIfStmt(*node);
     return nullptr;
   }
 
@@ -116,28 +116,80 @@ void IRGenerator::generateMethodDecl(MethodDeclNode& node) {
   current_block = previous_block;
 }
 
-ir::Value* IRGenerator::generateExpression(ExprNode& expr) {
-  LOG_DEBUG("WE IN GEN EXPR");
-  // if (auto* node = dynamic_cast<BinaryExprNode*>(&expr))
-  // return generateBinaryExpr(*node);
+void IRGenerator::generateReturnStmt(ReturnStmtNode& node) {
+  ir::Value* rhs = nullptr;
+  if (node.ret) rhs = generateExpression(*node.ret);
 
-  // if (auto* node = dynamic_cast<UnaryExprNode*>(&expr))
-  // return generateUnaryExpr(*node);
+  auto ret = std::make_unique<ir::Instruction>(
+      ir::Opcode::Ret, current_function->returnType, current_block);
+
+  if (rhs) ret->addOperand(rhs);
+
+  current_block->appendInstruction(std::move(ret));
+}
+
+void IRGenerator::generateIfStmt(IfStmtNode& node) {
+  auto* if_block = createBlock("if.then");
+  auto* else_block = createBlock("if.else");
+  auto* end_block = createBlock("if.end");
+
+  auto* condition = generateExpression(*node.condition);
+
+  auto condbr = std::make_unique<ir::Instruction>(
+      ir::Opcode::CondBr, ctx.get_void_type(), current_block);
+  condbr->addOperand(condition);
+  condbr->addOperand(if_block);
+  condbr->addOperand(else_block);
+
+  current_block->appendInstruction(std::move(condbr));
+
+  ir::BasicBlock::addEdge(current_block, if_block);
+  ir::BasicBlock::addEdge(current_block, else_block);
+
+  current_block = if_block;
+  generateStatement(*node.statement);
+
+  auto merge = std::make_unique<ir::Instruction>(
+      ir::Opcode::Br, ctx.get_void_type(), current_block);
+  merge->addOperand(end_block);
+  current_block->appendInstruction(std::move(merge));
+
+  ir::BasicBlock::addEdge(current_block, end_block);
+
+  current_block = else_block;
+  if (node.else_stmt) generateStatement(*node.else_stmt);
+
+  merge = std::make_unique<ir::Instruction>(ir::Opcode::Br, ctx.get_void_type(),
+                                            current_block);
+  merge->addOperand(end_block);
+  current_block->appendInstruction(std::move(merge));
+
+  ir::BasicBlock::addEdge(current_block, end_block);
+
+  current_block = end_block;
+}
+
+ir::Value* IRGenerator::generateExpression(ExprNode& expr) {
+  if (auto* node = dynamic_cast<BinaryExprNode*>(&expr))
+    return generateBinaryExpr(*node);
+
+  if (auto* node = dynamic_cast<UnaryExprNode*>(&expr))
+    return generateUnaryExpr(*node);
 
   if (auto* node = dynamic_cast<LiteralExprNode*>(&expr))
     return generateLiteralExpr(*node);
 
-  // if (auto* node = dynamic_cast<AssignmentExprNode*>(&expr))
-  // return generateAssignmentExpr(*node);
+  if (auto* node = dynamic_cast<AssignmentExprNode*>(&expr))
+    return generateAssignmentExpr(*node);
 
   if (auto* node = dynamic_cast<VarDeclNode*>(&expr))
     return generateVarDecl(*node);
 
-  // if (auto* node = dynamic_cast<IdentifierExprNode*>(&expr))
-  // return generateIdentifierExpr(*node);
+  if (auto* node = dynamic_cast<IdentifierExprNode*>(&expr))
+    return generateIdentifierExpr(*node);
 
   // if (auto* node = dynamic_cast<MethodCallNode*>(&expr))
-  // return generateMethodCall(*node);
+  //   return generateMethodCall(*node);
 
   Diagnostics::instance().report_error(LOG_KIND, "Unknown expression type",
                                        expr.location);
@@ -145,15 +197,11 @@ ir::Value* IRGenerator::generateExpression(ExprNode& expr) {
 }
 
 ir::Value* IRGenerator::generateExprStmt(ExprStmtNode& node) {
-  LOG_DEBUG("WE IN exprstmt!!");
   if (!node.expr) return nullptr;
-  LOG_DEBUG("AFTER NODE.EXPR CHECK");
   return generateExpression(*node.expr);
 }
 
 ir::Value* IRGenerator::generateVarDecl(VarDeclNode& node) {
-  LOG_DEBUG("WE IN vardecl!!");
-
   if (!node.declared_type) {
     Diagnostics::instance().report_error(
         LOG_KIND, "Variable declaration has no type", node.location);
@@ -182,10 +230,122 @@ ir::Value* IRGenerator::generateVarDecl(VarDeclNode& node) {
   return address;
 }
 
+ir::Value* IRGenerator::generateIdentifierExpr(IdentifierExprNode& node) {
+  auto it = locals.find(node.semantic.data.variable.symbol);
+
+  if (it == locals.end()) {
+    Diagnostics::instance().report_error(
+        LOG_KIND, "Identifier found for non-existent variable", node.location);
+    return nullptr;
+  }
+
+  ir::Value* address = it->second;
+
+  auto* load = emit(ir::Opcode::Load, node.semantic.declared_type, nextTemp());
+
+  load->addOperand(address);
+
+  return load;
+}
+
+ir::Value* IRGenerator::generateAssignmentExpr(AssignmentExprNode& node) {
+  auto* identifier = dynamic_cast<IdentifierExprNode*>(node.left.get());
+
+  if (!identifier) {
+    Diagnostics::instance().report_error(
+        LOG_KIND, "Tried to assign to non-identifier", node.location);
+    return nullptr;
+  }
+
+  auto it = locals.find(identifier->semantic.data.variable.symbol);
+
+  if (it == locals.end()) {
+    Diagnostics::instance().report_error(
+        LOG_KIND, "Tried to assign to non-existent identifier", node.location);
+    return nullptr;
+  }
+
+  auto* rhs = generateExpression(*node.right);
+
+  auto store = std::make_unique<ir::Instruction>(
+      ir::Opcode::Store, ctx.get_void_type(), current_block);
+
+  store->addOperand(it->second);
+  store->addOperand(rhs);
+
+  current_block->appendInstruction(std::move(store));
+
+  return rhs;
+}
+
+// ir::Value* IRGenerator::generateMethodCall(MethodCallNode& node){
+
+// }
+
 ir::Value* IRGenerator::generateLiteralExpr(LiteralExprNode& node) {
-  LOG_DEBUG("WE IN LITERAL!!");
   return makeConstant(node.semantic.declared_type,
                       node.literal_token.getValue());
+}
+
+ir::Value* IRGenerator::generateBinaryExpr(BinaryExprNode& node) {
+  ir::Value* left = generateExpression(*node.left);
+
+  ir::Value* right = generateExpression(*node.right);
+
+  ir::Opcode opcode;
+
+  switch (node.op.getType()) {
+    case TokenType::TOKEN_PLUS:
+      opcode = ir::Opcode::Add;
+      break;
+    case TokenType::TOKEN_MINUS:
+      opcode = ir::Opcode::Sub;
+      break;
+    case TokenType::TOKEN_MULTIPLY:
+      opcode = ir::Opcode::Mul;
+      break;
+    case TokenType::TOKEN_DIVIDE:
+      opcode = ir::Opcode::Div;
+      break;
+    default:
+      Diagnostics::instance().report_error(
+          LOG_KIND,
+          "Unsupported binary operator '" + std::string(node.op.to_string()) +
+              "'",
+          node.location);
+      return nullptr;
+  }
+
+  auto* result = emit(opcode, node.semantic.declared_type, nextTemp());
+
+  result->addOperand(left);
+  result->addOperand(right);
+
+  return result;
+}
+
+ir::Value* IRGenerator::generateUnaryExpr(UnaryExprNode& node) {
+  auto* operand = generateExpression(*node.operand);
+
+  if (node.op.getType() != TokenType::TOKEN_MINUS) {
+    Diagnostics::instance().report_error(LOG_KIND, "Unsupported unary operator",
+                                         node.location);
+    return nullptr;
+  }
+
+  auto* zero = makeConstant(node.semantic.declared_type, "0");
+
+  auto* result = emit(ir::Opcode::Sub, node.semantic.declared_type, nextTemp());
+
+  result->addOperand(zero);
+  result->addOperand(operand);
+
+  return result;
+}
+
+ir::BasicBlock* IRGenerator::createBlock(const std::string& prefix) {
+  return current_function->createBlock(prefix + "." +
+                                       std::to_string(block_counter++));
 }
 
 ir::Value* IRGenerator::makeConstant(const Type* type,
@@ -202,4 +362,8 @@ ir::Instruction* IRGenerator::emit(ir::Opcode opcode, const Type* type,
   auto* raw = instruction.get();
   current_block->appendInstruction(std::move(instruction));
   return raw;
+}
+
+std::string IRGenerator::nextTemp() {
+  return "t" + std::to_string(temp_counter++);
 }

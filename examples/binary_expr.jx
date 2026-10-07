@@ -1,10 +1,10 @@
 int main() {
   int ret = 1;
   int simple = 5 + 2;
-  // int nested = (5 + 2) / ( 4 * ( 3 - 2 ) );
-  int nested = 2;
-  if ( simple * nested > 2 ) {
-  ret = simple;
-  }
+  int nested = (5 + 2) / ( 4 * ( 3 - 2 ) );
+  // int nested = 2;
+  // if ( simple * nested > 2 ) {
+  // ret = simple;
+  // }
   return ret;
 }

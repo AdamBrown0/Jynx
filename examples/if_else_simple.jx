@@ -1,7 +1,8 @@
 int main() {
   int cond = 5;
   int ret = 0;
-  if (cond >= 6) {
+  if (true) {
+  // if (cond >= 6) {
     ret = 1;
   } else {
     ret = 2;

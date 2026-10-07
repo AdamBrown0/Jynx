@@ -24,6 +24,7 @@ enum class Opcode {
   Br,
   CondBr,
   Ret,
+  Call,
 
   Phi,
   Upsilon
