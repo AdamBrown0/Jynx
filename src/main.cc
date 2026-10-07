@@ -70,5 +70,7 @@ int main(const int argc, char** argv) {
   if (Diagnostics::instance().has_errors()) {
     Diagnostics::instance().print_errors();
   }
+
+  delete module;
   return 0;
 }

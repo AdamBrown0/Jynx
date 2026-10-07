@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <assert.h>
 
 #include "context.hh"
 #include "type.hh"
@@ -33,7 +34,10 @@ class Value {
  public:
   Value(const Type* type, std::string name = "")
       : type(type), name(std::move(name)) {}
-  virtual ~Value() = default;
+
+  ~Value() {
+  	assert(uses.empty() && "destroying Value that still has users");
+  }
 
   void addUse(User* user) { uses.push_back(user); }
   void removeUse(User* user) {
@@ -105,6 +109,7 @@ class UpsilonInst : public Instruction {
 };
 
 class PhiInst : public Instruction {
+ public:
   PhiInst(const Type* type, std::string name = "", BasicBlock* parent = nullptr)
       : Instruction(Opcode::Phi, type, parent, std::move(name)) {}
 };
