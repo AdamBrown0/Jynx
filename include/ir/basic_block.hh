@@ -1,5 +1,4 @@
 #ifndef BASIC_BLOCK_H_
-#define BASIC_BLOCK_H_
 
 #include <memory>
 #include <vector>
@@ -16,6 +15,12 @@ class BasicBlock : public Value {
 
   BasicBlock(std::string label)
       : Value(CompilerContext::instance().get_void_type(), std::move(label)) {}
+
+  ~BasicBlock() {
+    while (!instructions.empty()) {
+      instructions.pop_back();  // destroys the unique_ptr
+    }
+  }
 
   Instruction* appendInstruction(std::unique_ptr<Instruction> instruction) {
     instruction->parent = this;

@@ -9,6 +9,10 @@
 #include "trie.hh"
 #include "type.hh"
 
+namespace ir {
+class Value;
+}
+
 class CompilerContext {
  public:
   static CompilerContext& instance() {
@@ -18,6 +22,8 @@ class CompilerContext {
 
   CompilerContext(const CompilerContext&) = delete;
   CompilerContext& operator=(const CompilerContext&) = delete;
+
+  ~CompilerContext();
 
   std::unordered_map<std::string, Symbol> symbol_table;
   MethodTable method_table;
@@ -49,11 +55,15 @@ class CompilerContext {
   Symbol* lookup(const std::string& name, Scope* startingScope,
                  bool walkParent = true);
 
+  ir::Value* getOrCreateConstant(const Type* type, std::string text);
+
  private:
   CompilerContext();
 
   std::vector<std::unique_ptr<Type>> type_storage;
   std::vector<std::unique_ptr<Scope>> scope_storage;
+
+  std::vector<std::unique_ptr<ir::Value>> constants;
 
   Scope* current_scope = nullptr;
 

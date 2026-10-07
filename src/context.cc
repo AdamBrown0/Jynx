@@ -2,12 +2,16 @@
 
 #include <cassert>
 
+#include "ir/instruction.hh"
+
 CompilerContext::CompilerContext() {
   int32_type = create_type<PrimitiveType>(PrimitiveType::Kind::Int32);
   bool_type = create_type<PrimitiveType>(PrimitiveType::Kind::Bool);
   void_type = create_type<PrimitiveType>(PrimitiveType::Kind::Void);
   char_type = create_type<PrimitiveType>(PrimitiveType::Kind::Char);
 }
+
+CompilerContext::~CompilerContext() = default;
 
 const Type* CompilerContext::get_int32_type() { return int32_type; }
 const Type* CompilerContext::get_bool_type() { return bool_type; }
@@ -93,4 +97,15 @@ Symbol* CompilerContext::lookup(const std::string& name, Scope* startingScope,
 
   assert(scope);
   return scope->lookup(name, scope, walkParent);
+}
+
+ir::Value* CompilerContext::getOrCreateConstant(const Type* type,
+                                                std::string text) {
+  for (auto& c : constants)
+    if (c->type == type && c->name == text) return c.get();
+
+  auto c = std::make_unique<ir::Value>(type, std::move(text));
+  ir::Value* raw = c.get();
+  constants.push_back(std::move(c));
+  return raw;
 }

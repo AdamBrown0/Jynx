@@ -61,7 +61,7 @@ int main(const int argc, char** argv) {
 
   IRGenerator generator(CompilerContext::instance());
 
-  ir::Module* module = generator.generateIR(*sema_tree);
+  auto module = generator.generateIR(*sema_tree);
 
   for (const auto& function : module->get_functions()) {
     IRPrinter::print(*function);
@@ -71,6 +71,5 @@ int main(const int argc, char** argv) {
     Diagnostics::instance().print_errors();
   }
 
-  delete module;
   return 0;
 }

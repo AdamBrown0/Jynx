@@ -2,15 +2,17 @@
 
 #include "diagnostics.hh"
 
-ir::Module* IRGenerator::generateIR(ProgramNode& program) {
-  current_module = new ir::Module();
+std::unique_ptr<ir::Module> IRGenerator::generateIR(ProgramNode& program) {
+  auto mod = std::make_unique<ir::Module>();
+  current_module = mod.get();
 
   generateProgram(program);
 
   current_block = nullptr;
   current_function = nullptr;
+  current_module = nullptr;
 
-  return current_module;
+  return mod;
 }
 
 void IRGenerator::generateProgram(ProgramNode& node) {
@@ -189,7 +191,7 @@ ir::Value* IRGenerator::generateLiteralExpr(LiteralExprNode& node) {
 ir::Value* IRGenerator::makeConstant(const Type* type,
                                      const std::string& value) {
   // TODO: change this for different Constant<type> instructions
-  return new ir::Value(type, value);
+  return CompilerContext::instance().getOrCreateConstant(type, value);
 }
 
 ir::Instruction* IRGenerator::emit(ir::Opcode opcode, const Type* type,

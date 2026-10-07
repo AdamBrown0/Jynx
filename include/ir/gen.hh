@@ -13,7 +13,7 @@ class IRGenerator {
 
   explicit IRGenerator(CompilerContext& ctx) : ctx(ctx) {}
 
-  ir::Module* generateIR(ProgramNode& program);
+  std::unique_ptr<ir::Module> generateIR(ProgramNode& program);
 
  private:
   CompilerContext& ctx;
